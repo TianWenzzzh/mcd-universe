@@ -12,7 +12,7 @@
 | `query-order` | 查询订单详情（餐品构成、金额、就餐方式），补全星点属性 | P0 核心 |
 | `query-my-account` | 查询积分账户（可用/即将过期），提供「积分哨兵」 | P0 核心 |
 | `list-nutrition-foods` | 160 个餐品官方营养数据，构建品类词典与热量着色 | P0 已接入 |
-| `campaign-calendar` | 查询当月营销活动日历，驱动「今日麦签」 | P1 |
+| `campaign-calendar` | 查询当月营销活动日历，驱动「今日麦签」 | P1 已接入 |
 
 实测线上共 35 个 Tool（官方文档 33 个，另有未公开的 query-promotions、query-survey-coupon）。
 
@@ -36,7 +36,9 @@ MCP 实际返回有三种形态，`src/mcp_client.py` 的 `extract_payload()` �
 1. **干净 JSON**：`structuredContent.data` 为 dict（query-my-account）；
 2. **文本包装 JSON**：`content[].text` 内含 "## Original Response" + 内嵌 JSON（order-list / query-order）；
 3. **文本表格**：`"[N]{col,col}:"` + CSV 行（list-nutrition-foods）；
-4. **二层包装（实测坑）**：形态 2 的 JSON 中 `data` 字段又是形态 3 的文本表格——需二次解析，已修复并有测试覆盖。
+4. **二层包装（实测坑）**：形态 2 的 JSON 中 `data` 字段又是形态 3 的文本表格——需二次解析，已修复并有测试覆盖；
+5. **业务错误伪装（实测坑）**：`isError=false` 但 `success=false`（如 query-order 查非本人订单返回 code 610301「非本人订单无法查询」）——客户端必须自查 success 字段，否则管线静默断裂；该校验同时证明 MCP 有账号归属边界，佐证本产品纯本地处理的设计；
+6. **错误文本带人话（实测坑）**：错误响应在 "## Original Response" 标记后先输出提示语再跟 JSON，解析器改用 `raw_decode` 从第一个 `{` 起解析。
 
 ## 业务价值
 
