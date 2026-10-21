@@ -96,7 +96,7 @@
     canvas.width = W * DPR; canvas.height = H * DPR;
     canvas.style.width = W + "px"; canvas.style.height = H + "px";
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-    if (isNebula) { layoutNebula(); return; }
+    if (isNebula) return;  // 星云态无需布局：粒子随机漂移（曾因调用未定义的 layoutNebula 启动即崩）
     layoutStars();  // 视口变化必须重算星点，否则出画（移动端实测坑）
     // 入场动画之后的 resize：粒子直接归位到新星点；动画中的 resize 不动粒子（继续飞向新目标）
     if (startT && performance.now() - startT > PHASE_TEXT + PHASE_HOLD) {
