@@ -42,9 +42,11 @@
   @media (max-width: 640px) {
     #title h1 { font-size: 17px; }
     #title p { font-size: 10px; }
-    #legend { top: 76px; gap: 4px; font-size: 10px; }
+    #demo-badge { top: 58px; font-size: 10px; padding: 4px 8px; }
+    #legend { top: 92px; gap: 4px; font-size: 10px; }
+    #stats { top: 20px; }
     #persona { max-width: calc(100% - 48px); bottom: 72px; }
-    #detail { max-width: calc(100% - 32px); }
+    #detail { top: 26%; bottom: auto; max-width: calc(100% - 32px); }
     #footer { display: none; }
     #actions { left: 24px; right: 24px; bottom: 16px; }
     .btn { flex: 1; text-align: center; }
@@ -85,7 +87,12 @@
     canvas.width = W * DPR; canvas.height = H * DPR;
     canvas.style.width = W + "px"; canvas.style.height = H + "px";
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-    if (isNebula) layoutNebula();
+    if (isNebula) { layoutNebula(); return; }
+    layoutStars();  // 视口变化必须重算星点，否则出画（移动端实测坑）
+    // 入场动画之后的 resize：粒子直接归位到新星点；动画中的 resize 不动粒子（继续飞向新目标）
+    if (startT && performance.now() - startT > PHASE_TEXT + PHASE_HOLD) {
+      particles.forEach(function (p) { if (p.star) { p.x = p.star.x; p.y = p.star.y; } });
+    }
   }
   window.addEventListener("resize", resize);
 
