@@ -15,7 +15,7 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from mcp_client import MCDClient, MCPError, parse_orders
-from star_model import build_starmap, detect_personality
+from star_model import PERSONAS, build_starmap, detect_personality
 
 TEMPLATE = os.path.join(os.path.dirname(__file__), "..", "templates", "starmap.html")
 PLACEHOLDER = "__STARMAP_DATA__"
@@ -70,8 +70,13 @@ def render(starmap, out_path, demo=False, account=None, daily=None):
         "daily": daily,
     }
     if starmap["status"] == "galaxy":
-        name, desc = detect_personality(starmap)
-        payload["persona"] = {"name": name, "desc": desc}
+        name = detect_personality(starmap)
+        payload["persona"] = {"name": name, "desc": PERSONAS[name]}
+    # 人格图鉴：全员亮相 + 自己的那枚高亮（单一数据源，图鉴与鉴定永不漂移）
+    mine = payload["persona"]["name"] if payload["persona"] else None
+    payload["personas"] = [
+        {"name": n, "desc": d, "mine": n == mine} for n, d in PERSONAS.items()
+    ]
 
     with open(TEMPLATE, encoding="utf-8") as f:
         html = f.read()

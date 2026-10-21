@@ -104,11 +104,23 @@ def build_starmap(orders):
     }
 
 
+# 麦门人格图鉴：单一数据源。detect_personality 只返回名字，文案从这里取——图鉴与鉴定永不漂移。
+PERSONAS = {
+    "深夜麦门人": "城市的深夜，总有一盏麦麦的灯为你亮着。你是夜色里最忠实的那颗星。",
+    "早餐先行者": "一日之计在于晨，你的早晨从麦满分开始。整片宇宙都醒得比你晚。",
+    "甜点星住民": "你的宇宙有一股甜味儿。生活再苦，你也要给自己留一颗糖。",
+    "周末麦门人": "工作日属于世界，周末属于麦麦。你的星星总在休息日最闪亮。",
+    "硬核堡星人": "大道至简，堡以载道。你的胃有态度，你的星有分量。",
+    "麦门探索者": "菜单是你的星图，你从不重复同一颗星。探索是你的浪漫。",
+    "麦门旅人": "不困于一种口味，不忠于一家门店。你路过麦门，麦门记住你。",
+}
+
+
 def detect_personality(starmap):
     """麦门人格鉴定。全部正面向；任何输入都有结果（默认：麦门旅人）。"""
     stars = starmap.get("stars") or []
     if not stars:
-        return "麦门旅人", "宇宙初开，你的第一颗星还没点亮——去麦麦吧，未来可期。"
+        return "麦门旅人"
 
     from collections import Counter
     cats = Counter(s["category"] for s in stars)
@@ -120,15 +132,15 @@ def detect_personality(starmap):
     top_cat, top_n = cats.most_common(1)[0]
 
     if night >= 2 and night / max(total, 1) >= 0.3:
-        return "深夜麦门人", "城市的深夜，总有一盏麦麦的灯为你亮着。你是夜色里最忠实的那颗星。"
+        return "深夜麦门人"
     if morning >= 2 and morning / max(total, 1) >= 0.4:
-        return "早餐先行者", "一日之计在于晨，你的早晨从麦满分开始。整片宇宙都醒得比你晚。"
+        return "早餐先行者"
     if weekend >= 2 and weekend / max(total, 1) >= 0.5:
-        return "周末麦门人", "工作日属于世界，周末属于麦麦。你的星星总在休息日最闪亮。"
+        return "周末麦门人"
     if top_cat == "甜品" and top_n / total >= 0.4:
-        return "甜点星住民", "你的宇宙有一股甜味儿。生活再苦，你也要给自己留一颗糖。"
+        return "甜点星住民"
     if top_cat == "汉堡":
-        return "硬核堡星人", "大道至简，堡以载道。你的胃有态度，你的星有分量。"
+        return "硬核堡星人"
     if len({s["product"] for s in stars}) >= max(5, total * 0.6):
-        return "麦门探索者", "菜单是你的星图，你从不重复同一颗星。探索是你的浪漫。"
-    return "麦门旅人", "不困于一种口味，不忠于一家门店。你路过麦门，麦门记住你。"
+        return "麦门探索者"
+    return "麦门旅人"

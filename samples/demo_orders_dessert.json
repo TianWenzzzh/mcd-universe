@@ -1,0 +1,102 @@
+[
+  {
+    "orderId": "DEMOD-001",
+    "createTime": "2026-10-21 15:00:00",
+    "storeName": "麦当劳太原柳巷餐厅",
+    "orderStatus": "6",
+    "realTotalAmount": "12",
+    "orderProductList": [
+      { "productCode": "T01", "productName": "朱古力新地", "quantity": 1 }
+    ]
+  },
+  {
+    "orderId": "DEMOD-002",
+    "createTime": "2026-10-19 16:20:00",
+    "storeName": "麦当劳太原中北大学餐厅",
+    "orderStatus": "6",
+    "realTotalAmount": "6",
+    "orderProductList": [
+      { "productCode": "T02", "productName": "圆筒冰淇淋", "quantity": 1 }
+    ]
+  },
+  {
+    "orderId": "DEMOD-003",
+    "createTime": "2026-10-17 14:30:00",
+    "storeName": "麦当劳太原柳巷餐厅",
+    "orderStatus": "6",
+    "realTotalAmount": "14",
+    "orderProductList": [
+      { "productCode": "T03", "productName": "草莓新地", "quantity": 1 }
+    ]
+  },
+  {
+    "orderId": "DEMOD-004",
+    "createTime": "2026-10-15 15:10:00",
+    "storeName": "麦当劳太原中北大学餐厅",
+    "orderStatus": "6",
+    "realTotalAmount": "8.5",
+    "orderProductList": [
+      { "productCode": "T04", "productName": "苹果派", "quantity": 1 }
+    ]
+  },
+  {
+    "orderId": "DEMOD-005",
+    "createTime": "2026-10-12 20:50:00",
+    "storeName": "麦当劳太原柳巷餐厅",
+    "orderStatus": "6",
+    "realTotalAmount": "12",
+    "orderProductList": [
+      { "productCode": "T01", "productName": "朱古力新地", "quantity": 1 }
+    ]
+  },
+  {
+    "orderId": "DEMOD-006",
+    "createTime": "2026-10-09 12:10:00",
+    "storeName": "麦当劳太原中北大学餐厅",
+    "orderStatus": "6",
+    "realTotalAmount": "25.5",
+    "orderProductList": [
+      { "productCode": "B01", "productName": "巨无霸套餐", "quantity": 1 }
+    ]
+  },
+  {
+    "orderId": "DEMOD-007",
+    "createTime": "2026-10-06 18:30:00",
+    "storeName": "麦当劳太原柳巷餐厅",
+    "orderStatus": "6",
+    "realTotalAmount": "13",
+    "orderProductList": [
+      { "productCode": "S01", "productName": "中薯条", "quantity": 1 }
+    ]
+  },
+  {
+    "orderId": "DEMOD-008",
+    "createTime": "2026-10-03 17:00:00",
+    "storeName": "麦当劳太原中北大学餐厅",
+    "orderStatus": "6",
+    "realTotalAmount": "6",
+    "orderProductList": [
+      { "productCode": "T02", "productName": "圆筒冰淇淋", "quantity": 1 }
+    ]
+  },
+  {
+    "orderId": "DEMOD-009",
+    "createTime": "2026-10-01 19:20:00",
+    "storeName": "麦当劳太原柳巷餐厅",
+    "orderStatus": "6",
+    "realTotalAmount": "15",
+    "orderProductList": [
+      { "productCode": "S03", "productName": "麦乐鸡5块", "quantity": 1 }
+    ]
+  },
+  {
+    "orderId": "DEMOD-010",
+    "createTime": "2026-09-28 15:40:00",
+    "storeName": "麦当劳太原中北大学餐厅",
+    "orderStatus": "6",
+    "realTotalAmount": "9",
+    "orderProductList": [
+      { "productCode": "T05", "productName": "葡式蛋挞", "quantity": 1 }
+    ]
+  }
+]

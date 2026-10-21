@@ -41,6 +41,15 @@
   #legend span { display: flex; align-items: center; gap: 6px; }
   #legend i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
   #footer { right: 24px; top: 50%; transform: translateY(-50%); writing-mode: vertical-rl; font-size: 10px; color: rgba(154,150,184,.5); letter-spacing: 2px; }
+  #dex-panel { left: 50%; bottom: 84px; transform: translateX(-50%) translateY(16px); width: min(560px, calc(100% - 48px)); max-height: 46vh; overflow-y: auto; padding: 16px 18px; background: rgba(16,16,36,.94); border: 1px solid rgba(255,255,255,.16); border-radius: 12px; opacity: 0; transition: opacity .3s, transform .3s; pointer-events: none; }
+  #dex-panel.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+  #dex-panel h3 { font-size: 13px; font-weight: 600; color: #ffd97a; letter-spacing: 2px; margin-bottom: 10px; }
+  .dex-item { padding: 9px 12px; border-radius: 8px; margin-bottom: 6px; border: 1px solid transparent; }
+  .dex-item .n { font-size: 13px; font-weight: 500; color: #e8e6f0; }
+  .dex-item .d { font-size: 11px; color: #9a96b8; margin-top: 3px; line-height: 1.6; }
+  .dex-item.mine { border-color: rgba(255,217,122,.5); background: rgba(255,217,122,.07); }
+  .dex-item.mine .n { color: #ffd97a; }
+  .dex-item.mine .n::after { content: " · 你"; font-size: 10px; color: #ffd97a; }
   #demo-badge { top: 64px; left: 24px; display: none; font-size: 11px; color: #ffd97a; background: rgba(255,217,122,.1); border: 1px solid rgba(255,217,122,.35); border-radius: 6px; padding: 5px 10px; letter-spacing: 1px; }
   #demo-badge a { color: #ffd97a; pointer-events: auto; }
   @media (max-width: 640px) {
@@ -66,8 +75,10 @@
 <div class="hud" id="legend"></div>
 <div class="hud" id="persona"><h2 id="persona-name"></h2><p id="persona-desc"></p></div>
 <div class="hud" id="detail"></div>
+<div class="hud" id="dex-panel"><h3>麦门人格图鉴</h3><div id="dex-list"></div></div>
 <div class="hud" id="footer">数据本地处理 · TOKEN 不出本机</div>
 <div id="actions">
+  <button class="btn" id="btn-dex">人格图鉴</button>
   <button class="btn" id="btn-replay">重播入场</button>
   <button class="btn primary" id="btn-save">保存分享卡</button>
 </div>
@@ -372,8 +383,32 @@
   document.getElementById("btn-replay").addEventListener("click", function () {
     cancelAnimationFrame(raf); startT = 0; selected = -1;
     detail.classList.remove("show");
+    dexPanel.classList.remove("show");
     document.getElementById("persona").classList.remove("show");
     buildParticles(); raf = requestAnimationFrame(frame);
+  });
+
+  // ---- 人格图鉴 ----
+  var dexPanel = document.getElementById("dex-panel");
+  var dexBtn = document.getElementById("btn-dex");
+  function renderDex() {
+    var list = document.getElementById("dex-list");
+    list.innerHTML = "";
+    (DATA.personas || []).forEach(function (p) {
+      var div = document.createElement("div");
+      div.className = "dex-item" + (p.mine ? " mine" : "");
+      div.innerHTML = '<div class="n">' + esc(p.name) + '</div><div class="d">' + esc(p.desc) + "</div>";
+      list.appendChild(div);
+    });
+  }
+  dexBtn.addEventListener("click", function () {
+    renderDex();
+    dexPanel.classList.toggle("show");
+    detail.classList.remove("show");
+  });
+  // 点画布空白处收起图鉴
+  canvas.addEventListener("click", function (e) {
+    if (dexPanel.classList.contains("show") && e.target === canvas) dexPanel.classList.remove("show");
   });
 
   // ---- 启动 ----

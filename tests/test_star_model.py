@@ -6,15 +6,14 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from mcp_client import MCPError, check_business_error, extract_payload, parse_orders
-from star_model import build_starmap, categorize, detect_personality
+from star_model import PERSONAS, build_starmap, categorize, detect_personality
 
 
 def test_zero_orders_nebula():
     sm = build_starmap([])
     assert sm["status"] == "nebula", "0 单必须降级为星云状态而不是报错"
     assert sm["stars"] == []
-    name, _ = detect_personality(sm)
-    assert name == "麦门旅人"
+    assert detect_personality(sm) == "麦门旅人"
 
 
 def test_parse_orders_empty_data():
@@ -54,16 +53,16 @@ def test_personality_night():
     orders = [
         _order(f"N{i}", "麦乐鸡", "20", f"2026-10-0{i+1} 23:30:00") for i in range(3)
     ]
-    name, desc = detect_personality(build_starmap(orders))
+    name = detect_personality(build_starmap(orders))
     assert name == "深夜麦门人", f"夜间订单应鉴定为深夜麦门人，实际 {name}"
-    assert desc
+    assert PERSONAS[name]
 
 
 def test_personality_dessert():
     orders = [
         _order(f"D{i}", "圆筒冰淇淋", "8", f"2026-10-0{i+1} 15:00:00") for i in range(3)
     ] + [_order("D9", "巨无霸", "25", "2026-10-09 15:00:00")]
-    name, _ = detect_personality(build_starmap(orders))
+    name = detect_personality(build_starmap(orders))
     assert name == "甜点星住民"
 
 
