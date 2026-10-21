@@ -1,0 +1,113 @@
+[
+  {
+    "orderId": "DEMO-001",
+    "orderType": "1",
+    "createTime": "2026-10-22 02:39:00",
+    "beType": "1",
+    "storeCode": "140001",
+    "storeName": "麦当劳太原中北大学餐厅",
+    "orderStatus": "6",
+    "realTotalAmount": "0",
+    "orderProductList": [
+      {
+        "productCode": "D001",
+        "productName": "大脆鸡扒麦满分配豆浆",
+        "quantity": 1,
+        "comboItemList": [
+          { "itemName": "大脆鸡扒麦满分", "itemQuantity": 1 },
+          { "itemName": "小杯鲜萃咖啡", "itemQuantity": 1 }
+        ]
+      }
+    ]
+  },
+  {
+    "orderId": "DEMO-002",
+    "createTime": "2026-10-18 19:42:00",
+    "storeName": "麦当劳太原中北大学餐厅",
+    "orderStatus": "6",
+    "realTotalAmount": "25.5",
+    "orderProductList": [
+      { "productCode": "B01", "productName": "巨无霸套餐", "quantity": 1 }
+    ]
+  },
+  {
+    "orderId": "DEMO-003",
+    "createTime": "2026-10-15 21:15:00",
+    "storeName": "麦当劳太原柳巷餐厅",
+    "orderStatus": "6",
+    "realTotalAmount": "13",
+    "orderProductList": [
+      { "productCode": "S01", "productName": "中薯条", "quantity": 1 }
+    ]
+  },
+  {
+    "orderId": "DEMO-004",
+    "createTime": "2026-10-12 22:30:00",
+    "storeName": "麦当劳太原中北大学餐厅",
+    "orderStatus": "6",
+    "realTotalAmount": "12",
+    "orderProductList": [
+      { "productCode": "T01", "productName": "朱古力新地", "quantity": 1 }
+    ]
+  },
+  {
+    "orderId": "DEMO-005",
+    "createTime": "2026-10-10 12:30:00",
+    "storeName": "麦当劳太原柳巷餐厅",
+    "orderStatus": "6",
+    "realTotalAmount": "11",
+    "orderProductList": [
+      { "productCode": "R01", "productName": "可口可乐（大）", "quantity": 1 }
+    ]
+  },
+  {
+    "orderId": "DEMO-006",
+    "createTime": "2026-10-08 08:15:00",
+    "storeName": "麦当劳太原中北大学餐厅",
+    "orderStatus": "6",
+    "realTotalAmount": "16",
+    "orderProductList": [
+      { "productCode": "M01", "productName": "猪柳蛋麦满分套餐", "quantity": 1 }
+    ]
+  },
+  {
+    "orderId": "DEMO-007",
+    "createTime": "2026-10-05 18:50:00",
+    "storeName": "麦当劳太原柳巷餐厅",
+    "orderStatus": "6",
+    "realTotalAmount": "32",
+    "orderProductList": [
+      { "productCode": "B02", "productName": "麦辣鸡腿堡套餐", "quantity": 1 }
+    ]
+  },
+  {
+    "orderId": "DEMO-008",
+    "createTime": "2026-10-02 16:20:00",
+    "storeName": "麦当劳太原中北大学餐厅",
+    "orderStatus": "6",
+    "realTotalAmount": "6",
+    "orderProductList": [
+      { "productCode": "T02", "productName": "圆筒冰淇淋", "quantity": 1 }
+    ]
+  },
+  {
+    "orderId": "DEMO-009",
+    "createTime": "2026-09-28 12:10:00",
+    "storeName": "麦当劳太原柳巷餐厅",
+    "orderStatus": "6",
+    "realTotalAmount": "27",
+    "orderProductList": [
+      { "productCode": "B03", "productName": "板烧鸡腿堡套餐", "quantity": 1 }
+    ]
+  },
+  {
+    "orderId": "DEMO-010",
+    "createTime": "2026-09-20 23:05:00",
+    "storeName": "麦当劳太原中北大学餐厅",
+    "orderStatus": "6",
+    "realTotalAmount": "13.5",
+    "orderProductList": [
+      { "productCode": "S02", "productName": "大薯条", "quantity": 1 }
+    ]
+  }
+]

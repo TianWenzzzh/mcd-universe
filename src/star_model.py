@@ -114,7 +114,7 @@ def detect_personality(starmap):
     cats = Counter(s["category"] for s in stars)
     total = len(stars)
     hours = [s["dt"].hour for s in stars if s["dt"]]
-    night = sum(1 for h in hours if h >= 22 or h < 2)
+    night = sum(1 for h in hours if h >= 22 or h < 3)  # 深夜：22 点至次日 3 点前（含 2 点档，实测凌晨订单在此区间）
     morning = sum(1 for h in hours if 5 <= h < 10)
     weekend = sum(1 for s in stars if s["dt"] and s["dt"].weekday() >= 5)
     top_cat, top_n = cats.most_common(1)[0]

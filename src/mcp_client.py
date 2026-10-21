@@ -19,6 +19,12 @@ class MCPError(Exception):
     pass
 
 
+def check_business_error(payload, name):
+    """业务错误检测：isError=false 但 success=false 的响应（实测 code 610301 非本人订单）。"""
+    if isinstance(payload, dict) and payload.get("success") is False:
+        raise MCPError(f"工具 {name} 业务错误 [{payload.get('code')}]: {payload.get('message')}")
+
+
 class MCDClient:
     def __init__(self, token=None, url=MCP_URL):
         self.token = token or os.environ.get("MCD_MCP_TOKEN")
@@ -54,7 +60,9 @@ class MCDClient:
         result = self._rpc("tools/call", {"name": name, "arguments": args or {}})
         if result.get("isError"):
             raise MCPError(f"工具 {name} 返回错误: {result}")
-        return extract_payload(result)
+        payload = extract_payload(result)
+        check_business_error(payload, name)
+        return payload
 
 
 def _parse_table(text):
@@ -83,11 +91,15 @@ def extract_payload(result):
             text = block["text"]
             m = re.search(r"## Original Response\s*\n(.+)", text, re.S)
             if m:
-                try:
-                    payload = json.loads(m.group(1).strip())
-                    break
-                except json.JSONDecodeError:
-                    pass
+                # 标记后可能带人话提示再跟 JSON（错误响应实测如此），从第一个 { 起 raw_decode
+                body = m.group(1)
+                start = body.find("{")
+                if start >= 0:
+                    try:
+                        payload, _ = json.JSONDecoder().raw_decode(body[start:])
+                        break
+                    except json.JSONDecodeError:
+                        pass
             rows = _parse_table(text)
             if rows is not None:
                 return {"data": rows}

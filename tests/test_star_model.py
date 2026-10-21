@@ -5,7 +5,7 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from mcp_client import extract_payload, parse_orders
+from mcp_client import MCPError, check_business_error, extract_payload, parse_orders
 from star_model import build_starmap, categorize, detect_personality
 
 
@@ -95,6 +95,26 @@ def test_extract_payload_three_formats():
     rows4 = extract_payload(nested)["data"]
     assert isinstance(rows4, list) and len(rows4) == 2, f"二层表格解析失败: {type(rows4)}"
     assert rows4[1]["productName"] == "薯条"
+
+
+def test_extract_payload_error_text_with_prose():
+    """实测坑：错误响应在 Original Response 标记后先输出人话提示再跟 JSON。"""
+    err_text = ('# API Response Information\n\n## Original Response\n\n'
+                '如果这个链接不为空，把lockerQrCode这个链接， 用![alt](lockerQrCode) 格式渲染\n'
+                '{"success":false,"code":610301,"message":"非本人订单无法查询！"}')
+    payload = extract_payload({"content": [{"type": "text", "text": err_text}]})
+    assert payload["success"] is False and payload["code"] == 610301
+
+
+def test_business_error_detection():
+    """isError=false 但 success=false 的业务错误必须被捕获，不允许静默通过。"""
+    try:
+        check_business_error({"success": False, "code": 610301, "message": "非本人订单无法查询！"}, "query-order")
+        assert False, "应当抛出 MCPError"
+    except MCPError as e:
+        assert "610301" in str(e)
+    # 正常响应不抛
+    check_business_error({"success": True, "data": {}}, "query-order")
 
 
 if __name__ == "__main__":
