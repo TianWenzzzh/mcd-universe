@@ -6,12 +6,22 @@
 
 **麦当劳程序员创意开发大赛（WorkBuddy × 麦当劳 · 1024 程序员节）参赛作品**
 
+[![CI](https://github.com/TianWenzzzh/mcd-universe/actions/workflows/ci.yml/badge.svg)](https://github.com/TianWenzzzh/mcd-universe/actions/workflows/ci.yml)
+![Python](https://img.shields.io/badge/python-3.8%2B-blue)
+![零依赖](https://img.shields.io/badge/dependencies-0-brightgreen)
+![测试](https://img.shields.io/badge/selftest-16%20passed-success)
+![License](https://img.shields.io/badge/license-MIT-blue)
+
 ## 在线演示
 
 [打开演示星图 · 深夜麦门人（模拟数据）](https://tianwenzzzh.github.io/mcd-universe/demo/) —— 无需 Token，直接看效果。
 [甜点星住民版演示](https://tianwenzzzh.github.io/mcd-universe/demo/dessert.html) · [预览 0 单「星云」状态](https://tianwenzzzh.github.io/mcd-universe/demo/?nebula=1)
 
-![星图截图](docs/assets/demo-desktop-v2.png)
+![演示动画：粒子汇聚成字，炸开成星图](docs/assets/demo.gif)
+
+| 桌面端 | 移动端 | 星点详情 |
+|---|---|---|
+| ![桌面端](docs/assets/demo-desktop-v2.png) | ![移动端](docs/assets/demo-mobile-v3.png) | ![详情](docs/assets/demo-detail.png) |
 
 ## 功能
 
@@ -42,6 +52,20 @@ Python（MCP 客户端 + 订单解析 + 星图模型 + 人格鉴定，9 条测�
 
 ## 工程细节
 
+**核心洞察：取数交给 MCP，归类交给代码，表达交给 Canvas。**
+
+```mermaid
+flowchart TD
+    U[用户: 看看我的麦门宇宙] --> A[generate_report.py]
+    A -->|order-list 历史订单| M[麦当劳 MCP<br/>mcp.mcd.cn]
+    A -->|query-my-account 积分| M
+    A -->|campaign-calendar 活动日历| M
+    M --> P[src/mcp_client.py<br/>三形态解析器]
+    P --> S[src/star_model.py<br/>星图模型 + 人格鉴定]
+    S --> R[templates/starmap.html<br/>Canvas 粒子渲染]
+    R --> C[分享卡 PNG<br/>1080×1440 竖版]
+```
+
 `src/mcp_client.py` 处理了麦当劳 MCP 实测的四种返回形态：干净 JSON、文本包装内嵌 JSON、`[N]{列名}:` 文本表格、「JSON 里再套文本表格」的二层包装——错误响应还会在标记后先输出人话再跟 JSON，且业务错误 `isError=false` 但 `success=false`（如 query-order 非本人订单 610301），均已归一化并有测试覆盖。`scripts/lint_template.py` 对渲染模板做静态检查（未定义函数调用 / 缺失 DOM 引用），防住只在罕见路径暴露的崩溃。详见 [MCP_INTEGRATION.md](MCP_INTEGRATION.md)。
 
 ## 目录结构
@@ -54,11 +78,13 @@ Python（MCP 客户端 + 订单解析 + 星图模型 + 人格鉴定，9 条测�
 ├── samples/                  # 演示数据（匿名化）与官方营养数据
 ├── tests/                    # 测试（先证伪再交付）
 ├── demo/                     # 在线演示页
-├── docs/assets/              # 截图资产
+├── docs/assets/              # GIF 与截图资产
+├── .github/workflows/        # CI（测试 + 模板静态检查）
 ├── CONTEST_DECLARATION.md    # 参赛声明
 ├── MCP_INTEGRATION.md        # MCP 集成说明
 ├── mcp-config.example.json   # 脱敏配置示例
-└── workbuddy.md              # WorkBuddy 开发记录
+├── workbuddy.md              # WorkBuddy 开发记录
+└── LICENSE                   # MIT
 ```
 
 ## 安全承诺
