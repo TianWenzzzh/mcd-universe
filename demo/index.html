@@ -229,12 +229,46 @@
     var g = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) * 0.7);
     g.addColorStop(0, "#141428"); g.addColorStop(1, "#0a0a1a");
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    // 星云底衬：三团低透明度色雾，制造深空层次
+    var blobs = [[0.22, 0.28, "#2a1f4a"], [0.78, 0.68, "#1f2f4a"], [0.5, 0.85, "#3a2340"]];
+    for (var b = 0; b < blobs.length; b++) {
+      var bx = W * blobs[b][0], by = H * blobs[b][1], br = Math.min(W, H) * 0.42;
+      var bg = ctx.createRadialGradient(bx, by, 0, bx, by, br);
+      bg.addColorStop(0, blobs[b][2] + "38"); bg.addColorStop(1, blobs[b][2] + "00");
+      ctx.fillStyle = bg;
+      ctx.fillRect(bx - br, by - br, br * 2, br * 2);
+    }
     ctx.fillStyle = "rgba(255,255,255,.18)";
     for (var i = 0; i < 60; i++) {
       var x = (i * 97.13) % W, y = (i * 57.31) % H;
       var a = 0.05 + 0.1 * Math.abs(Math.sin(el / 1400 + i));
       ctx.fillStyle = "rgba(255,255,255," + a + ")";
       ctx.fillRect(x, y, 1.4, 1.4);
+    }
+    drawShootingStars(el);
+  }
+
+  // 流星：随机生成，斜向拖尾
+  var meteors = [], nextMeteor = 1200;
+  function drawShootingStars(el) {
+    if (el > nextMeteor && meteors.length < 2) {
+      nextMeteor = el + 1800 + Math.random() * 2600;
+      var fromLeft = Math.random() < 0.5;
+      meteors.push({
+        x: fromLeft ? -40 : W + 40, y: Math.random() * H * 0.4,
+        vx: (fromLeft ? 1 : -1) * (5 + Math.random() * 4), vy: 1.5 + Math.random() * 2,
+        life: 0
+      });
+    }
+    for (var i = meteors.length - 1; i >= 0; i--) {
+      var m = meteors[i];
+      m.x += m.vx; m.y += m.vy; m.life += 16;
+      var tail = 46;
+      var mg = ctx.createLinearGradient(m.x, m.y, m.x - m.vx * tail / 5, m.y - m.vy * tail / 5);
+      mg.addColorStop(0, "rgba(255,255,255,.85)"); mg.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.strokeStyle = mg; ctx.lineWidth = 1.6; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(m.x - m.vx * tail / 5, m.y - m.vy * tail / 5); ctx.stroke();
+      if (m.life > 900 || m.x < -60 || m.x > W + 60) meteors.splice(i, 1);
     }
   }
 
@@ -259,6 +293,15 @@
     ctx.beginPath(); ctx.arc(s.x, s.y, r, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = "rgba(255,255,255," + (0.5 * tw) + ")";
     ctx.beginPath(); ctx.arc(s.x - r * 0.25, s.y - r * 0.25, r * 0.35, 0, Math.PI * 2); ctx.fill();
+    // 高星等星加四道星芒（经典亮星观感）
+    if (s.magnitude >= 4) {
+      var flare = r * (2.2 + 0.5 * Math.sin(el / 300 + s.phase));
+      ctx.strokeStyle = hexA(s.color, 0.4 * tw); ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(s.x - flare, s.y); ctx.lineTo(s.x + flare, s.y);
+      ctx.moveTo(s.x, s.y - flare); ctx.lineTo(s.x, s.y + flare);
+      ctx.stroke();
+    }
     if (selected === stars.indexOf(s)) {
       ctx.strokeStyle = "#ffd97a"; ctx.lineWidth = 1.5;
       ctx.beginPath(); ctx.arc(s.x, s.y, r + 8 + 2 * Math.sin(el / 200), 0, Math.PI * 2); ctx.stroke();

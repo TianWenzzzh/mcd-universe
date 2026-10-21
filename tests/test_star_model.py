@@ -116,6 +116,60 @@ def test_business_error_detection():
     check_business_error({"success": True, "data": {}}, "query-order")
 
 
+def test_magnitude_clamped_1_to_5():
+    sm = build_starmap([_order("H1", "巨无霸", "999", "2026-10-01 12:00:00")])
+    assert sm["stars"][0]["magnitude"] == 5
+    sm2 = build_starmap([_order("H2", "可口可乐", "0", "2026-10-01 12:00:00")])
+    assert sm2["stars"][0]["magnitude"] >= 1
+
+
+def test_malformed_time_no_crash():
+    orders = [
+        _order("M1", "薯条", "12", "not-a-date"),
+        _order("M2", "可乐", "11", "2026-10-02 12:00:00"),
+    ]
+    sm = build_starmap(orders)
+    assert len(sm["stars"]) == 2  # 坏时间不炸，星点照出
+    detect_personality(sm)  # 坏时间不炸人格鉴定
+
+
+def test_single_order():
+    sm = build_starmap([_order("S1", "麦辣鸡腿堡套餐", "32", "2026-10-05 18:50:00")])
+    assert sm["status"] == "galaxy" and sm["summary"]["orderCount"] == 1
+    assert detect_personality(sm) in PERSONAS
+
+
+def test_order_without_products():
+    order = {"orderId": "NP1", "createTime": "2026-10-05 18:50:00",
+             "realTotalAmount": "20", "orderProductList": []}
+    sm = build_starmap([order])
+    assert sm["stars"][0]["category"] == "小食"  # 无餐品走兜底品类
+    assert sm["stars"][0]["quantity"] == 0
+
+
+def test_persona_burger_and_explorer():
+    burgers = [_order(f"B{i}", "巨无霸套餐", "25", f"2026-10-0{i+1} 12:00:00") for i in range(3)]
+    assert detect_personality(build_starmap(burgers)) == "硬核堡星人"
+    varied = [_order(f"V{i}", n, "15", f"2026-10-0{i+1} 12:00:00")
+              for i, n in enumerate(["巨无霸", "中薯条", "朱古力新地", "可口可乐", "麦乐鸡", "猪柳蛋麦满分套餐"])]
+    assert detect_personality(build_starmap(varied)) == "麦门探索者"
+
+
+def test_persona_morning_and_weekend():
+    mornings = [_order(f"AM{i}", "猪柳蛋麦满分套餐", "16", f"2026-10-0{i+1} 08:15:00") for i in range(3)]
+    assert detect_personality(build_starmap(mornings)) == "早餐先行者"
+    # 2026-10-17/18 是周六日；再补一个非凌晨非早晨的周六单
+    weekends = [_order(f"WE{i}", "巨无霸套餐", "25", t) for i, t in
+                enumerate(["2026-10-17 12:00:00", "2026-10-18 12:00:00", "2026-10-11 12:00:00"])]
+    assert detect_personality(build_starmap(weekends)) == "周末麦门人"
+
+
+def test_summary_rounding():
+    orders = [_order("R1", "薯条", "13.33", "2026-10-01 12:00:00"),
+              _order("R2", "可乐", "11.11", "2026-10-02 12:00:00")]
+    assert build_starmap(orders)["summary"]["totalAmount"] == 24.44
+
+
 if __name__ == "__main__":
     fails = 0
     for name, fn in sorted(globals().items()):
