@@ -3,6 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⭐</text></svg>">
+<meta property="og:title" content="麦门宇宙 McUniverse">
+<meta property="og:description" content="你的每一单，都是麦门宇宙里的一颗星。基于麦当劳MCP的个人订单星图与麦门人格鉴定。">
+<meta name="description" content="麦门宇宙：基于麦当劳中国官方MCP的订单星图与麦门人格鉴定Skill，数据本地处理。">
 <title>麦门宇宙 McUniverse</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -33,11 +37,24 @@
   #legend span { display: flex; align-items: center; gap: 6px; }
   #legend i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
   #footer { right: 24px; top: 50%; transform: translateY(-50%); writing-mode: vertical-rl; font-size: 10px; color: rgba(154,150,184,.5); letter-spacing: 2px; }
+  #demo-badge { top: 64px; left: 24px; display: none; font-size: 11px; color: #ffd97a; background: rgba(255,217,122,.1); border: 1px solid rgba(255,217,122,.35); border-radius: 6px; padding: 5px 10px; letter-spacing: 1px; }
+  #demo-badge a { color: #ffd97a; pointer-events: auto; }
+  @media (max-width: 640px) {
+    #title h1 { font-size: 17px; }
+    #title p { font-size: 10px; }
+    #legend { top: 76px; gap: 4px; font-size: 10px; }
+    #persona { max-width: calc(100% - 48px); bottom: 72px; }
+    #detail { max-width: calc(100% - 32px); }
+    #footer { display: none; }
+    #actions { left: 24px; right: 24px; bottom: 16px; }
+    .btn { flex: 1; text-align: center; }
+  }
 </style>
 </head>
 <body>
 <canvas id="sky"></canvas>
 <div class="hud" id="title"><h1>麦门宇宙</h1><p>MCUNIVERSE · 你的每一单，都是星海里的一颗星</p></div>
+<div class="hud" id="demo-badge">演示数据 · <a href="https://github.com/TianWenzzzh/mcd-universe" target="_blank">用你的真实订单生成 →</a></div>
 <div class="hud" id="stats"></div>
 <div class="hud" id="legend"></div>
 <div class="hud" id="persona"><h2 id="persona-name"></h2><p id="persona-desc"></p></div>
@@ -80,11 +97,11 @@
     var catIdx = { "汉堡": 0, "早餐": 1, "甜品": 2, "小食": 3, "饮品": 4 };
     stars.forEach(function (s, i) {
       var t = tMax > tMin ? (times[i] - tMin) / (tMax - tMin) : 0.5;
-      var ang = -Math.PI * 0.85 + t * Math.PI * 1.7;
-      var r = Math.min(W, H) * 0.16 + (catIdx[s.category] || 0) * Math.min(W, H) * 0.055
-            + (s.magnitude - 1) * 7 + (i % 3) * 9;
+      var ang = -Math.PI * 1.05 + t * Math.PI * 2.1;  // 超过半圆的弧，时间轴从左到右
+      var r = Math.min(W, H) * 0.17 + (catIdx[s.category] || 0) * Math.min(W, H) * 0.06
+            + (s.magnitude - 1) * 8 + (i % 3) * 10;
       s.x = cx + Math.cos(ang) * r;
-      s.y = cy + Math.sin(ang) * r * 0.82;
+      s.y = cy + Math.sin(ang) * r * 0.8;
       s.r = 2.2 + s.magnitude * 1.1;
       s.phase = Math.random() * Math.PI * 2;
       s.tw = 0.6 + Math.random() * 0.8;
@@ -118,24 +135,22 @@
 
   function buildParticles() {
     var pts = isNebula ? [] : rasterText();
-    var targets = isNebula ? [] : stars.map(function (s) { return { x: s.x, y: s.y }; });
     var n = isNebula ? 260 : Math.max(pts.length, 900);
     particles = [];
     for (var i = 0; i < n; i++) {
-      var p = {
+      var star = null;
+      if (!isNebula) {
+        // 每个粒子都认领一颗星（循环分配），文字解散后全体归位，无残留
+        star = stars[i % stars.length];
+      }
+      particles.push({
         x: Math.random() * W, y: Math.random() * H,
         tx: pts.length ? pts[i % pts.length].x : W / 2 + (Math.random() - 0.5) * W * 0.6,
         ty: pts.length ? pts[i % pts.length].y : H / 2 + (Math.random() - 0.5) * H * 0.6,
-        star: null, size: 0.8 + Math.random() * 1.6,
-        color: "rgba(255,255,255," + (0.25 + Math.random() * 0.5) + ")",
+        star: star, size: star ? star.r * 0.75 : 0.8 + Math.random() * 1.6,
+        color: star ? hexA(star.color, 0.95) : "rgba(255,255,255," + (0.25 + Math.random() * 0.5) + ")",
         speed: 0.012 + Math.random() * 0.02, delay: Math.random() * 500
-      };
-      // 后半段粒子认领星点目标
-      if (!isNebula && i % 3 === 0 && targets.length) {
-        var s = stars[Math.floor(Math.random() * stars.length)];
-        p.star = s; p.color = hexA(s.color, 0.95); p.size = s.r * 0.7;
-      }
-      particles.push(p);
+      });
     }
   }
 
@@ -289,7 +304,12 @@
     var g = ex.createRadialGradient(540, 620, 0, 540, 620, 900);
     g.addColorStop(0, "#141428"); g.addColorStop(1, "#0a0a1a");
     ex.fillStyle = g; ex.fillRect(0, 0, 1080, 1440);
-    try { ex.drawImage(canvas, 0, 0, 1080, 1440); } catch (err) {}
+    try {
+      // 等比缩放 + 居中裁剪，避免星图拉伸变形
+      var scale = Math.max(1080 / canvas.width, 1440 / canvas.height);
+      var dw = canvas.width * scale, dh = canvas.height * scale;
+      ex.drawImage(canvas, (1080 - dw) / 2, (1440 - dh) / 2, dw, dh);
+    } catch (err) {}
     ex.textAlign = "center";
     ex.fillStyle = "#ffd97a"; ex.font = "600 64px -apple-system, PingFang SC, Microsoft YaHei, sans-serif";
     ex.fillText("麦门宇宙", 540, 130);
@@ -330,6 +350,12 @@
   if (!isNebula) layoutStars();
   buildParticles();
   renderHUD();
+  if (DATA.demo) {
+    var badge = document.getElementById("demo-badge");
+    if (badge) badge.style.display = "block";
+  }
+  // 调试/自动化测试句柄
+  window.__mcuniverse = { stars: stars, data: DATA, isNebula: isNebula, phase: function () { return performance.now() - startT; } };
   raf = requestAnimationFrame(frame);
 })();
 </script>

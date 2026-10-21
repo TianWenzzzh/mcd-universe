@@ -14,7 +14,7 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from mcp_client import MCDClient, parse_orders
+from mcp_client import MCDClient, MCPError, parse_orders
 from star_model import build_starmap, detect_personality
 
 TEMPLATE = os.path.join(os.path.dirname(__file__), "..", "templates", "starmap.html")
@@ -27,15 +27,25 @@ def load_orders_demo(path):
 
 
 def load_orders_live():
-    return parse_orders(MCDClient().call_tool("order-list"))
+    client = MCDClient()
+    orders = parse_orders(client.call_tool("order-list"))
+    account = {}
+    try:
+        acc = client.call_tool("query-my-account")
+        account = acc.get("data", {}) if isinstance(acc, dict) else {}
+    except MCPError as e:
+        print(f"积分查询跳过: {e}")
+    return orders, account
 
 
-def render(starmap, out_path):
+def render(starmap, out_path, demo=False, account=None):
     payload = {
         "status": starmap["status"],
         "stars": [{k: v for k, v in s.items() if k != "dt"} for s in starmap.get("stars", [])],
         "summary": starmap["summary"],
         "persona": None,
+        "demo": demo,
+        "account": account or None,
     }
     if starmap["status"] == "galaxy":
         name, desc = detect_personality(starmap)
@@ -61,13 +71,15 @@ def main():
     ap.add_argument("-o", "--out", default="report.html")
     args = ap.parse_args()
 
+    account = None
     if args.live:
-        orders = load_orders_live()
+        orders, account = load_orders_live()
+        render(build_starmap(orders), args.out, demo=False, account=account)
     elif args.demo:
         orders = load_orders_demo(args.demo)
+        render(build_starmap(orders), args.out, demo=True)
     else:
         ap.error("必须指定 --demo 或 --live")
-    render(build_starmap(orders), args.out)
 
 
 if __name__ == "__main__":
