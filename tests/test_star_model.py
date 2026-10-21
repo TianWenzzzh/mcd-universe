@@ -1,0 +1,110 @@
+"""星图引擎测试：先证伪再交付。覆盖零单降级、三类 MCP 返回格式、人格鉴定分支。"""
+import json
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+
+from mcp_client import extract_payload, parse_orders
+from star_model import build_starmap, categorize, detect_personality
+
+
+def test_zero_orders_nebula():
+    sm = build_starmap([])
+    assert sm["status"] == "nebula", "0 单必须降级为星云状态而不是报错"
+    assert sm["stars"] == []
+    name, _ = detect_personality(sm)
+    assert name == "麦门旅人"
+
+
+def test_parse_orders_empty_data():
+    assert parse_orders({"success": True, "data": {}}) == []
+    assert parse_orders({"success": True, "data": {"list": None}}) == []
+
+
+def _order(oid, name, amount, time, store="中北大学店"):
+    return {
+        "orderId": oid, "orderType": "1", "createTime": time,
+        "storeName": store, "orderStatus": "已完成",
+        "realTotalAmount": amount,
+        "orderProductList": [{"productCode": "P1", "productName": name, "quantity": 1}],
+    }
+
+
+def test_starmap_galaxy():
+    orders = [
+        _order("A2", "巨无霸", "25.5", "2026-10-01 22:30:00"),
+        _order("A1", "薯条", "12.0", "2026-09-15 12:00:00"),
+        _order("A3", "朱古力新地", "15.0", "2026-10-10 23:10:00"),
+    ]
+    sm = build_starmap(orders)
+    assert sm["status"] == "galaxy"
+    assert sm["summary"]["orderCount"] == 3
+    assert sm["summary"]["totalAmount"] == 52.5
+    # 按时间排序：A1 最早
+    assert sm["stars"][0]["id"] == "A1"
+    # 品类判定
+    cats = {s["id"]: s["category"] for s in sm["stars"]}
+    assert cats["A2"] == "汉堡" and cats["A1"] == "小食" and cats["A3"] == "甜品"
+    # 星等封顶 5
+    assert all(1 <= s["magnitude"] <= 5 for s in sm["stars"])
+
+
+def test_personality_night():
+    orders = [
+        _order(f"N{i}", "麦乐鸡", "20", f"2026-10-0{i+1} 23:30:00") for i in range(3)
+    ]
+    name, desc = detect_personality(build_starmap(orders))
+    assert name == "深夜麦门人", f"夜间订单应鉴定为深夜麦门人，实际 {name}"
+    assert desc
+
+
+def test_personality_dessert():
+    orders = [
+        _order(f"D{i}", "圆筒冰淇淋", "8", f"2026-10-0{i+1} 15:00:00") for i in range(3)
+    ] + [_order("D9", "巨无霸", "25", "2026-10-09 15:00:00")]
+    name, _ = detect_personality(build_starmap(orders))
+    assert name == "甜点星住民"
+
+
+def test_categorize_rules():
+    assert categorize("巨无霸汉堡") == "汉堡"
+    assert categorize("中薯条") == "小食"
+    assert categorize("朱古力新地") == "甜品"
+    assert categorize("可口可乐") == "饮品"
+    assert categorize("猪柳蛋麦满分") == "早餐"
+    assert categorize("不认识的餐品") == "小食"  # 兜底
+
+
+def test_extract_payload_three_formats():
+    # 形态1：structuredContent 干净 dict
+    r1 = {"structuredContent": {"success": True, "data": {"availablePoint": "0"}}}
+    assert extract_payload(r1)["data"]["availablePoint"] == "0"
+
+    # 形态2：text 包装 + 内嵌 JSON
+    wrapped = {"content": [{"type": "text", "text": "# API Response Information\n\n## Original Response\n{\"success\":true,\"data\":{\"list\":[{\"orderId\":\"X\"}]}}"}]}
+    assert extract_payload(wrapped)["data"]["list"][0]["orderId"] == "X"
+
+    # 形态3：text 表格
+    table = {"content": [{"type": "text", "text": "[2]{productName,energyKcal}:\n  巨无霸,534\n  薯条,289\n"}]}
+    rows = extract_payload(table)["data"]
+    assert len(rows) == 2 and rows[0]["productName"] == "巨无霸" and rows[0]["energyKcal"] == "534"
+
+    # 形态4（实测坑）：text 包装 JSON，其 data 字段又是文本表格——两层包装
+    nested = {"content": [{"type": "text", "text": "# API Response Information\n\n## Original Response\n" + json.dumps({"success": True, "data": "[2]{productName,energyKcal}:\n  巨无霸,534\n  薯条,289\n"})}]}
+    rows4 = extract_payload(nested)["data"]
+    assert isinstance(rows4, list) and len(rows4) == 2, f"二层表格解析失败: {type(rows4)}"
+    assert rows4[1]["productName"] == "薯条"
+
+
+if __name__ == "__main__":
+    fails = 0
+    for name, fn in sorted(globals().items()):
+        if name.startswith("test_") and callable(fn):
+            try:
+                fn()
+                print(f"PASS {name}")
+            except AssertionError as e:
+                fails += 1
+                print(f"FAIL {name}: {e}")
+    sys.exit(1 if fails else 0)
