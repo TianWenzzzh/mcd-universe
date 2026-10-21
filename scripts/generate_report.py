@@ -26,6 +26,26 @@ def load_orders_demo(path):
         return json.load(f)
 
 
+def load_daily(client):
+    """今日麦签：从活动日历取最近一个带标题的活动。"""
+    try:
+        cal = client.call_tool("campaign-calendar")
+        daily = (cal.get("data") or {}).get("dailyList") or []
+        today = (cal.get("data") or {}).get("currentTime", "")[:10]
+        candidates = []
+        for day in daily:
+            for ev in day.get("events") or []:
+                title = ((ev.get("articleDto") or {}).get("title") or "").strip()
+                if title:
+                    candidates.append({"date": day.get("date"), "title": title})
+        for c in candidates:  # 优先今天
+            if c["date"] == today:
+                return c
+        return candidates[0] if candidates else None
+    except (MCPError, AttributeError, KeyError):
+        return None
+
+
 def load_orders_live():
     client = MCDClient()
     orders = parse_orders(client.call_tool("order-list"))
@@ -35,10 +55,11 @@ def load_orders_live():
         account = acc.get("data", {}) if isinstance(acc, dict) else {}
     except MCPError as e:
         print(f"积分查询跳过: {e}")
-    return orders, account
+    daily = load_daily(client)
+    return orders, account, daily
 
 
-def render(starmap, out_path, demo=False, account=None):
+def render(starmap, out_path, demo=False, account=None, daily=None):
     payload = {
         "status": starmap["status"],
         "stars": [{k: v for k, v in s.items() if k != "dt"} for s in starmap.get("stars", [])],
@@ -46,6 +67,7 @@ def render(starmap, out_path, demo=False, account=None):
         "persona": None,
         "demo": demo,
         "account": account or None,
+        "daily": daily,
     }
     if starmap["status"] == "galaxy":
         name, desc = detect_personality(starmap)
@@ -72,9 +94,10 @@ def main():
     args = ap.parse_args()
 
     account = None
+    daily = None
     if args.live:
-        orders, account = load_orders_live()
-        render(build_starmap(orders), args.out, demo=False, account=account)
+        orders, account, daily = load_orders_live()
+        render(build_starmap(orders), args.out, demo=False, account=account, daily=daily)
     elif args.demo:
         orders = load_orders_demo(args.demo)
         render(build_starmap(orders), args.out, demo=True)

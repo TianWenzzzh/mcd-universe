@@ -6,6 +6,8 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⭐</text></svg>">
 <meta property="og:title" content="麦门宇宙 McUniverse">
 <meta property="og:description" content="你的每一单，都是麦门宇宙里的一颗星。基于麦当劳MCP的个人订单星图与麦门人格鉴定。">
+<meta property="og:image" content="https://tianwenzzzh.github.io/mcd-universe/docs/assets/demo-desktop-v2.png">
+<meta property="og:type" content="website">
 <meta name="description" content="麦门宇宙：基于麦当劳中国官方MCP的订单星图与麦门人格鉴定Skill，数据本地处理。">
 <title>麦门宇宙 McUniverse</title>
 <style>
@@ -19,6 +21,8 @@
   #title p { font-size: 12px; color: #9a96b8; margin-top: 4px; letter-spacing: 1px; }
   #stats { top: 22px; right: 24px; text-align: right; font-size: 12px; color: #9a96b8; line-height: 1.8; }
   #stats b { color: #e8e6f0; font-size: 16px; font-weight: 600; }
+  #daily { top: 78px; right: 24px; display: none; max-width: 240px; text-align: right; font-size: 11px; color: #ffd97a; line-height: 1.6; }
+  #daily .tag { display: inline-block; background: rgba(255,217,122,.12); border: 1px solid rgba(255,217,122,.3); border-radius: 4px; padding: 1px 6px; margin-bottom: 3px; font-size: 10px; letter-spacing: 1px; }
   #persona { left: 24px; bottom: 76px; max-width: 320px; padding: 14px 18px; background: rgba(20,20,40,.72); border: 1px solid rgba(255,255,255,.12); border-radius: 12px; backdrop-filter: blur(6px); opacity: 0; transform: translateY(12px); transition: opacity .8s, transform .8s; }
   #persona.show { opacity: 1; transform: translateY(0); }
   #persona h2 { font-size: 16px; font-weight: 600; color: #ffd97a; letter-spacing: 1px; }
@@ -58,6 +62,7 @@
 <div class="hud" id="title"><h1>麦门宇宙</h1><p>MCUNIVERSE · 你的每一单，都是星海里的一颗星</p></div>
 <div class="hud" id="demo-badge">演示数据 · <a href="https://github.com/TianWenzzzh/mcd-universe" target="_blank">用你的真实订单生成 →</a></div>
 <div class="hud" id="stats"></div>
+<div class="hud" id="daily"></div>
 <div class="hud" id="legend"></div>
 <div class="hud" id="persona"><h2 id="persona-name"></h2><p id="persona-desc"></p></div>
 <div class="hud" id="detail"></div>
@@ -71,6 +76,10 @@
 (function () {
   "use strict";
   var DATA = JSON.parse(document.getElementById("starmap-data").textContent);
+  // ?nebula=1 可直接预览 0 单星云态（演示/调试用）
+  if (new URLSearchParams(location.search).get("nebula") === "1") {
+    DATA = { status: "nebula", stars: [], summary: { orderCount: 0, totalAmount: 0 } };
+  }
   var CATS = {
     "汉堡": "#E24B4A", "早餐": "#BA7517", "甜品": "#D4537E",
     "小食": "#EF9F27", "饮品": "#378ADD"
@@ -269,8 +278,18 @@
   // ---- HUD ----
   function renderHUD() {
     var sum = DATA.summary || {};
-    document.getElementById("stats").innerHTML =
-      "<b>" + (sum.orderCount || 0) + "</b> 颗星<br>累计 ¥" + (sum.totalAmount || 0).toFixed(1);
+    var html = "<b>" + (sum.orderCount || 0) + "</b> 颗星<br>累计 ¥" + (sum.totalAmount || 0).toFixed(1);
+    var acc = DATA.account;
+    if (acc && (Number(acc.availablePoint) > 0 || Number(acc.nextMouthExpirePoint) > 0)) {
+      html += "<br>积分 " + (acc.availablePoint || 0);
+      if (Number(acc.nextMouthExpirePoint) > 0) html += " · 下月过期 " + acc.nextMouthExpirePoint;
+    }
+    document.getElementById("stats").innerHTML = html;
+    var daily = document.getElementById("daily");
+    if (DATA.daily && DATA.daily.title) {
+      daily.innerHTML = '<span class="tag">今日麦签</span><br>' + esc(DATA.daily.title);
+      daily.style.display = "block";
+    }
     var legend = document.getElementById("legend");
     legend.innerHTML = "";
     Object.keys(CATS).forEach(function (c) {
