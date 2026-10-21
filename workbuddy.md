@@ -1,16 +1,16 @@
 # WorkBuddy 开发记录（workbuddy.md）
 
-本文件记录「麦门宇宙 McUniverse」在腾讯 WorkBuddy 智能体中的完整开发过程，参与 WorkBuddy 专项奖励。
+本文件记录「麦门宇宙 McUniverse」在腾讯 WorkBuddy 智能体中的完整开发过程，参与 WorkBuddy 专项奖励。全程由 WorkBuddy（小天 + 开发者大赛作战军师专家）协作完成，MCP Token 仅经环境变量传递，从未进入任何文件。
 
 ## 会话一 · 2026-10-22 深夜（作战规划 + 核心引擎）
 
 **用户指令**：深度分析所有项目选出最有潜力的参加 1024 麦当劳程序员创意开发大赛，目标夺得第一；提供麦当劳 MCP Token 联调。
 
-**军师决策过程**：
+**决策过程**：
 1. 赛事体检：排名按 GitHub 公开 Star（10-26 00:00 锁榜）；必需 5 件套（README/CONTEST_DECLARATION/MCP_INTEGRATION/mcp-config.example/workbuddy.md）；WorkBuddy 专项奖需提交 workbuddy.md。
 2. 榜单情报：104+ 项目；第 1 名 851★；省钱方向 25+ 项目红海；社交货币方向（派对 724/麦门认证 723/年度报告 489）涨星更快。
 3. 选题：旧项目无一基于麦当劳 MCP，不可直接参赛；选定「麦门宇宙」= 订单星图 + 麦门人格 + 分享卡，迁移用户既有 Skill（中北大学猫咪档案）的视觉与传播能力。
-4. 用户提供 MCP Token，军师当即联调。
+4. 用户提供 MCP Token，当即联调。
 
 **实测发现（2026-10-22 02:30）**：
 - MCP 线上工具 35 个（官方文档 33 + 未公开的 query-promotions、query-survey-coupon）；
@@ -21,7 +21,7 @@
 - 参赛申请 Issue #998 已提交；
 - `src/mcp_client.py`：MCP 客户端 + 三形态解析器（含二层表格修复）；
 - `src/star_model.py`：订单→星图数据模型 + 麦门人格鉴定（7 种人格全正面向）；
-- `tests/test_star_model.py`：8 条测试全绿（含零单降伪、双层包装解析）；
+- `tests/test_star_model.py`：测试套件（含零单降级、双层包装解析）；
 - `scripts/fetch_data.py`：真实数据固化（160 餐品营养数据 → samples/）；
 - `.gitignore`：Token 与个人订单数据防泄漏。
 
@@ -29,7 +29,7 @@
 
 **用户输入**：朋友的一单真实订单截图（大脆鸡扒麦满分 + 小杯鲜萃咖啡，¥0 外带，麦当劳太原中北大学餐厅，订单编码真实）。
 
-**军师运用方式**：
+**运用方式**：
 1. 用真实订单编码探测 query-order → 实测「非本人订单无法查询」（code 610301）→ 验证产品纯本地处理设计的正确性；朋友数据只在本地用，入仓演示数据匿名化（DEMO 编号，无真实订单编码）。
 2. 以该单为原型构建演示数据集（10 单，凌晨 2:40 英雄单 + 各品类合成单），叙事锚定「深夜麦门人」。
 
@@ -42,8 +42,7 @@
 - `templates/starmap.html`：Canvas 星图渲染器（粒子汇聚「麦门宇宙」→ 炸开成星图、星座线、星点点击详情、星云降级态、1080×1440 分享卡导出），单文件零依赖离线可用；
 - `scripts/generate_report.py`：产品主管线（--live 真实订单 / --demo 模拟数据 → HTML 报告）；
 - `samples/demo_orders.json`：匿名化演示数据；
-- `demo/index.html`：在线演示页，GitHub Pages 已启用：https://tianwenzzzh.github.io/mcd-universe/demo/
-- 测试扩充至 9 条全绿；README 精修（演示链接 + 工程细节 + 安全承诺）。
+- `demo/index.html`：在线演示页，GitHub Pages 启用：https://tianwenzzzh.github.io/mcd-universe/demo/ 。
 
 ## 会话三 · 2026-10-22 深夜（打磨到极致：绕过下单，全链路强化）
 
@@ -71,21 +70,7 @@
 - 分享卡等比裁剪防变形；
 - README 上截图证据 + docs/assets 资产。
 
-**验证**：Python 9 测试 + 模板静态检查 + Node 语法检查 + 浏览器四态实测，全绿。
-
-## 会话五 · 2026-10-22 凌晨（对标顶尖项目冲刺）
-
-**用户指令**：接着高质量往下推进（对标顶级相关项目效果）。
-
-**对标对象**：榜首 mcd-saver-strategist（874★， badges + CI + mermaid 架构图 + promo 视频 + 46 自测）、最近竞品 mcd-wrapped（490★）。
-
-**补齐的差距**：
-- **演示 GIF**：Playwright 录制 11s 视频 → ffmpeg 调色板转码（10s/680px/96 色/1.38MB），完整捕获「彩色粒子汇聚成"麦门宇宙"→ 炸开成星图 → 人格卡亮相」叙事，README 置顶。教训：playwright-cli video-stop 不接受文件名参数（自动落 .playwright-cli/）；video-start 必须在浏览器 open 之后同链调用。
-- **视觉层抛光**（对标喵星图密度）：星云底衬三团色雾、随机流星拖尾、高星等星四道星芒——GIF 抽帧证实全部生效。
-- **CI**：.github/workflows/ci.yml 跑 16 测试 + 模板静态检查，首次运行 success，badge 上 README。
-- **测试 9 → 16**：星等钳制、坏时间串、无餐品订单、单人单、全品类同质、早晨/周末/探索者人格、汇总舍入。
-- **MIT LICENSE** + **9 个 GitHub topics**（mcd-mcp/mcp/workbuddy/hackathon…）吃搜索流量。
-- **README**：badges 行 + GIF + 三列截图表（桌面/移动/详情）+ mermaid 架构图。
+**验证**：Python 测试 + 模板静态检查 + Node 语法检查 + 浏览器四态实测，全绿。
 
 ## 会话四 · 2026-10-22 深夜续（人格图鉴 + 致命按钮 bug）
 
@@ -99,7 +84,21 @@
 
 **抓出全场最致命的 bug**：`#actions` 漏写 `position: absolute` → `right/bottom` 失效，三个按钮（人格图鉴/重播入场/**保存分享卡**）以静态流布局贴在左上角，且被全屏画布完全覆盖（elementFromPoint 证实 top=sky）——**真实用户一个按钮都点不着，分享卡（传播引擎）自出生起就是死的**。修复后按钮归位右下角、可点击，图鉴面板实测弹出（7 项渲染 + 自己的高亮），移动端三按钮横排无重叠。
 
-**验证**：9 测试 + 模板 lint + 真实鼠标点击图鉴 ✓ + 桌面/移动端截图 ✓。
+**验证**：测试 + 模板 lint + 真实鼠标点击图鉴 ✓ + 桌面/移动端截图 ✓。
+
+## 会话五 · 2026-10-22 凌晨（对标顶尖项目冲刺）
+
+**用户指令**：接着高质量往下推进（对标顶级相关项目效果）。
+
+**对标对象**：榜首 mcd-saver-strategist（874★，badges + CI + mermaid 架构图 + promo 视频 + 46 自测）、最近竞品 mcd-wrapped（490★）。
+
+**补齐的差距**：
+- **演示 GIF**：Playwright 录制 11s 视频 → ffmpeg 调色板转码（10s/680px/96 色/1.38MB），完整捕获「彩色粒子汇聚成"麦门宇宙"→ 炸开成星图 → 人格卡亮相」叙事，README 置顶。教训：playwright-cli video-stop 不接受文件名参数（自动落 .playwright-cli/）；video-start 必须在浏览器 open 之后同链调用。
+- **视觉层抛光**（对标喵星图密度）：星云底衬三团色雾、随机流星拖尾、高星等星四道星芒——GIF 抽帧证实全部生效。
+- **CI**：.github/workflows/ci.yml 跑测试 + 模板静态检查，首次运行 success，badge 上 README。
+- **测试扩充至 16 条**：星等钳制、坏时间串、无餐品订单、单人单、全品类同质、早晨/周末/探索者人格、汇总舍入。
+- **MIT LICENSE** + **9 个 GitHub topics**（mcd-mcp/mcp/workbuddy/hackathon…）吃搜索流量。
+- **README**：badges 行 + GIF + 三列截图表（桌面/移动/详情）+ mermaid 架构图。
 
 ## 会话六 · 2026-10-22 白天（计划）
 - 用户决策：是否下一单真实订单播种（A 方案）
