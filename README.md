@@ -8,15 +8,15 @@
 
 ## 在线演示
 
-[打开演示星图（模拟数据）](https://tianwenzzzh.github.io/mcd-universe/demo/) —— 无需 Token，直接看效果。
-[预览 0 单「星云」状态](https://tianwenzzzh.github.io/mcd-universe/demo/?nebula=1)
+[打开演示星图 · 深夜麦门人（模拟数据）](https://tianwenzzzh.github.io/mcd-universe/demo/) —— 无需 Token，直接看效果。
+[甜点星住民版演示](https://tianwenzzzh.github.io/mcd-universe/demo/dessert.html) · [预览 0 单「星云」状态](https://tianwenzzzh.github.io/mcd-universe/demo/?nebula=1)
 
 ![星图截图](docs/assets/demo-desktop-v2.png)
 
 ## 功能
 
 - **麦门星图**：每一笔订单化为一颗星——颜色=餐品品类（汉堡/早餐/甜品/小食/饮品），星等=消费频次与金额，位置=下单时间，相邻订单连成星座线。粒子汇聚「麦门宇宙」四字后炸开成星图，点击星点看订单详情，移动端自适应。
-- **麦门人格**：基于订单模式的趣味鉴定（深夜麦门人 / 早餐先行者 / 甜点星住民 / 周末麦门人 / 硬核堡星人 / 麦门探索者 / 麦门旅人），全部正面向。
+- **麦门人格 × 图鉴**：7 种正面向人格（深夜麦门人 / 早餐先行者 / 甜点星住民 / 周末麦门人 / 硬核堡星人 / 麦门探索者 / 麦门旅人）——鉴定你的人格，图鉴里全员亮相、你的那枚高亮。宇宙不只有深夜，每一种吃麦方式都有一颗星。
 - **分享卡**：一键导出 1080×1440 竖版 PNG（等比裁剪防变形），晒出你的麦门宇宙。
 - **积分哨兵**：积分余额与「下月过期」提醒，守住每一分。
 - **今日麦签**：联动官方活动日历，每天一个麦麦活动彩蛋。
