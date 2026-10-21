@@ -91,7 +91,12 @@
 
   // ---- 星点布局：角度=时间轴，半径=品类带+星等 ----
   function layoutStars() {
-    var times = stars.map(function (s) { return s.dt ? new Date(s.dt).getTime() : 0; });
+    // 注意：dt 字段在 Python 侧不可序列化已被剥离，这里自行解析 time 字符串
+    var times = stars.map(function (s) {
+      if (!s.time) return 0;
+      var d = new Date(String(s.time).replace(" ", "T"));
+      return isNaN(d.getTime()) ? 0 : d.getTime();
+    });
     var tMin = Math.min.apply(null, times), tMax = Math.max.apply(null, times);
     var cx = W / 2, cy = H / 2;
     var catIdx = { "汉堡": 0, "早餐": 1, "甜品": 2, "小食": 3, "饮品": 4 };
