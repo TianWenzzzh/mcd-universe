@@ -68,6 +68,8 @@ def test_personality_dessert():
 
 def test_categorize_rules():
     assert categorize("巨无霸汉堡") == "汉堡"
+    assert categorize("龙焰鸡腿堡三件套") == "汉堡"  # 真实订单实测：腿堡系必须归汉堡
+    assert categorize("麦辣鸡腿堡套餐") == "汉堡"
     assert categorize("中薯条") == "小食"
     assert categorize("朱古力新地") == "甜品"
     assert categorize("可口可乐") == "饮品"
