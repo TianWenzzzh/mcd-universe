@@ -45,7 +45,7 @@ async function checkPage(browser, url, opts) {
   }
   if (opts.exportCard) {
     const cards = await page.evaluate(() => {
-      return ["deep", "nebula", "minimal"].map((style) => {
+      return ["deep", "nebula", "minimal", "achievement"].map((style) => {
         const ec = window.__mcuniverse.composeCard(style);
         return { style, w: ec.width, h: ec.height, data: ec.toDataURL("image/png") };
       });
@@ -59,6 +59,7 @@ async function checkPage(browser, url, opts) {
       if (card.style === "deep") writeFileSync(`${OUT_DIR}/share-card-e2e.png`, Buffer.from(b64, "base64"));
       if (card.style === "minimal") writeFileSync(`${OUT_DIR}/share-card-minimal.png`, Buffer.from(b64, "base64"));
       if (card.style === "nebula") writeFileSync(`${OUT_DIR}/share-card-nebula.png`, Buffer.from(b64, "base64"));
+      if (card.style === "achievement") writeFileSync(`${OUT_DIR}/share-card-achievement.png`, Buffer.from(b64, "base64"));
     }
     state.cardBytes = Object.values(state.cards).join("/");
   }
@@ -79,7 +80,7 @@ async function checkPage(browser, url, opts) {
         return false;
       }).length;
     });
-    if (previewCount !== 3) problems.push(`风格预览应为 3 张，实际绘出 ${previewCount}`);
+    if (previewCount !== 4) problems.push(`风格预览应为 4 张，实际绘出 ${previewCount}`);
     const downloadPromise = page.waitForEvent("download", { timeout: 15000 }).catch(() => null);
     await page.click('.ep-style[data-style="minimal"]');
     const dl = await downloadPromise;
