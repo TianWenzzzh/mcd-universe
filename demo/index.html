@@ -875,7 +875,7 @@
     toastTimer = setTimeout(function () { toastEl.classList.remove("show"); }, 2600);
   }
 
-  // ---------- 分享卡（三种风格）----------
+  // ---------- 分享卡（四种风格）----------
   function cardRange() {
     if (!stars.length) return "";
     var ds = stars.map(function (st) { return String(st.time || "").slice(0, 10); })
@@ -1116,7 +1116,7 @@
     document.getElementById("img-preview").classList.remove("show");
   });
 
-  // 导出面板：三种风格预览 → 点击导出
+  // 导出面板：四种风格预览 → 点击导出
   var exportPanel = document.getElementById("export-panel");
   function renderPreviews() {
     exportPanel.querySelectorAll(".ep-style").forEach(function (btn) {
