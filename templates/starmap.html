@@ -28,7 +28,7 @@
   #persona h2 { font-size: 16px; font-weight: 700; color: #ffe9a8; letter-spacing: 2px; text-shadow: 0 0 18px rgba(255,217,122,.35); }
   #persona p { font-size: 12px; color: #b9b3d6; margin-top: 7px; line-height: 1.8; }
   #actions { position: absolute; right: 28px; bottom: 28px; display: flex; gap: 10px; z-index: 11; }
-  .btn { pointer-events: auto; cursor: pointer; font-size: 13px; color: #e8e4f6; background: rgba(255,255,255,.055); border: 1px solid rgba(255,255,255,.16); border-radius: 10px; padding: 9px 17px; letter-spacing: 1px; transition: background .2s, border-color .2s, transform .15s; }
+  .btn { pointer-events: auto; cursor: pointer; white-space: nowrap; font-size: 13px; color: #e8e4f6; background: rgba(255,255,255,.055); border: 1px solid rgba(255,255,255,.16); border-radius: 10px; padding: 9px 17px; letter-spacing: 1px; transition: background .2s, border-color .2s, transform .15s; }
   .btn:hover { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.3); transform: translateY(-1px); }
   .btn.primary { background: linear-gradient(160deg, #ef7f4a, #d85a30); border-color: rgba(255,160,110,.5); box-shadow: 0 6px 24px rgba(216,90,48,.35); }
   .btn.primary:hover { background: linear-gradient(160deg, #f78f5c, #e06a3c); }
@@ -41,6 +41,13 @@
   #legend span { display: flex; align-items: center; gap: 7px; background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.07); border-radius: 999px; padding: 3px 10px 3px 7px; width: fit-content; }
   #legend i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; box-shadow: 0 0 8px currentColor; }
   #footer { right: 30px; top: 50%; transform: translateY(-50%); writing-mode: vertical-rl; font-size: 9.5px; color: rgba(163,157,194,.42); letter-spacing: 3px; }
+  #tip { position: absolute; z-index: 12; pointer-events: none; display: none; font-size: 11px; color: #ffe9a8; background: rgba(12,10,26,.9); border: 1px solid rgba(255,217,122,.3); border-radius: 999px; padding: 4px 11px; letter-spacing: 1px; white-space: nowrap; box-shadow: 0 4px 18px rgba(0,0,0,.5); }
+  #toast { position: absolute; left: 50%; bottom: 150px; transform: translateX(-50%) translateY(8px); z-index: 20; font-size: 12.5px; color: #ffe9a8; background: rgba(16,12,32,.94); border: 1px solid rgba(255,217,122,.32); border-radius: 999px; padding: 10px 22px; letter-spacing: 1px; opacity: 0; transition: opacity .3s, transform .3s; pointer-events: none; }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #achievements { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 5px; }
+  #achievements .chip { font-size: 10px; color: #ffd97a; background: rgba(255,217,122,.08); border: 1px solid rgba(255,217,122,.26); border-radius: 999px; padding: 2px 8px; letter-spacing: .5px; }
+  #achievements .chip.locked { color: rgba(163,157,194,.4); background: rgba(255,255,255,.02); border-color: rgba(255,255,255,.06); }
+  #achievements .count { font-size: 10px; color: #948eb5; width: 100%; margin-top: 3px; letter-spacing: 1px; }
   #demo-badge { top: 96px; left: 28px; display: none; font-size: 10.5px; color: #ffd97a; background: rgba(255,217,122,.07); border: 1px solid rgba(255,217,122,.3); border-radius: 999px; padding: 5px 12px; letter-spacing: 1px; }
   #demo-badge a { color: #ffd97a; pointer-events: auto; text-decoration: none; }
   #dex-panel { left: 50%; bottom: 92px; transform: translateX(-50%) translateY(18px); width: min(560px, calc(100% - 48px)); max-height: 48vh; overflow-y: auto; padding: 18px 20px; background: linear-gradient(170deg, rgba(22,18,42,.97), rgba(9,7,20,.97)); border: 1px solid rgba(255,217,122,.2); border-radius: 16px; box-shadow: 0 18px 56px rgba(0,0,0,.6); opacity: 0; transition: opacity .3s, transform .3s; pointer-events: none; }
@@ -63,7 +70,7 @@
     #dex-panel { bottom: 74px; max-height: 52vh; }
     #footer { display: none; }
     #actions { left: 20px; right: 20px; bottom: 16px; }
-    .btn { flex: 1; text-align: center; padding: 9px 8px; font-size: 12px; }
+    .btn { flex: 1; text-align: center; padding: 9px 4px; font-size: 11px; letter-spacing: 0; }
   }
 </style>
 </head>
@@ -74,12 +81,15 @@
 <div class="hud" id="stats"></div>
 <div class="hud" id="daily"></div>
 <div class="hud" id="legend"></div>
-<div class="hud" id="persona"><h2 id="persona-name"></h2><p id="persona-desc"></p></div>
+<div class="hud" id="persona"><h2 id="persona-name"></h2><p id="persona-desc"></p><div id="achievements"></div></div>
+<div id="tip"></div>
+<div id="toast"></div>
 <div class="hud" id="detail"></div>
 <div class="hud" id="dex-panel"><h3>麦门人格图鉴</h3><div id="dex-list"></div></div>
 <div class="hud" id="footer">数据本地处理 · TOKEN 不出本机</div>
 <div id="actions">
   <button class="btn" id="btn-dex">人格图鉴</button>
+  <button class="btn" id="btn-sound">音效</button>
   <button class="btn" id="btn-replay">重播入场</button>
   <button class="btn primary" id="btn-save">保存分享卡</button>
 </div>
@@ -104,6 +114,10 @@
   var particles = [], raf = 0, startT = 0, selected = -1;
   var CX = 0, CY = 0;
   var ROT_SPEED = 0.000012;
+  // 视图状态：用户拖拽旋转 / 滚轮缩放 / 鼠标视差
+  var view = { userRot: 0, zoom: 1, px: 0, py: 0 };
+  var mouse = { x: -999, y: -999, inside: false };
+  var hovered = -1;
   var PHASE_TEXT = 2300, PHASE_HOLD = 600, FADE_START = 1400, FADE_DUR = 1800;
 
   // ---------- 布局：时间序 → 星系旋臂 ----------
@@ -133,11 +147,11 @@
   }
 
   function rotateStars(el) {
-    var a = REDUCED ? 0 : el * ROT_SPEED, ca = Math.cos(a), sa = Math.sin(a);
+    var a = view.userRot + (REDUCED ? 0 : el * ROT_SPEED), ca = Math.cos(a), sa = Math.sin(a);
     stars.forEach(function (s) {
       var dx = s.bx - CX, dy = s.by - CY;
-      s.x = CX + dx * ca - dy * sa;
-      s.y = CY + dx * sa + dy * ca;
+      s.x = CX + (dx * ca - dy * sa) * view.zoom;
+      s.y = CY + (dx * sa + dy * ca) * view.zoom;
     });
   }
 
@@ -203,7 +217,9 @@
 
   function drawBackdrop(el, still) {
     if (!bgCache) buildBackdropCache();
-    ctx.drawImage(bgCache, 0, 0, W, H);
+    // 视差：背景随鼠标轻微漂移，制造深空纵深（静态帧导出时归零）
+    var px = still ? 0 : view.px * 12, py = still ? 0 : view.py * 12;
+    ctx.drawImage(bgCache, -20 + px, -20 + py, W + 40, H + 40);
     if (!still) drawShootingStars(el);
   }
 
@@ -243,11 +259,13 @@
 
   function drawStar(s, el) {
     var tw = 0.78 + 0.22 * Math.sin(el / (520 * s.tw) + s.phase);
-    var r = s.r * tw;
+    var isHover = hovered === stars.indexOf(s);
+    var boost = isHover ? 1.35 : 1;
+    var r = s.r * tw * boost;
     ctx.globalCompositeOperation = "lighter";
     var sp = starSprite(s.color, s.r);
-    var R = s.r * 10 * tw;
-    ctx.globalAlpha = .9;
+    var R = s.r * 10 * tw * boost;
+    ctx.globalAlpha = isHover ? 1 : .9;
     ctx.drawImage(sp, s.x - R, s.y - R, R * 2, R * 2);
     if (s.magnitude >= 4) {
       var flare = r * (3.2 + 0.6 * Math.sin(el / 340 + s.phase));
@@ -267,8 +285,9 @@
     ctx.beginPath(); ctx.arc(s.x, s.y, Math.max(1.1, r * 0.42), 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = hexA(s.color, .85);
     ctx.beginPath(); ctx.arc(s.x, s.y, Math.max(1.8, r * 0.8), 0, Math.PI * 2); ctx.fill();
-    if (selected === stars.indexOf(s)) {
-      ctx.strokeStyle = "rgba(255,227,150,.9)"; ctx.lineWidth = 1.4;
+    if (selected === stars.indexOf(s) || isHover) {
+      ctx.strokeStyle = isHover ? "rgba(255,240,200,.95)" : "rgba(255,227,150,.9)";
+      ctx.lineWidth = isHover ? 1.8 : 1.4;
       ctx.beginPath(); ctx.arc(s.x, s.y, r + 9 + 2 * Math.sin(el / 220), 0, Math.PI * 2); ctx.stroke();
     }
   }
@@ -417,6 +436,19 @@
     } else if (el > PHASE_TEXT * 0.9) {
       particles.forEach(function (p) { if (Math.random() < 0.02) p.size = 0.6 + Math.random() * 2; });
     }
+    drawCursorGlow();
+  }
+
+  // 光标光晕：鼠标提一盏小灯
+  var cursorSprite = null;
+  function drawCursorGlow() {
+    if (!mouse.inside || REDUCED) return;
+    if (!cursorSprite) cursorSprite = starSprite("#9db8ff", 12);
+    ctx.globalCompositeOperation = "lighter";
+    ctx.globalAlpha = 0.16;
+    ctx.drawImage(cursorSprite, mouse.x - 108, mouse.y - 108, 216, 216);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = "source-over";
   }
 
   function frame(t) {
@@ -483,22 +515,58 @@
       document.getElementById("persona-name").textContent = "麦门人格 · " + DATA.persona.name;
       document.getElementById("persona-desc").textContent = DATA.persona.desc;
     }
+    renderAchievements();
   }
 
-  // ---------- 交互 ----------
+  // ---------- 麦门成就 ----------
+  function renderAchievements() {
+    var el = document.getElementById("achievements");
+    if (!el) return;
+    if (isNebula || !DATA.persona) { el.innerHTML = ""; return; }
+    var cats = {}, night = 0, morning = 0, total = 0;
+    stars.forEach(function (s) {
+      cats[s.category] = (cats[s.category] || 0) + 1;
+      total += s.amount || 0;
+      if (s.time && s.time.length >= 13) {
+        var h = parseInt(s.time.slice(11, 13), 10);
+        if (h >= 22 || h < 3) night++;
+        if (h >= 5 && h < 10) morning++;
+      }
+    });
+    var defs = [
+      ["🌟", "初星觉醒", stars.length >= 1],
+      ["🌌", "星座大满贯", Object.keys(cats).length >= 5],
+      ["🔟", "星河十连", stars.length >= 10],
+      ["🌙", "夜航员", night >= 3],
+      ["🍦", "甜品守护者", (cats["甜品"] || 0) >= 3],
+      ["🍔", "堡门信徒", (cats["汉堡"] || 0) >= 3],
+      ["🌅", "晨光先行者", morning >= 2],
+      ["💎", "麦门投资人", total >= 100]
+    ];
+    var unlocked = defs.filter(function (d) { return d[2]; }).length;
+    el.innerHTML = defs.map(function (d) {
+      return '<span class="chip' + (d[2] ? "" : " locked") + '">' + d[0] + " " + d[1] + "</span>";
+    }).join("") + '<span class="count">已解锁 ' + unlocked + " / " + defs.length + " 项麦门成就</span>";
+  }
+
+  // ---------- 交互：悬停 / 视差 / 拖拽旋转 / 滚轮缩放 / 点击 ----------
   var detail = document.getElementById("detail");
-  canvas.addEventListener("click", function (e) {
-    if (isNebula) return;
-    var rect = canvas.getBoundingClientRect();
-    var mx = e.clientX - rect.left, my = e.clientY - rect.top;
-    var best = -1, bd = 28;
+  var tip = document.getElementById("tip");
+  var drag = { active: false, moved: false, x: 0, y: 0, startX: 0, startY: 0 };
+
+  function starAt(mx, my) {
+    var best = -1, bd = 30;
     stars.forEach(function (s, i) {
       var d = Math.hypot(s.x - mx, s.y - my);
       if (d < bd) { bd = d; best = i; }
     });
-    selected = best;
-    if (best < 0) { detail.classList.remove("show"); return; }
-    var s = stars[best];
+    return best;
+  }
+
+  function showDetail(i) {
+    selected = i;
+    if (i < 0) { detail.classList.remove("show"); return; }
+    var s = stars[i];
     detail.innerHTML =
       '<div class="row"><span class="k">餐品</span><span class="v">' + esc(s.product || "—") + "</span></div>" +
       '<div class="row"><span class="k">门店</span><span class="v">' + esc(s.store || "—") + "</span></div>" +
@@ -506,7 +574,119 @@
       '<div class="row"><span class="k">实付</span><span class="v">¥' + (s.amount || 0).toFixed(1) + "</span></div>" +
       '<div class="row"><span class="k">品类 / 星等</span><span class="v">' + s.category + " · " + s.magnitude + " 等</span></div>";
     detail.classList.add("show");
+  }
+
+  function updateHover(mx, my) {
+    if (isNebula) return;
+    var i = starAt(mx, my);
+    if (i !== hovered) {
+      hovered = i;
+      if (i >= 0) chime(NOTE[i % NOTE.length], 0.3);
+    }
+    if (i >= 0) {
+      var s = stars[i];
+      tip.textContent = s.product || "—";
+      tip.style.display = "block";
+      tip.style.left = Math.min(mx + 16, Math.max(8, W - 190)) + "px";
+      tip.style.top = Math.max(8, my - 32) + "px";
+      canvas.style.cursor = "pointer";
+    } else {
+      tip.style.display = "none";
+      canvas.style.cursor = drag.active ? "grabbing" : "grab";
+    }
+  }
+
+  canvas.addEventListener("pointermove", function (e) {
+    var rect = canvas.getBoundingClientRect();
+    var mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    mouse.x = mx; mouse.y = my; mouse.inside = true;
+    view.px = (mx / W - 0.5) * 2; view.py = (my / H - 0.5) * 2;
+    if (drag.active) {
+      var dx = mx - drag.x;
+      if (Math.abs(mx - drag.startX) + Math.abs(my - drag.startY) > 5) drag.moved = true;
+      view.userRot += dx * 0.005;   // 拖拽转星系
+      drag.x = mx; drag.y = my;
+      tip.style.display = "none";
+    } else {
+      updateHover(mx, my);
+    }
   });
+  canvas.addEventListener("pointerdown", function (e) {
+    var rect = canvas.getBoundingClientRect();
+    drag.active = true; drag.moved = false;
+    drag.x = drag.startX = e.clientX - rect.left;
+    drag.y = drag.startY = e.clientY - rect.top;
+    canvas.style.cursor = "grabbing";
+  });
+  window.addEventListener("pointerup", function (e) {
+    if (!drag.active) return;
+    drag.active = false;
+    canvas.style.cursor = "grab";
+    if (drag.moved) return;
+    if (isNebula) return;
+    var rect = canvas.getBoundingClientRect();
+    var mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    var i = starAt(mx, my);
+    showDetail(i);
+    if (i >= 0) chime(NOTE[i % NOTE.length] * 2, 0.6);
+    else if (dexPanel.classList.contains("show")) dexPanel.classList.remove("show");
+  });
+  canvas.addEventListener("pointerleave", function () {
+    mouse.inside = false; hovered = -1;
+    tip.style.display = "none";
+    view.px = view.py = 0;
+  });
+  canvas.addEventListener("wheel", function (e) {
+    e.preventDefault();
+    view.zoom = Math.max(0.6, Math.min(2.4, view.zoom * (e.deltaY < 0 ? 1.09 : 0.92)));
+  }, { passive: false });
+
+  // ---------- 星语音效（默认关闭，点击开启）----------
+  var NOTE = [440, 523.25, 587.33, 659.25, 783.99];
+  var audio = { ctx: null, on: false, master: null };
+  function audioInit() {
+    if (audio.ctx) return;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    audio.ctx = new AC();
+    audio.master = audio.ctx.createGain();
+    audio.master.gain.value = 0;
+    audio.master.connect(audio.ctx.destination);
+    [55, 82.41].forEach(function (f, i) {
+      var o = audio.ctx.createOscillator(); o.type = "sine"; o.frequency.value = f;
+      var g = audio.ctx.createGain(); g.gain.value = i ? 0.16 : 0.22;
+      o.connect(g); g.connect(audio.master); o.start();
+    });
+  }
+  function chime(freq, dur) {
+    if (!audio.on || !audio.ctx) return;
+    var t = audio.ctx.currentTime;
+    var o = audio.ctx.createOscillator(); o.type = "sine"; o.frequency.setValueAtTime(freq, t);
+    var g = audio.ctx.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.09, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(audio.master);
+    o.start(t); o.stop(t + dur + 0.05);
+  }
+  document.getElementById("btn-sound").addEventListener("click", function () {
+    audioInit();
+    if (!audio.ctx) { toast("当前浏览器不支持 WebAudio"); return; }
+    audio.on = !audio.on;
+    if (audio.ctx.state === "suspended") audio.ctx.resume();
+    audio.master.gain.linearRampToValueAtTime(audio.on ? 0.13 : 0, audio.ctx.currentTime + 0.5);
+    this.textContent = audio.on ? "静音" : "音效";
+    toast(audio.on ? "星语已开启 · 悬停星星听它们说话" : "星语已关闭");
+  });
+
+  // ---------- 轻提示 ----------
+  var toastEl = document.getElementById("toast"), toastTimer = 0;
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.classList.remove("show"); }, 2600);
+  }
 
   // ---------- 分享卡 ----------
   function composeCard() {
@@ -576,6 +756,8 @@
     a.download = "麦门宇宙-分享卡.png";
     a.href = ec.toDataURL("image/png");
     a.click();
+    chime(659.25, 0.25); setTimeout(function () { chime(783.99, 0.4); }, 140);
+    toast("分享卡已导出 · 去晒出你的麦门宇宙吧");
   });
 
   // ---------- 图鉴 ----------
@@ -595,9 +777,6 @@
     renderDex();
     dexPanel.classList.toggle("show");
     detail.classList.remove("show");
-  });
-  canvas.addEventListener("click", function (e) {
-    if (dexPanel.classList.contains("show") && e.target === canvas) dexPanel.classList.remove("show");
   });
 
   document.getElementById("btn-replay").addEventListener("click", function () {
