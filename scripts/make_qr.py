@@ -3,6 +3,7 @@
 用法：python scripts/make_qr.py "<url>" <out.png>
 产物：白底黑码 PNG，供 templates/starmap.html 以 base64 内嵌。
 """
+
 from __future__ import annotations
 
 import struct
