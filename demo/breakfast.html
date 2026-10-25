@@ -406,10 +406,10 @@
       var k = 0.16;
       var cxp = mx - (dy / len) * len * k, cyp = my + (dx / len) * len * k;
       var lg = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
-      lg.addColorStop(0, "rgba(255,226,160,.28)");
-      lg.addColorStop(.5, "rgba(255,226,160,.13)");
-      lg.addColorStop(1, "rgba(255,226,160,.28)");
-      ctx.strokeStyle = lg; ctx.lineWidth = 1;
+      lg.addColorStop(0, "rgba(255,226,160,.36)");
+      lg.addColorStop(.5, "rgba(255,226,160,.17)");
+      lg.addColorStop(1, "rgba(255,226,160,.36)");
+      ctx.strokeStyle = lg; ctx.lineWidth = 1.3;
       ctx.beginPath(); ctx.moveTo(a.x, a.y);
       ctx.quadraticCurveTo(cxp, cyp, b.x, b.y);
       ctx.stroke();
