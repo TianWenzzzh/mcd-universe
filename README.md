@@ -14,8 +14,13 @@
 
 ## 在线演示
 
-[打开演示星图 · 深夜麦门人（模拟数据）](https://tianwenzzzh.github.io/mcd-universe/demo/) —— 无需 Token，直接看效果。
-[甜点星住民版演示](https://tianwenzzzh.github.io/mcd-universe/demo/dessert.html) · [预览 0 单「星云」状态](https://tianwenzzzh.github.io/mcd-universe/demo/?nebula=1)
+[打开演示星图（无需登录）](https://tianwenzzzh.github.io/mcd-universe/demo/) —— 页面左上角可切换四种人格样例；也可直接打开
+[早餐先行者](https://tianwenzzzh.github.io/mcd-universe/demo/breakfast.html) ·
+[甜点星住民](https://tianwenzzzh.github.io/mcd-universe/demo/dessert.html) ·
+[硬核堡星人](https://tianwenzzzh.github.io/mcd-universe/demo/burger.html) ·
+[0 单星云态](https://tianwenzzzh.github.io/mcd-universe/demo/?nebula=1)
+
+📄 [作品说明页](https://tianwenzzzh.github.io/mcd-universe/docs/about.html)（一页讲清玩法与技术）
 
 ![演示动画：粒子汇聚成字，炸开成星图](docs/assets/demo.gif)
 
