@@ -2,8 +2,10 @@
  * E2E 冒烟检查：用真实浏览器打开演示页，验证
  * 1. 页面无控制台错误 / 未捕获异常
  * 2. 星点已渲染
- * 3. 分享卡 composeCard() 产出合法 1080x1440 PNG（落盘供人工查看）
- * 4. 三态（银河 / 星云 / 甜点）均可打开
+ * 3. 分享卡 composeCard() 产出合法 1080x1440 PNG（落盘供人工查看），四种风格全覆盖
+ * 4. 五态（银河 / 星云 / 甜点 / 减少动效 / 移动端银河）均可打开
+ * 5. 交互级断言：导出面板真实点击、键盘浏览、悬停气泡、aria-live、导航入口
+ * 6. 移动端 HUD 布局矩形两两不重叠
  *
  * 用法（需要 playwright-core）：
  *   node scripts/e2e_check.mjs [baseUrl]
@@ -64,6 +66,12 @@ async function checkPage(browser, url, opts) {
     state.cardBytes = Object.values(state.cards).join("/");
   }
   if (opts.ui) {
+    // 导航闭环：首访引导里必须有通往作品说明页的入口
+    const obLink = await page.evaluate(() => {
+      const a = document.querySelector(".ob-tip a");
+      return a ? a.getAttribute("href") : null;
+    });
+    if (!obLink || !obLink.includes("docs/about.html")) problems.push("首访引导缺少作品说明入口");
     // 首访引导会拦截点击：先关掉（同时验证引导层可关闭）
     await page.evaluate(() => window.__mcuniverse.dismissOnboard());
     await page.waitForTimeout(200);
@@ -109,6 +117,35 @@ async function checkPage(browser, url, opts) {
       if (!tipShown) problems.push("悬停未出现餐品气泡");
     }
   }
+  if (opts.overlapCheck) {
+    // HUD 互相压叠是这个项目反复复发的一类 bug（按钮被画布盖、徽章压副标、切换器重叠）。
+    // 这里量真实布局矩形，任何两块可见 HUD 有 >2px 交集都算失败。
+    const hits = await page.evaluate(() => {
+      // detail / tip / toast 是按需弹出的浮层，允许盖住别的 HUD，不参与判定
+      const ids = ["title", "demo-badge", "switcher", "stats", "daily", "legend", "persona", "actions"];
+      const boxes = [];
+      for (const id of ids) {
+        const el = document.getElementById(id);
+        if (!el) continue;
+        const st = getComputedStyle(el);
+        if (st.display === "none" || st.visibility === "hidden" || parseFloat(st.opacity) === 0) continue;
+        const r = el.getBoundingClientRect();
+        if (r.width > 1 && r.height > 1) boxes.push({ id, top: r.top, bottom: r.bottom, left: r.left, right: r.right });
+      }
+      const out = [];
+      for (let i = 0; i < boxes.length; i++) {
+        for (let j = i + 1; j < boxes.length; j++) {
+          const a = boxes[i], b = boxes[j];
+          const ox = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+          const oy = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+          if (ox > 2 && oy > 2) out.push(`${a.id}×${b.id} 重叠 ${Math.round(ox)}×${Math.round(oy)}px`);
+        }
+      }
+      return out;
+    });
+    problems.push(...hits);
+    state.hudBoxes = hits.length;
+  }
   await page.close();
   return { url, state, problems };
 }
@@ -137,6 +174,15 @@ async function main() {
       viewport: { width: 1280, height: 720 },
       expectNebula: false,
       expectStars: 10,
+    }),
+  );
+  // 移动端银河态：HUD 元素多，是重叠 bug 的高发区
+  results.push(
+    await checkPage(browser, BASE + "?e2e=1&mobile=1", {
+      viewport: { width: 390, height: 844 },
+      expectNebula: false,
+      expectStars: 10,
+      overlapCheck: true,
     }),
   );
   const rm = await checkPage(browser, BASE + "?e2e=1&rm=1", {

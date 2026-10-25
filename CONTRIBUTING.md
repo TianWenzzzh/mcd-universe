@@ -33,7 +33,7 @@ python scripts/generate_report.py --live -o report.html
 
 ```bash
 npm i -D playwright-core   # 或使用已安装 Edge/Chrome 的 channel
-node scripts/e2e_check.mjs  # 四态冒烟 + 三风格分享卡导出 + 真实点击/键盘/悬停交互校验
+node scripts/e2e_check.mjs  # 五态冒烟 + 四风格分享卡导出 + 真实点击/键盘/悬停交互校验 + 移动端 HUD 重叠检测
 ```
 
 ## 代码约定

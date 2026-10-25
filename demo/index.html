@@ -79,6 +79,8 @@
   #nebula-hint .nb-step b { flex: 0 0 18px; height: 18px; border-radius: 50%; background: rgba(255,217,122,.14); border: 1px solid rgba(255,217,122,.36); color: #ffe9a8; font-size: 10px; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
   #nebula-hint a { display: inline-block; margin-top: 8px; font-size: 12px; color: #ffd97a; text-decoration: none; border-bottom: 1px dashed rgba(255,217,122,.5); padding-bottom: 2px; pointer-events: auto; }
   .ob-tip { text-align: center; font-size: 10px; color: rgba(163,157,194,.5); margin-top: 10px; letter-spacing: 1px; }
+  .ob-tip a { color: #ffd97a; text-decoration: none; border-bottom: 1px solid rgba(255,217,122,.35); }
+  .ob-tip a:hover { border-bottom-color: rgba(255,217,122,.85); }
   #export-panel { position: absolute; inset: 0; z-index: 28; display: none; align-items: center; justify-content: center; background: rgba(4,3,11,.78); backdrop-filter: blur(6px); }
   #export-panel.show { display: flex; }
   .ep-card { padding: 22px 24px 18px; background: linear-gradient(170deg, rgba(26,22,48,.98), rgba(10,8,22,.98)); border: 1px solid rgba(255,217,122,.26); border-radius: 18px; box-shadow: 0 24px 80px rgba(0,0,0,.7); }
@@ -115,6 +117,8 @@
   @media (max-width: 640px) {
     #title h1 { font-size: 18px; letter-spacing: 5px; }
     #title p { font-size: 9.5px; letter-spacing: 1.5px; }
+    /* 小屏去掉英文前缀：否则侧标「累计 ¥」会压在副标尾巴上 */
+    .t-en { display: none; }
     #demo-badge { top: 76px; font-size: 9.5px; padding: 4px 9px; }
     #switcher { top: 104px; left: 20px; font-size: 9.5px; gap: 4px; }
     #legend { top: 138px; gap: 4px; font-size: 9px; }
@@ -133,7 +137,7 @@
 <canvas id="sky" tabindex="0" role="img" aria-label="麦门星图"></canvas>
 <div id="a11y-live" class="sr-only" aria-live="polite"></div>
 <ul id="a11y-list" class="sr-only"></ul>
-<div class="hud" id="title"><h1>麦门宇宙</h1><p>MCUNIVERSE · 你的每一单，都是星海里的一颗星</p></div>
+<div class="hud" id="title"><h1>麦门宇宙</h1><p><span class="t-en">MCUNIVERSE · </span>你的每一单，都是麦门宇宙里的一颗星</p></div>
 <div class="hud" id="demo-badge">演示数据 · <a href="https://github.com/TianWenzzzh/mcd-universe" target="_blank">用你的真实订单生成 →</a></div>
 <div id="switcher"><span class="lbl">换个麦门看看</span><a href="./">深夜</a><a href="breakfast.html">早餐</a><a href="dessert.html">甜点</a><a href="burger.html">汉堡</a></div>
 <div class="hud" id="stats"></div>
@@ -152,7 +156,7 @@
 </div>
 <div class="hud" id="detail"></div>
 <div class="hud" id="dex-panel"><h3>麦门人格图鉴</h3><div id="dex-list"></div></div>
-<div class="hud" id="footer">数据本地处理 · TOKEN 不出本机</div>
+<div class="hud" id="footer">数据本地处理 · Token 不出本机</div>
 <div id="img-preview">
   <div class="ip-card">
     <p class="ip-tip">长按图片保存到相册</p>
@@ -164,12 +168,12 @@
 <div id="onboard">
   <div class="ob-card">
     <h2>欢迎来到麦门宇宙</h2>
-    <p class="ob-sub">你的每一单，都是星海里的一颗星</p>
+    <p class="ob-sub">你的每一单，都是麦门宇宙里的一颗星</p>
     <div class="ob-step"><b>1</b><div><i>看看你的星</i><span>颜色是餐品品类，大小是你的常点，位置是下单时间，连线按时间先后串起你的麦门轨迹</span></div></div>
     <div class="ob-step"><b>2</b><div><i>玩一玩</i><span>悬停看餐品、拖拽转动星系、滚轮拉近拉远、点击看详情；键盘 ←/→ 也能逐颗浏览</span></div></div>
     <div class="ob-step"><b>3</b><div><i>带走它</i><span>保存 1080×1440 分享卡，或打开人格图鉴，看你是七种麦门人里的哪一种</span></div></div>
     <button id="ob-go">开始探索</button>
-    <p class="ob-tip">订单数据本地处理 · Token 不出本机</p>
+    <p class="ob-tip">订单数据本地处理 · Token 不出本机 · <a href="https://tianwenzzzh.github.io/mcd-universe/docs/about.html" target="_blank" rel="noopener">关于这个作品</a></p>
   </div>
 </div>
 <div id="export-panel">
@@ -680,7 +684,7 @@
     var res = computeAchievements();
     el.innerHTML = res.defs.map(function (d) {
       return '<span class="chip' + (d[2] ? "" : " locked") + '" title="' + d[3] + '">' + d[0] + " " + d[1] + "</span>";
-    }).join("") + '<span class="count">已解锁 ' + res.unlocked + " / " + res.defs.length + " 项麦门成就（灰项悬停看进度）</span>";
+    }).join("") + '<span class="count">已解锁 ' + res.unlocked + " / " + res.defs.length + " 项麦门成就（未解锁项悬停看进度）</span>";
   }
 
   // ---------- 交互：悬停 / 视差 / 拖拽旋转 / 滚轮缩放 / 点击 ----------
@@ -934,7 +938,7 @@
     ex.fillText("麦门宇宙", 540, 128);
     ex.shadowBlur = 0;
     ex.fillStyle = th.sub; ex.font = "26px -apple-system, PingFang SC, sans-serif";
-    ex.fillText("MCUNIVERSE · 我的每一单，都是星海里的一颗星", 540, 178);
+    ex.fillText("MCUNIVERSE · 我的每一单，都是麦门宇宙里的一颗星", 540, 178);
     var rng = cardRange();
     if (rng) {
       ex.fillStyle = "rgba(163,157,194,.6)"; ex.font = "20px -apple-system, PingFang SC, sans-serif";
@@ -1028,7 +1032,7 @@
 
     drawCardQR(ex, 470, 1160, th);
     ex.fillStyle = "rgba(163,157,194,.55)"; ex.font = "19px -apple-system, PingFang SC, sans-serif";
-    ex.fillText("数据本地处理 · TOKEN 不出本机", 540, 1352);
+    ex.fillText("数据本地处理 · Token 不出本机", 540, 1352);
   }
 
   function drawAchievementCard(ex, th) {
@@ -1083,7 +1087,7 @@
 
     drawCardQR(ex, 470, 1156, th);
     ex.fillStyle = "rgba(163,157,194,.5)"; ex.font = "18px -apple-system, PingFang SC, sans-serif";
-    ex.fillText("数据本地处理 · TOKEN 不出本机", 540, 1352);
+    ex.fillText("数据本地处理 · Token 不出本机", 540, 1352);
   }
 
   function wrapText(c, text, x, y, maxW, lh) {

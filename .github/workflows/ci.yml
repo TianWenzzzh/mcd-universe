@@ -36,3 +36,6 @@ jobs:
 
       - name: Template static check
         run: python scripts/lint_template.py
+
+      - name: Link integrity check
+        run: python scripts/check_links.py

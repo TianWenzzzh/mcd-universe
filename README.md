@@ -9,7 +9,7 @@
 [![CI](https://github.com/TianWenzzzh/mcd-universe/actions/workflows/ci.yml/badge.svg)](https://github.com/TianWenzzzh/mcd-universe/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.8%2B-blue)
 ![零依赖](https://img.shields.io/badge/dependencies-0-brightgreen)
-![测试](https://img.shields.io/badge/selftest-22%20passed-success)
+![测试](https://img.shields.io/badge/selftest-25%20passed-success)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 ## 在线演示
@@ -55,7 +55,7 @@ python scripts/generate_report.py --demo samples/demo_orders.json -o report.html
 
 ## 技术栈
 
-Python（MCP 客户端 + 订单解析 + 星图模型 + 人格鉴定，22 条测试全绿）+ 单文件 HTML/Canvas（星图渲染，零依赖零外链，离线可用）。
+Python（MCP 客户端 + 订单解析 + 星图模型 + 人格鉴定，25 条测试全绿）+ 单文件 HTML/Canvas（星图渲染，零依赖零外链，离线可用）。
 
 ## 工程细节
 
@@ -73,7 +73,7 @@ flowchart TD
     R --> C[分享卡 PNG<br/>1080×1440 竖版]
 ```
 
-`src/mcp_client.py` 处理了麦当劳 MCP 实测的四种返回形态：干净 JSON、文本包装内嵌 JSON、`[N]{列名}:` 文本表格、「JSON 里再套文本表格」的二层包装——错误响应还会在标记后先输出人话再跟 JSON，且业务错误 `isError=false` 但 `success=false`（如 query-order 非本人订单 610301），均已归一化并有测试覆盖。`scripts/lint_template.py` 对渲染模板做静态检查（未定义函数调用 / 缺失 DOM 引用），防住只在罕见路径暴露的崩溃。`scripts/e2e_check.mjs` 用真实浏览器跑四态冒烟（银河 / 星云 / 甜点 / 减少动效）并校验分享卡导出产物。CI 覆盖 Python 3.10–3.13 四个版本 + ruff + pytest + 模板检查。详见 [MCP_INTEGRATION.md](MCP_INTEGRATION.md) 与 [CONTRIBUTING.md](CONTRIBUTING.md)。
+`src/mcp_client.py` 处理了麦当劳 MCP 实测的四种返回形态：干净 JSON、文本包装内嵌 JSON、`[N]{列名}:` 文本表格、「JSON 里再套文本表格」的二层包装——错误响应还会在标记后先输出人话再跟 JSON，且业务错误 `isError=false` 但 `success=false`（如 query-order 非本人订单 610301），均已归一化并有测试覆盖。`scripts/lint_template.py` 对渲染模板做静态检查（未定义函数调用 / 缺失 DOM 引用），防住只在罕见路径暴露的崩溃。`scripts/check_links.py` 校验页面间的本地引用是否真的可达（`./` 与 `../` 写错会让评委点进 404）。`scripts/e2e_check.mjs` 用真实浏览器跑五态冒烟（银河 / 星云 / 甜点 / 减少动效 / 移动端银河）并校验分享卡导出产物与移动端 HUD 不重叠。CI 覆盖 Python 3.10–3.13 四个版本 + ruff + pytest + 模板检查 + 链接检查。详见 [MCP_INTEGRATION.md](MCP_INTEGRATION.md) 与 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ## 目录结构
 
@@ -81,7 +81,7 @@ flowchart TD
 ├── SKILL.md                  # Skill 定义
 ├── src/                      # MCP 客户端、星图数据模型、人格鉴定
 ├── templates/                # 星图 HTML 报告模板（Canvas 渲染）
-├── scripts/                  # 数据拉取、报告生成、模板静态检查
+├── scripts/                  # 数据拉取、报告生成、模板静态检查、链接检查、E2E
 ├── samples/                  # 演示数据（匿名化）与官方营养数据
 ├── tests/                    # 测试（先证伪再交付）
 ├── demo/                     # 在线演示页
