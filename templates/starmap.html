@@ -50,6 +50,23 @@
   #achievements .count { font-size: 10px; color: #948eb5; width: 100%; margin-top: 3px; letter-spacing: 1px; }
   #demo-badge { top: 96px; left: 28px; display: none; font-size: 10.5px; color: #ffd97a; background: rgba(255,217,122,.07); border: 1px solid rgba(255,217,122,.3); border-radius: 999px; padding: 5px 12px; letter-spacing: 1px; }
   #demo-badge a { color: #ffd97a; pointer-events: auto; text-decoration: none; }
+  #switcher { top: 132px; left: 28px; display: none; align-items: center; gap: 6px; font-size: 10.5px; color: #8f89ad; pointer-events: auto; }
+  #switcher .lbl { letter-spacing: 1px; }
+  #switcher a { color: #b9b3d6; text-decoration: none; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); border-radius: 999px; padding: 2px 9px; letter-spacing: .5px; }
+  #switcher a.cur { color: #ffe9a8; border-color: rgba(255,217,122,.45); background: rgba(255,217,122,.1); }
+  #switcher a:hover { border-color: rgba(255,255,255,.3); }
+  #onboard { position: absolute; inset: 0; z-index: 30; display: none; align-items: center; justify-content: center; background: rgba(4,3,11,.72); backdrop-filter: blur(6px); }
+  #onboard.show { display: flex; }
+  .ob-card { width: min(460px, calc(100% - 40px)); padding: 26px 26px 20px; background: linear-gradient(170deg, rgba(26,22,48,.98), rgba(10,8,22,.98)); border: 1px solid rgba(255,217,122,.28); border-radius: 18px; box-shadow: 0 24px 80px rgba(0,0,0,.7); }
+  .ob-card h2 { font-size: 20px; font-weight: 700; color: #ffe9a8; letter-spacing: 3px; text-shadow: 0 0 22px rgba(255,217,122,.35); }
+  .ob-card .ob-sub { font-size: 12px; color: #9d97bd; margin: 7px 0 18px; letter-spacing: 1px; }
+  .ob-step { display: flex; gap: 12px; margin-bottom: 13px; align-items: flex-start; }
+  .ob-step b { flex: 0 0 22px; height: 22px; border-radius: 50%; background: rgba(255,217,122,.14); border: 1px solid rgba(255,217,122,.4); color: #ffe9a8; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+  .ob-step i { display: block; font-style: normal; font-size: 13px; color: #ece9f7; font-weight: 600; letter-spacing: .5px; }
+  .ob-step span { display: block; font-size: 11.5px; color: #9d97bd; margin-top: 3px; line-height: 1.7; }
+  #ob-go { width: 100%; margin-top: 6px; padding: 11px; border: 0; border-radius: 11px; background: linear-gradient(160deg, #ef7f4a, #d85a30); color: #fff; font-size: 14px; letter-spacing: 2px; cursor: pointer; box-shadow: 0 8px 26px rgba(216,90,48,.35); }
+  #ob-go:hover { background: linear-gradient(160deg, #f78f5c, #e06a3c); }
+  .ob-tip { text-align: center; font-size: 10px; color: rgba(163,157,194,.5); margin-top: 10px; letter-spacing: 1px; }
   #dex-panel { left: 50%; bottom: 92px; transform: translateX(-50%) translateY(18px); width: min(560px, calc(100% - 48px)); max-height: 48vh; overflow-y: auto; padding: 18px 20px; background: linear-gradient(170deg, rgba(22,18,42,.97), rgba(9,7,20,.97)); border: 1px solid rgba(255,217,122,.2); border-radius: 16px; box-shadow: 0 18px 56px rgba(0,0,0,.6); opacity: 0; transition: opacity .3s, transform .3s; pointer-events: none; }
   #dex-panel.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
   #dex-panel h3 { font-size: 12px; font-weight: 700; color: #ffe9a8; letter-spacing: 3px; margin-bottom: 12px; }
@@ -63,14 +80,15 @@
     #title h1 { font-size: 18px; letter-spacing: 5px; }
     #title p { font-size: 9.5px; letter-spacing: 1.5px; }
     #demo-badge { top: 76px; font-size: 9.5px; padding: 4px 9px; }
-    #legend { top: 116px; gap: 5px; font-size: 9.5px; }
+    #switcher { top: 104px; left: 20px; font-size: 9.5px; gap: 4px; }
+    #legend { top: 138px; gap: 4px; font-size: 9px; }
     #stats { top: 22px; right: 22px; }
-    #persona { max-width: calc(100% - 40px); bottom: 74px; padding: 13px 16px; }
+    #persona { max-width: calc(100% - 40px); bottom: 114px; padding: 13px 16px; }
     #detail { top: 24%; bottom: auto; max-width: calc(100% - 28px); }
-    #dex-panel { bottom: 74px; max-height: 52vh; }
+    #dex-panel { bottom: 114px; max-height: 46vh; }
     #footer { display: none; }
-    #actions { left: 20px; right: 20px; bottom: 16px; }
-    .btn { flex: 1; text-align: center; padding: 9px 4px; font-size: 11px; letter-spacing: 0; }
+    #actions { left: 14px; right: 14px; bottom: 12px; gap: 6px; flex-wrap: wrap; }
+    .btn { flex: 1 1 28%; text-align: center; padding: 8px 4px; font-size: 11px; letter-spacing: 0; }
   }
 </style>
 </head>
@@ -78,6 +96,7 @@
 <canvas id="sky"></canvas>
 <div class="hud" id="title"><h1>麦门宇宙</h1><p>MCUNIVERSE · 你的每一单，都是星海里的一颗星</p></div>
 <div class="hud" id="demo-badge">演示数据 · <a href="https://github.com/TianWenzzzh/mcd-universe" target="_blank">用你的真实订单生成 →</a></div>
+<div id="switcher"><span class="lbl">换个麦门看看</span><a href="./">深夜</a><a href="breakfast.html">早餐</a><a href="dessert.html">甜点</a><a href="burger.html">汉堡</a></div>
 <div class="hud" id="stats"></div>
 <div class="hud" id="daily"></div>
 <div class="hud" id="legend"></div>
@@ -87,7 +106,19 @@
 <div class="hud" id="detail"></div>
 <div class="hud" id="dex-panel"><h3>麦门人格图鉴</h3><div id="dex-list"></div></div>
 <div class="hud" id="footer">数据本地处理 · TOKEN 不出本机</div>
+<div id="onboard">
+  <div class="ob-card">
+    <h2>欢迎来到麦门宇宙</h2>
+    <p class="ob-sub">你的每一单，都是星海里的一颗星</p>
+    <div class="ob-step"><b>1</b><div><i>看看你的星</i><span>颜色是餐品品类，大小是你的常点，位置是下单时间，连线按时间先后串起你的麦门轨迹</span></div></div>
+    <div class="ob-step"><b>2</b><div><i>玩一玩</i><span>悬停看餐品、拖拽转动星系、滚轮拉近拉远、点击查看订单详情</span></div></div>
+    <div class="ob-step"><b>3</b><div><i>带走它</i><span>保存 1080×1440 分享卡，或打开人格图鉴，看你是七种麦门人里的哪一种</span></div></div>
+    <button id="ob-go">开始探索</button>
+    <p class="ob-tip">订单数据本地处理 · Token 不出本机</p>
+  </div>
+</div>
 <div id="actions">
+  <button class="btn" id="btn-help">玩法</button>
   <button class="btn" id="btn-dex">人格图鉴</button>
   <button class="btn" id="btn-sound">音效</button>
   <button class="btn" id="btn-replay">重播入场</button>
@@ -113,6 +144,10 @@
   var isNebula = !stars.length;
   var particles = [], raf = 0, startT = 0, selected = -1;
   var CX = 0, CY = 0;
+  // 分享卡右下角二维码（预生成 PNG，data URI 内嵌，离线可用）
+  var QR_URI = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQgAAAEICAAAAACGnTUjAAAC0klEQVR42u3cQY7DIAwF0Nz/0pn9SBH426Qz6mOXJgXzsrFs2usKx/1r7D5fvX6a/34Y19sDBAgQIECAAPE48dNCq+sqzApgBbV7fwkHAgQIECBAgIghphKiqUQsna+6HxAgQIAAAQLE5yB2A+smPlMJHggQIECAAAHi8xBpweRUgQYECBAgQIAA8TmIqcRm96DH6evXOl0gQIAAAQLEF0OkjZW/ev3aAAECBAgQIL4Y4m6OLly63j08QIAAAQIECBD5PtJAdhs1U0CrwtDu/cf4QIAAAQIECBDb61cTpmpA1QMh1YJLmvCVM0sQIECAAAECxLIekW6gGmgXuBrX9vwgQIAAAQIEiO35T22oGkh349UDIyBAgAABAgSIc/+HlRZI0ufTxk9a+Nk+6AICBAgQIECAWEKkCdBUYaVbwJl6QSBAgAABAgSI/efTgki34LGb6FQ/r47tChUIECBAgAAB4hEi3WD1+2kec6rBc6VfBAECBAgQIEC0f/hRDWi6wJM2jkCAAAECBAgQfYhqASQtnKQFlPTASVxwAgECBAgQIEDEEGlA3cZPer8LBQIECBAgQIDoQ6Qbqo7uOt3C0NgAAQIECBAgQMQJSDXQ6nxVmOl5QIAAAQIECBB9iKmGz1uFoOqBEhAgQIAAAQJEH6LbCKkmPFMvoHtABQQIECBAgAAxBzEVQDrvVCNpFwAECBAgQIAA0Yc4dY4ibbycCnz8JA0IECBAgADxxRDTCctugSUtpHQbT9sFGRAgQIAAAQLEEqKbmFSBpgo33RcwBgICBAgQIECAuKoJ1NsNl+r9+E2DAAECBAgQIMY7QNVEqJtQVdcd63SBAAECBAgQIF6HSBOxakJUjRMECBAgQIAA8X8gqoWfauJVbeyAAAECBAgQIN6D6DZ40sJI2sDpxnHsoAgIECBAgADxRRCnzlOcSpyqcVbXAwECBAgQIEAsIX4ApkhGwSYpBDgAAAAASUVORK5CYII=";
+  var qrImg = new Image();
+  qrImg.src = QR_URI;
   var ROT_SPEED = 0.000012;
   // 视图状态：用户拖拽旋转 / 滚轮缩放 / 鼠标视差
   var view = { userRot: 0, zoom: 1, px: 0, py: 0 };
@@ -725,20 +760,29 @@
     lg.addColorStop(.5, "rgba(255,217,122,.5)");
     lg.addColorStop(1, "rgba(255,217,122,0)");
     ex.strokeStyle = lg; ex.lineWidth = 1;
-    ex.beginPath(); ex.moveTo(240, 1268); ex.lineTo(840, 1268); ex.stroke();
+    ex.beginPath(); ex.moveTo(240, 1246); ex.lineTo(840, 1246); ex.stroke();
 
     if (DATA.persona) {
       ex.shadowColor = "rgba(255,217,122,.5)"; ex.shadowBlur = 22;
       ex.fillStyle = "#ffe9a8";
       ex.font = "700 46px -apple-system, PingFang SC, Microsoft YaHei, sans-serif";
-      ex.fillText("麦门人格 · " + DATA.persona.name, 540, 1330);
+      ex.fillText("麦门人格 · " + DATA.persona.name, 540, 1308);
       ex.shadowBlur = 0;
       ex.fillStyle = "rgba(214,208,236,.8)"; ex.font = "25px -apple-system, PingFang SC, sans-serif";
-      wrapText(ex, DATA.persona.desc, 540, 1378, 860, 38);
+      wrapText(ex, DATA.persona.desc, 540, 1352, 720, 34);
     }
     ex.fillStyle = "rgba(163,157,194,.62)"; ex.font = "21px -apple-system, PingFang SC, sans-serif";
     ex.fillText((DATA.summary.orderCount || 0) + " 颗星 · 累计 ¥" + (DATA.summary.totalAmount || 0).toFixed(1)
-      + " · 数据本地处理", 540, 1416);
+      + " · 数据本地处理", 540, 1424);
+    // 二维码：扫码直达演示页
+    if (qrImg.complete && qrImg.naturalWidth) {
+      ex.fillStyle = "rgba(255,233,168,.62)"; ex.font = "16px -apple-system, PingFang SC, sans-serif";
+      ex.fillText("扫码生成你的", 986, 1258);
+      ex.fillStyle = "#ffffff";
+      if (ex.roundRect) { ex.beginPath(); ex.roundRect(916, 1268, 140, 140, 10); ex.fill(); }
+      else { ex.fillRect(916, 1268, 140, 140); }
+      ex.drawImage(qrImg, 924, 1276, 124, 124);
+    }
     return ec;
   }
   function wrapText(c, text, x, y, maxW, lh) {
@@ -809,7 +853,34 @@
   if (DATA.demo) {
     var badge = document.getElementById("demo-badge");
     if (badge) badge.style.display = "block";
+    var sw = document.getElementById("switcher");
+    if (sw) {
+      sw.style.display = "flex";
+      var cur = location.pathname.split("/").pop() || "index.html";
+      if (cur === "" || cur === "index.html") cur = "./";
+      sw.querySelectorAll("a").forEach(function (a) {
+        if (a.getAttribute("href") === cur) a.className = "cur";
+      });
+    }
   }
+
+  // 首访引导（localStorage 记忆；file:// 或隐私模式下降级为每次显示）
+  var onboard = document.getElementById("onboard");
+  function obSeen() {
+    try { return localStorage.getItem("mcuniverse_onboarded") === "1"; } catch (e) { return false; }
+  }
+  function obDismiss() {
+    onboard.classList.remove("show");
+    try { localStorage.setItem("mcuniverse_onboarded", "1"); } catch (e) {}
+  }
+  if (!obSeen()) {
+    setTimeout(function () { onboard.classList.add("show"); }, 900);
+  }
+  document.getElementById("ob-go").addEventListener("click", obDismiss);
+  onboard.addEventListener("click", function (e) { if (e.target === onboard) obDismiss(); });
+  document.getElementById("btn-help").addEventListener("click", function () {
+    onboard.classList.add("show");
+  });
   window.__mcuniverse = {
     stars: stars, data: DATA, isNebula: isNebula, reduced: REDUCED,
     composeCard: composeCard,

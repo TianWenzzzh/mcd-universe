@@ -1,0 +1,22 @@
+[
+  { "orderId": "DEMOH-001", "createTime": "2026-10-21 12:10:00", "storeName": "麦当劳太原柳巷餐厅", "orderStatus": "6", "realTotalAmount": "25.0",
+    "orderProductList": [{ "productCode": "B03", "productName": "巨无霸", "quantity": 1 }] },
+  { "orderId": "DEMOH-002", "createTime": "2026-10-20 12:30:00", "storeName": "麦当劳太原中北大学餐厅", "orderStatus": "6", "realTotalAmount": "21.0",
+    "orderProductList": [{ "productCode": "B02", "productName": "麦辣鸡腿堡", "quantity": 1 }] },
+  { "orderId": "DEMOH-003", "createTime": "2026-10-19 18:40:00", "storeName": "麦当劳太原柳巷餐厅", "orderStatus": "6", "realTotalAmount": "32.0",
+    "orderProductList": [{ "productCode": "B01", "productName": "巨无霸套餐", "quantity": 1 }] },
+  { "orderId": "DEMOH-004", "createTime": "2026-10-17 12:00:00", "storeName": "麦当劳太原中北大学餐厅", "orderStatus": "6", "realTotalAmount": "22.0",
+    "orderProductList": [{ "productCode": "B04", "productName": "板烧鸡腿堡", "quantity": 1 }] },
+  { "orderId": "DEMOH-005", "createTime": "2026-10-16 19:10:00", "storeName": "麦当劳太原柳巷餐厅", "orderStatus": "6", "realTotalAmount": "18.0",
+    "orderProductList": [{ "productCode": "B05", "productName": "双层吉士堡", "quantity": 1 }] },
+  { "orderId": "DEMOH-006", "createTime": "2026-10-15 12:20:00", "storeName": "麦当劳太原中北大学餐厅", "orderStatus": "6", "realTotalAmount": "25.0",
+    "orderProductList": [{ "productCode": "B03", "productName": "巨无霸", "quantity": 1 }] },
+  { "orderId": "DEMOH-007", "createTime": "2026-10-14 12:05:00", "storeName": "麦当劳太原柳巷餐厅", "orderStatus": "6", "realTotalAmount": "38.0",
+    "orderProductList": [{ "productCode": "B06", "productName": "安格斯厚牛堡", "quantity": 1 }] },
+  { "orderId": "DEMOH-008", "createTime": "2026-10-13 18:50:00", "storeName": "麦当劳太原中北大学餐厅", "orderStatus": "6", "realTotalAmount": "17.0",
+    "orderProductList": [{ "productCode": "B07", "productName": "麦香鱼", "quantity": 1 }] },
+  { "orderId": "DEMOH-009", "createTime": "2026-10-12 12:15:00", "storeName": "麦当劳太原柳巷餐厅", "orderStatus": "6", "realTotalAmount": "13.0",
+    "orderProductList": [{ "productCode": "S01", "productName": "中薯条", "quantity": 1 }] },
+  { "orderId": "DEMOH-010", "createTime": "2026-10-10 12:40:00", "storeName": "麦当劳太原中北大学餐厅", "orderStatus": "6", "realTotalAmount": "9.0",
+    "orderProductList": [{ "productCode": "D01", "productName": "可口可乐", "quantity": 1 }] }
+]

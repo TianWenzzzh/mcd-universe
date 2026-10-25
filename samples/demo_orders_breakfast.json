@@ -1,0 +1,22 @@
+[
+  { "orderId": "DEMOB-001", "createTime": "2026-10-21 08:12:00", "storeName": "麦当劳太原中北大学餐厅", "orderStatus": "6", "realTotalAmount": "16.0",
+    "orderProductList": [{ "productCode": "M01", "productName": "猪柳蛋麦满分套餐", "quantity": 1 }] },
+  { "orderId": "DEMOB-002", "createTime": "2026-10-20 08:05:00", "storeName": "麦当劳太原中北大学餐厅", "orderStatus": "6", "realTotalAmount": "16.0",
+    "orderProductList": [{ "productCode": "M01", "productName": "猪柳蛋麦满分套餐", "quantity": 1 }] },
+  { "orderId": "DEMOB-003", "createTime": "2026-10-19 08:30:00", "storeName": "麦当劳太原柳巷餐厅", "orderStatus": "6", "realTotalAmount": "7.0",
+    "orderProductList": [{ "productCode": "M02", "productName": "脆薯饼", "quantity": 1 }] },
+  { "orderId": "DEMOB-004", "createTime": "2026-10-17 08:20:00", "storeName": "麦当劳太原中北大学餐厅", "orderStatus": "6", "realTotalAmount": "16.0",
+    "orderProductList": [{ "productCode": "M01", "productName": "猪柳蛋麦满分套餐", "quantity": 1 }] },
+  { "orderId": "DEMOB-005", "createTime": "2026-10-16 08:40:00", "storeName": "麦当劳太原柳巷餐厅", "orderStatus": "6", "realTotalAmount": "9.0",
+    "orderProductList": [{ "productCode": "M03", "productName": "鲜煮咖啡", "quantity": 1 }] },
+  { "orderId": "DEMOB-006", "createTime": "2026-10-15 12:20:00", "storeName": "麦当劳太原柳巷餐厅", "orderStatus": "6", "realTotalAmount": "25.5",
+    "orderProductList": [{ "productCode": "B01", "productName": "巨无霸套餐", "quantity": 1 }] },
+  { "orderId": "DEMOB-007", "createTime": "2026-10-14 18:30:00", "storeName": "麦当劳太原中北大学餐厅", "orderStatus": "6", "realTotalAmount": "13.0",
+    "orderProductList": [{ "productCode": "S01", "productName": "中薯条", "quantity": 1 }] },
+  { "orderId": "DEMOB-008", "createTime": "2026-10-13 12:10:00", "storeName": "麦当劳太原柳巷餐厅", "orderStatus": "6", "realTotalAmount": "21.0",
+    "orderProductList": [{ "productCode": "B02", "productName": "麦辣鸡腿堡", "quantity": 1 }] },
+  { "orderId": "DEMOB-009", "createTime": "2026-10-12 15:00:00", "storeName": "麦当劳太原中北大学餐厅", "orderStatus": "6", "realTotalAmount": "6.0",
+    "orderProductList": [{ "productCode": "T02", "productName": "圆筒冰淇淋", "quantity": 1 }] },
+  { "orderId": "DEMOB-010", "createTime": "2026-10-09 19:40:00", "storeName": "麦当劳太原柳巷餐厅", "orderStatus": "6", "realTotalAmount": "9.0",
+    "orderProductList": [{ "productCode": "D01", "productName": "可口可乐", "quantity": 1 }] }
+]
