@@ -196,6 +196,28 @@ def test_summary_rounding():
     assert build_starmap(orders)["summary"]["totalAmount"] == 24.44
 
 
+def test_demo_samples_personas():
+    """四套演示数据必须产出四种不同人格（演示切换器的回归护栏）。"""
+    import json
+    import os
+
+    base = os.path.join(os.path.dirname(__file__), "..", "samples")
+    cases = {
+        "demo_orders.json": "深夜麦门人",
+        "demo_orders_breakfast.json": "早餐先行者",
+        "demo_orders_dessert.json": "甜点星住民",
+        "demo_orders_burger.json": "硬核堡星人",
+    }
+    seen = []
+    for fname, expected in cases.items():
+        with open(os.path.join(base, fname), encoding="utf-8") as f:
+            orders = json.load(f)
+        name = detect_personality(build_starmap(orders))
+        assert name == expected, f"{fname} 应鉴出 {expected}，实际 {name}"
+        seen.append(name)
+    assert len(set(seen)) == 4, "四套演示必须覆盖四种不同人格"
+
+
 if __name__ == "__main__":
     fails = 0
     for name, fn in sorted(globals().items()):

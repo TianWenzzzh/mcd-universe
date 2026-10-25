@@ -6,7 +6,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⭐</text></svg>">
 <meta property="og:title" content="麦门宇宙 McUniverse">
 <meta property="og:description" content="你的每一单，都是麦门宇宙里的一颗星。基于麦当劳MCP的个人订单星图与麦门人格鉴定。">
-<meta property="og:image" content="https://tianwenzzzh.github.io/mcd-universe/docs/assets/demo-v5.png">
+<meta property="og:image" content="https://tianwenzzzh.github.io/mcd-universe/docs/assets/desktop-v8.png">
 <meta property="og:type" content="website">
 <meta name="description" content="麦门宇宙：基于麦当劳中国官方MCP的订单星图与麦门人格鉴定Skill，数据本地处理。">
 <title>麦门宇宙 McUniverse</title>
@@ -42,6 +42,10 @@
   #legend { left: 28px; top: 172px; display: flex; flex-direction: column; gap: 7px; font-size: 10.5px; color: #a39dc2; letter-spacing: 1px; }
   #legend span { display: flex; align-items: center; gap: 7px; background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.07); border-radius: 999px; padding: 3px 10px 3px 7px; width: fit-content; }
   #legend i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; box-shadow: 0 0 8px currentColor; }
+  #legend .size-hint { gap: 3px; padding: 3px 10px 3px 8px; }
+  #legend .size-hint i { box-shadow: none; background: #ece9f7; }
+  #detail .dhead { border-bottom: 1px solid rgba(255,255,255,.1); padding-bottom: 7px; margin-bottom: 5px; }
+  #detail .dhead .k { color: #ffd97a; letter-spacing: 1px; }
   #footer { right: 30px; top: 50%; transform: translateY(-50%); writing-mode: vertical-rl; font-size: 9.5px; color: rgba(163,157,194,.42); letter-spacing: 3px; }
   #tip { position: absolute; z-index: 12; pointer-events: none; display: none; font-size: 11px; color: #ffe9a8; background: rgba(12,10,26,.9); border: 1px solid rgba(255,217,122,.3); border-radius: 999px; padding: 4px 11px; letter-spacing: 1px; white-space: nowrap; box-shadow: 0 4px 18px rgba(0,0,0,.5); }
   #toast { position: absolute; left: 50%; bottom: 150px; transform: translateX(-50%) translateY(8px); z-index: 20; font-size: 12.5px; color: #ffe9a8; background: rgba(16,12,32,.94); border: 1px solid rgba(255,217,122,.32); border-radius: 999px; padding: 10px 22px; letter-spacing: 1px; opacity: 0; transition: opacity .3s, transform .3s; pointer-events: none; }
@@ -68,6 +72,12 @@
   .ob-step span { display: block; font-size: 11.5px; color: #9d97bd; margin-top: 3px; line-height: 1.7; }
   #ob-go { width: 100%; margin-top: 6px; padding: 11px; border: 0; border-radius: 11px; background: linear-gradient(160deg, #ef7f4a, #d85a30); color: #fff; font-size: 14px; letter-spacing: 2px; cursor: pointer; box-shadow: 0 8px 26px rgba(216,90,48,.35); }
   #ob-go:hover { background: linear-gradient(160deg, #f78f5c, #e06a3c); }
+  #nebula-hint { left: 50%; top: 50%; transform: translate(-50%, -42%); width: min(420px, calc(100% - 44px)); padding: 24px 24px 18px; text-align: center; background: linear-gradient(170deg, rgba(24,20,44,.9), rgba(10,8,22,.9)); border: 1px solid rgba(255,217,122,.24); border-radius: 16px; box-shadow: 0 18px 60px rgba(0,0,0,.55); display: none; }
+  #nebula-hint h2 { font-size: 22px; color: #ffe9a8; letter-spacing: 5px; text-shadow: 0 0 24px rgba(255,217,122,.4); }
+  #nebula-hint .nb-sub { font-size: 12.5px; color: #a9a3c6; margin: 10px 0 16px; line-height: 1.8; }
+  #nebula-hint .nb-step { display: flex; gap: 9px; text-align: left; font-size: 12px; color: #b9b3d6; margin-bottom: 9px; line-height: 1.7; }
+  #nebula-hint .nb-step b { flex: 0 0 18px; height: 18px; border-radius: 50%; background: rgba(255,217,122,.14); border: 1px solid rgba(255,217,122,.36); color: #ffe9a8; font-size: 10px; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+  #nebula-hint a { display: inline-block; margin-top: 8px; font-size: 12px; color: #ffd97a; text-decoration: none; border-bottom: 1px dashed rgba(255,217,122,.5); padding-bottom: 2px; pointer-events: auto; }
   .ob-tip { text-align: center; font-size: 10px; color: rgba(163,157,194,.5); margin-top: 10px; letter-spacing: 1px; }
   #export-panel { position: absolute; inset: 0; z-index: 28; display: none; align-items: center; justify-content: center; background: rgba(4,3,11,.78); backdrop-filter: blur(6px); }
   #export-panel.show { display: flex; }
@@ -105,6 +115,7 @@
 </style>
 </head>
 <body>
+<noscript><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#ffe9a8;font-size:15px;letter-spacing:1px">麦门宇宙需要 JavaScript 才能渲染星图，请在浏览器设置中开启后重试。</div></noscript>
 <canvas id="sky" tabindex="0" role="img" aria-label="麦门星图"></canvas>
 <div id="a11y-live" class="sr-only" aria-live="polite"></div>
 <ul id="a11y-list" class="sr-only"></ul>
@@ -117,6 +128,14 @@
 <div class="hud" id="persona"><h2 id="persona-name"></h2><p id="persona-desc"></p><div id="achievements"></div></div>
 <div id="tip"></div>
 <div id="toast"></div>
+<div class="hud" id="nebula-hint">
+  <h2>宇宙初开</h2>
+  <p class="nb-sub">你的第一颗星还没点亮<br>下一单麦当劳，这里就会亮起你的第一颗星</p>
+  <div class="nb-step"><b>1</b><span>在麦当劳下一单（任意金额，外卖/到店都算）</span></div>
+  <div class="nb-step"><b>2</b><span>用自己的 MCP Token 运行 <code>generate_report.py --live</code></span></div>
+  <div class="nb-step"><b>3</b><span>星图亮起，顺便看你是七种麦门人里的哪一种</span></div>
+  <a href="https://github.com/TianWenzzzh/mcd-universe#快速开始" target="_blank">查看如何接入 →</a>
+</div>
 <div class="hud" id="detail"></div>
 <div class="hud" id="dex-panel"><h3>麦门人格图鉴</h3><div id="dex-list"></div></div>
 <div class="hud" id="footer">数据本地处理 · TOKEN 不出本机</div>
@@ -408,7 +427,7 @@
     var off = document.createElement("canvas");
     off.width = W; off.height = H;
     var octx = off.getContext("2d");
-    var size = Math.min(W / 5.2, 92);
+    var size = Math.min(W / 4.6, 120);
     octx.fillStyle = "#fff";
     octx.font = "700 " + size + "px -apple-system, PingFang SC, Microsoft YaHei, sans-serif";
     octx.textAlign = "center"; octx.textBaseline = "middle";
@@ -536,16 +555,6 @@
     });
     ctx.globalCompositeOperation = "source-over";
 
-    ctx.textAlign = "center";
-    ctx.shadowColor = "rgba(255,217,122,.6)"; ctx.shadowBlur = 26;
-    ctx.fillStyle = "#ffe9a8";
-    ctx.font = "700 26px -apple-system, PingFang SC, Microsoft YaHei, sans-serif";
-    ctx.fillText("宇宙初开", W / 2, H / 2 - 12);
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = "rgba(214,208,236,.62)";
-    ctx.font = "13px -apple-system, PingFang SC, sans-serif";
-    ctx.fillText("你的第一颗星还没点亮 —— 去麦麦吧，未来可期", W / 2, H / 2 + 24);
-    ctx.textAlign = "start";
   }
 
   // ---------- HUD ----------
@@ -571,6 +580,10 @@
       span.innerHTML = '<i style="background:' + CATS[c] + ';color:' + CATS[c] + '"></i>' + c;
       legend.appendChild(span);
     });
+    var sizeHint = document.createElement("span");
+    sizeHint.className = "size-hint";
+    sizeHint.innerHTML = '<i style="width:5px;height:5px"></i><i style="width:8px;height:8px"></i><i style="width:11px;height:11px"></i>常点越多星越大';
+    legend.appendChild(sizeHint);
     if (DATA.persona) {
       document.getElementById("persona-name").textContent = "麦门人格 · " + DATA.persona.name;
       document.getElementById("persona-desc").textContent = DATA.persona.desc;
@@ -631,11 +644,11 @@
     if (i < 0) { detail.classList.remove("show"); return; }
     var s = stars[i];
     detail.innerHTML =
+      '<div class="row dhead"><span class="k">你的第 ' + (i + 1) + ' 颗星</span><span class="v">' + s.category + " · " + s.magnitude + " 等</span></div>" +
       '<div class="row"><span class="k">餐品</span><span class="v">' + esc(s.product || "—") + "</span></div>" +
       '<div class="row"><span class="k">门店</span><span class="v">' + esc(s.store || "—") + "</span></div>" +
       '<div class="row"><span class="k">时间</span><span class="v">' + esc(s.time || "—") + "</span></div>" +
-      '<div class="row"><span class="k">实付</span><span class="v">¥' + (s.amount || 0).toFixed(1) + "</span></div>" +
-      '<div class="row"><span class="k">品类 / 星等</span><span class="v">' + s.category + " · " + s.magnitude + " 等</span></div>";
+      '<div class="row"><span class="k">实付</span><span class="v">¥' + (s.amount || 0).toFixed(1) + "</span></div>";
     detail.classList.add("show");
   }
 
@@ -770,8 +783,12 @@
       o.connect(g); g.connect(audio.master); o.start();
     });
   }
+  var lastChimeAt = 0;
   function chime(freq, dur) {
     if (!audio.on || !audio.ctx) return;
+    var now = performance.now();
+    if (now - lastChimeAt < 120) return;
+    lastChimeAt = now;
     var t = audio.ctx.currentTime;
     var o = audio.ctx.createOscillator(); o.type = "sine"; o.frequency.setValueAtTime(freq, t);
     var g = audio.ctx.createGain();
@@ -801,6 +818,13 @@
   }
 
   // ---------- 分享卡（三种风格）----------
+  function cardRange() {
+    if (!stars.length) return "";
+    var ds = stars.map(function (st) { return String(st.time || "").slice(0, 10); })
+      .filter(function (d) { return d.length === 10; }).sort();
+    if (!ds.length) return "";
+    return ds[0].replace(/-/g, ".") + " — " + ds[ds.length - 1].replace(/-/g, ".");
+  }
   var CARD_STYLES = {
     deep: { name: "深空金", title: "#ffe9a8", sub: "rgba(214,208,236,.72)", line: "rgba(255,217,122,.5)", glow: "rgba(255,217,122,.55)" },
     nebula: { name: "星云紫", title: "#ffd6f5", sub: "rgba(230,214,248,.78)", line: "rgba(255,150,235,.5)", glow: "rgba(255,110,220,.6)" },
@@ -851,6 +875,11 @@
     ex.shadowBlur = 0;
     ex.fillStyle = th.sub; ex.font = "26px -apple-system, PingFang SC, sans-serif";
     ex.fillText("MCUNIVERSE · 我的每一单，都是星海里的一颗星", 540, 178);
+    var rng = cardRange();
+    if (rng) {
+      ex.fillStyle = "rgba(163,157,194,.6)"; ex.font = "20px -apple-system, PingFang SC, sans-serif";
+      ex.fillText(rng + " · 共 " + stars.length + " 顿", 540, 214);
+    }
 
     var lg = ex.createLinearGradient(240, 0, 840, 0);
     lg.addColorStop(0, "rgba(255,217,122,0)");
@@ -1032,6 +1061,10 @@
   buildParticles();
   renderHUD();
   renderA11yList();
+  if (isNebula) {
+    var nh = document.getElementById("nebula-hint");
+    if (nh) nh.style.display = "block";
+  }
   if (DATA.demo) {
     var badge = document.getElementById("demo-badge");
     if (badge) badge.style.display = "block";
@@ -1056,7 +1089,7 @@
     try { localStorage.setItem("mcuniverse_onboarded", "1"); } catch (e) {}
   }
   if (!obSeen()) {
-    setTimeout(function () { onboard.classList.add("show"); }, 900);
+    setTimeout(function () { onboard.classList.add("show"); }, 5200);
   }
   document.getElementById("ob-go").addEventListener("click", obDismiss);
   onboard.addEventListener("click", function (e) { if (e.target === onboard) obDismiss(); });
