@@ -26,7 +26,7 @@
 
 | 桌面端 | 移动端 | 星点详情 |
 |---|---|---|
-| ![桌面端（悬停提示 + 成就）](docs/assets/interactive-v6.png) | ![移动端](docs/assets/mobile-v6.png) | ![详情](docs/assets/demo-detail.png) |
+| ![桌面端（人设切换 + 悬停提示 + 成就）](docs/assets/desktop-v8.png) | ![移动端](docs/assets/mobile-v8.png) | ![详情](docs/assets/demo-detail.png) |
 
 ## 功能
 
