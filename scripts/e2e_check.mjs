@@ -62,6 +62,55 @@ async function checkPage(browser, url, opts) {
     }
     state.cardBytes = Object.values(state.cards).join("/");
   }
+  if (opts.ui) {
+    // 首访引导会拦截点击：先关掉（同时验证引导层可关闭）
+    await page.evaluate(() => {
+      try { localStorage.setItem("mcuniverse_onboarded", "1"); } catch (e) {}
+      document.getElementById("onboard").classList.remove("show");
+    });
+    await page.waitForTimeout(200);
+    // 真实点击：保存分享卡 → 面板展开 → 点「极简海报」→ 触发下载
+    await page.click("#btn-save");
+    await page.waitForTimeout(600);
+    const panelOpen = await page.evaluate(() => document.getElementById("export-panel").classList.contains("show"));
+    if (!panelOpen) problems.push("导出面板未展开（按钮可能被遮挡）");
+    const previewCount = await page.evaluate(() => {
+      const cvs = [...document.querySelectorAll(".ep-style canvas")];
+      return cvs.filter((c) => {
+        const d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data;
+        for (let i = 3; i < d.length; i += 4) if (d[i] > 0) return true;
+        return false;
+      }).length;
+    });
+    if (previewCount !== 3) problems.push(`风格预览应为 3 张，实际绘出 ${previewCount}`);
+    const downloadPromise = page.waitForEvent("download", { timeout: 15000 }).catch(() => null);
+    await page.click('.ep-style[data-style="minimal"]');
+    const dl = await downloadPromise;
+    if (!dl) problems.push("点击风格后未触发下载");
+    else state.download = dl.suggestedFilename();
+
+    // 键盘：方向键逐颗浏览，详情面板应展开
+    await page.keyboard.press("Escape");
+    await page.focus("#sky");
+    await page.keyboard.press("ArrowRight");
+    await page.waitForTimeout(300);
+    const detailShown = await page.evaluate(() => document.getElementById("detail").classList.contains("show"));
+    if (!detailShown) problems.push("键盘方向键未能选中星点");
+    const liveText = await page.evaluate(() => document.getElementById("a11y-live").textContent);
+    if (!liveText || !liveText.includes("颗星")) problems.push("aria-live 未播报选中信息");
+
+    // 悬停：鼠标移到第一颗星，应出现餐品气泡
+    const pos = await page.evaluate(() => {
+      const s = window.__mcuniverse.stars[0];
+      return s ? { x: Math.round(s.x), y: Math.round(s.y) } : null;
+    });
+    if (pos) {
+      await page.mouse.move(pos.x, pos.y);
+      await page.waitForTimeout(300);
+      const tipShown = await page.evaluate(() => getComputedStyle(document.getElementById("tip")).display !== "none");
+      if (!tipShown) problems.push("悬停未出现餐品气泡");
+    }
+  }
   await page.close();
   return { url, state, problems };
 }
@@ -75,6 +124,7 @@ async function main() {
       expectNebula: false,
       expectStars: 10,
       exportCard: true,
+      ui: true,
     }),
   );
   results.push(
@@ -108,6 +158,7 @@ async function main() {
     console.log(`${ok ? "PASS" : "FAIL"} ${r.url}`);
     console.log(`     stars=${r.state.stars} nebula=${r.state.isNebula} persona=${r.state.persona}` +
       (r.state.cards ? ` cards=${Object.entries(r.state.cards).map(([k, v]) => k + ":" + Math.round(v / 1024) + "KB").join(" ")}` : ""));
+    if (r.state.download) console.log(`     download=${r.state.download}`);
     r.problems.forEach((p) => console.log("     - " + p));
   }
   process.exit(failed ? 1 : 0);
