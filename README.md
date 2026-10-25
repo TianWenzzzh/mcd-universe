@@ -21,7 +21,7 @@
 
 | 桌面端 | 移动端 | 星点详情 |
 |---|---|---|
-| ![桌面端](docs/assets/demo-desktop-v3.png) | ![移动端](docs/assets/demo-mobile-v3.png) | ![详情](docs/assets/demo-detail.png) |
+| ![桌面端](docs/assets/demo-v5.png) | ![移动端](docs/assets/mobile-v5.png) | ![详情](docs/assets/demo-detail.png) |
 
 ## 功能
 
