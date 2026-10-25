@@ -64,10 +64,7 @@ async function checkPage(browser, url, opts) {
   }
   if (opts.ui) {
     // 首访引导会拦截点击：先关掉（同时验证引导层可关闭）
-    await page.evaluate(() => {
-      try { localStorage.setItem("mcuniverse_onboarded", "1"); } catch (e) {}
-      document.getElementById("onboard").classList.remove("show");
-    });
+    await page.evaluate(() => window.__mcuniverse.dismissOnboard());
     await page.waitForTimeout(200);
     // 真实点击：保存分享卡 → 面板展开 → 点「极简海报」→ 触发下载
     await page.click("#btn-save");
