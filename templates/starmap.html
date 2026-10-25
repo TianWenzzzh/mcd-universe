@@ -6,7 +6,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⭐</text></svg>">
 <meta property="og:title" content="麦门宇宙 McUniverse">
 <meta property="og:description" content="你的每一单，都是麦门宇宙里的一颗星。基于麦当劳MCP的个人订单星图与麦门人格鉴定。">
-<meta property="og:image" content="https://tianwenzzzh.github.io/mcd-universe/docs/assets/demo-desktop-v2.png">
+<meta property="og:image" content="https://tianwenzzzh.github.io/mcd-universe/docs/assets/demo-desktop-v3.png">
 <meta property="og:type" content="website">
 <meta name="description" content="麦门宇宙：基于麦当劳中国官方MCP的订单星图与麦门人格鉴定Skill，数据本地处理。">
 <title>麦门宇宙 McUniverse</title>
@@ -194,12 +194,11 @@
     return "rgba(" + r + "," + g + "," + b + "," + a + ")";
   }
 
-  var PHASE_TEXT = 2400, PHASE_HOLD = 700;
-  function frame(t) {
-    if (!startT) startT = t;
-    var el = t - startT;
+  var PHASE_TEXT = 2400, PHASE_HOLD = 700, FADE_START = 1600, FADE_DUR = 2000;
+  function drawScene(el, opts) {
+    var still = !!(opts && opts.still);  // 静态帧：导出用，无粒子尘、无流星
     ctx.clearRect(0, 0, W, H);
-    drawBackdrop(el);
+    drawBackdrop(el, still);
 
     if (isNebula) { drawNebula(el); return; }
 
@@ -208,25 +207,32 @@
       drawConstellation(el);
       stars.forEach(function (s) { drawStar(s, 0); });
       document.getElementById("persona").classList.add("show");
-      raf = requestAnimationFrame(frame);
       return;
     }
 
     var toStars = el > PHASE_TEXT + PHASE_HOLD;
-    var k = Math.min(1, el / PHASE_TEXT);
-    var ease = 1 - Math.pow(1 - k, 3);
+    var fade = 1;
+    if (toStars) {
+      // 尘埃落定：粒子归位后淡出，留下干净的星点（分享卡与截图不再是一团散点）
+      var fadeEl = el - (PHASE_TEXT + PHASE_HOLD + FADE_START);
+      fade = fadeEl <= 0 ? 1 : Math.max(0, 1 - fadeEl / FADE_DUR);
+    }
 
-    particles.forEach(function (p) {
-      if (el < p.delay) { dot(p.x, p.y, p.size, p.color); return; }
-      var target = toStars && p.star ? { x: p.star.x, y: p.star.y } : { x: p.tx, y: p.ty };
-      p.x += (target.x - p.x) * p.speed * (toStars ? 1.6 : 1);
-      p.y += (target.y - p.y) * p.speed * (toStars ? 1.6 : 1);
-      dot(p.x, p.y, p.size, p.color);
-    });
+    if (!still && fade > 0.01) {
+      ctx.globalAlpha = fade;
+      particles.forEach(function (p) {
+        if (el < p.delay) { dot(p.x, p.y, p.size, p.color); return; }
+        var target = toStars && p.star ? { x: p.star.x, y: p.star.y } : { x: p.tx, y: p.ty };
+        p.x += (target.x - p.x) * p.speed * (toStars ? 1.6 : 1);
+        p.y += (target.y - p.y) * p.speed * (toStars ? 1.6 : 1);
+        dot(p.x, p.y, p.size, p.color);
+      });
+      ctx.globalAlpha = 1;
+    }
 
     if (toStars) {
       drawConstellation(el);
-      stars.forEach(function (s, i) { drawStar(s, el); });
+      stars.forEach(function (s) { drawStar(s, el); });
       if (!document.getElementById("persona").classList.contains("show")) {
         document.getElementById("persona").classList.add("show");
       }
@@ -234,6 +240,11 @@
       // 文字保持期：微闪烁
       particles.forEach(function (p) { if (Math.random() < 0.02) p.size = 0.6 + Math.random() * 2; });
     }
+  }
+
+  function frame(t) {
+    if (!startT) startT = t;
+    drawScene(t - startT);
     raf = requestAnimationFrame(frame);
   }
 
@@ -262,10 +273,10 @@
     }
   }
 
-  function drawBackdrop(el) {
+  function drawBackdrop(el, still) {
     if (!bgCache) buildBackdropCache();
     ctx.drawImage(bgCache, 0, 0, W, H);
-    drawShootingStars(el);
+    if (!still) drawShootingStars(el);
   }
 
   // 流星：随机生成，斜向拖尾
@@ -405,6 +416,8 @@
 
   // ---- 分享卡导出（1080x1440 竖版，小红书尺寸）----
   function composeCard() {
+    // 先渲染一帧「终态干净星图」到主画布（无粒子尘/无流星/无入场动画），再等比拷贝
+    drawScene(1e9, { still: true });
     var ec = document.createElement("canvas");
     ec.width = 1080; ec.height = 1440;
     var ex = ec.getContext("2d");

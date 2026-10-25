@@ -25,7 +25,8 @@ async function checkPage(browser, url, opts) {
     if (m.type() === "error") problems.push("console: " + m.text());
   });
   page.on("pageerror", (e) => problems.push("pageerror: " + String(e)));
-  await page.goto(url, { waitUntil: "networkidle", timeout: 45000 });
+  if (opts.reducedMotion) await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto(url, { waitUntil: "domcontentloaded", timeout: 90000 });
   await page.waitForTimeout(4500);
   const state = await page.evaluate(() => {
     const mc = window.__mcuniverse;
@@ -82,6 +83,14 @@ async function main() {
       expectStars: 10,
     }),
   );
+  const rm = await checkPage(browser, BASE + "?e2e=1&rm=1", {
+    viewport: { width: 1280, height: 720 },
+    expectNebula: false,
+    expectStars: 10,
+    reducedMotion: true,
+  });
+  if (rm.state.reduced !== true) rm.problems.push("prefers-reduced-motion 未生效");
+  results.push(rm);
   await browser.close();
 
   let failed = 0;
