@@ -44,15 +44,23 @@ async function checkPage(browser, url, opts) {
     problems.push(`星点数不符: ${state.stars} != ${opts.expectStars}`);
   }
   if (opts.exportCard) {
-    const card = await page.evaluate(() => {
-      const ec = window.__mcuniverse.composeCard();
-      return { w: ec.width, h: ec.height, data: ec.toDataURL("image/png") };
+    const cards = await page.evaluate(() => {
+      return ["deep", "nebula", "minimal"].map((style) => {
+        const ec = window.__mcuniverse.composeCard(style);
+        return { style, w: ec.width, h: ec.height, data: ec.toDataURL("image/png") };
+      });
     });
-    if (card.w !== 1080 || card.h !== 1440) problems.push(`分享卡尺寸错误: ${card.w}x${card.h}`);
-    const b64 = card.data.split(",")[1] || "";
-    if (b64.length < 50000) problems.push(`分享卡内容是空的（base64 ${b64.length} 字符）`);
-    writeFileSync(`${OUT_DIR}/share-card-e2e.png`, Buffer.from(b64, "base64"));
-    state.cardBytes = b64.length;
+    state.cards = {};
+    for (const card of cards) {
+      if (card.w !== 1080 || card.h !== 1440) problems.push(`${card.style} 尺寸错误: ${card.w}x${card.h}`);
+      const b64 = card.data.split(",")[1] || "";
+      if (b64.length < 50000) problems.push(`${card.style} 内容是空的（base64 ${b64.length} 字符）`);
+      state.cards[card.style] = b64.length;
+      if (card.style === "deep") writeFileSync(`${OUT_DIR}/share-card-e2e.png`, Buffer.from(b64, "base64"));
+      if (card.style === "minimal") writeFileSync(`${OUT_DIR}/share-card-minimal.png`, Buffer.from(b64, "base64"));
+      if (card.style === "nebula") writeFileSync(`${OUT_DIR}/share-card-nebula.png`, Buffer.from(b64, "base64"));
+    }
+    state.cardBytes = Object.values(state.cards).join("/");
   }
   await page.close();
   return { url, state, problems };
@@ -99,7 +107,7 @@ async function main() {
     if (!ok) failed++;
     console.log(`${ok ? "PASS" : "FAIL"} ${r.url}`);
     console.log(`     stars=${r.state.stars} nebula=${r.state.isNebula} persona=${r.state.persona}` +
-      (r.state.cardBytes ? ` card=${Math.round(r.state.cardBytes / 1024)}KB` : ""));
+      (r.state.cards ? ` cards=${Object.entries(r.state.cards).map(([k, v]) => k + ":" + Math.round(v / 1024) + "KB").join(" ")}` : ""));
     r.problems.forEach((p) => console.log("     - " + p));
   }
   process.exit(failed ? 1 : 0);

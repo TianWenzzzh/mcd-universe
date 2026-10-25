@@ -16,6 +16,8 @@
   body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; color: #ece9f7; }
   #sky { position: absolute; inset: 0; display: block; }
   .hud { position: absolute; z-index: 10; pointer-events: none; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  #sky:focus-visible { outline: 2px solid rgba(255,217,122,.6); outline-offset: -4px; }
   #title { top: 26px; left: 28px; }
   #title h1 { font-size: 23px; font-weight: 700; letter-spacing: 7px; text-shadow: 0 0 24px rgba(255,217,122,.45), 0 0 60px rgba(255,217,122,.18); }
   #title p { font-size: 11px; color: #9d97bd; margin-top: 7px; letter-spacing: 2.5px; }
@@ -67,6 +69,16 @@
   #ob-go { width: 100%; margin-top: 6px; padding: 11px; border: 0; border-radius: 11px; background: linear-gradient(160deg, #ef7f4a, #d85a30); color: #fff; font-size: 14px; letter-spacing: 2px; cursor: pointer; box-shadow: 0 8px 26px rgba(216,90,48,.35); }
   #ob-go:hover { background: linear-gradient(160deg, #f78f5c, #e06a3c); }
   .ob-tip { text-align: center; font-size: 10px; color: rgba(163,157,194,.5); margin-top: 10px; letter-spacing: 1px; }
+  #export-panel { position: absolute; inset: 0; z-index: 28; display: none; align-items: center; justify-content: center; background: rgba(4,3,11,.78); backdrop-filter: blur(6px); }
+  #export-panel.show { display: flex; }
+  .ep-card { padding: 22px 24px 18px; background: linear-gradient(170deg, rgba(26,22,48,.98), rgba(10,8,22,.98)); border: 1px solid rgba(255,217,122,.26); border-radius: 18px; box-shadow: 0 24px 80px rgba(0,0,0,.7); }
+  .ep-card h3 { font-size: 13px; color: #ffe9a8; letter-spacing: 3px; margin-bottom: 16px; text-align: center; }
+  .ep-styles { display: flex; gap: 12px; }
+  .ep-style { background: none; border: 1px solid rgba(255,255,255,.12); border-radius: 12px; padding: 8px; cursor: pointer; transition: border-color .2s, transform .15s; }
+  .ep-style:hover { border-color: rgba(255,217,122,.55); transform: translateY(-2px); }
+  .ep-style canvas { display: block; border-radius: 7px; }
+  .ep-style span { display: block; margin-top: 7px; font-size: 11px; color: #b9b3d6; letter-spacing: 1px; }
+  .ep-tip { text-align: center; font-size: 10px; color: rgba(163,157,194,.55); margin-top: 14px; letter-spacing: 1px; }
   #dex-panel { left: 50%; bottom: 92px; transform: translateX(-50%) translateY(18px); width: min(560px, calc(100% - 48px)); max-height: 48vh; overflow-y: auto; padding: 18px 20px; background: linear-gradient(170deg, rgba(22,18,42,.97), rgba(9,7,20,.97)); border: 1px solid rgba(255,217,122,.2); border-radius: 16px; box-shadow: 0 18px 56px rgba(0,0,0,.6); opacity: 0; transition: opacity .3s, transform .3s; pointer-events: none; }
   #dex-panel.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
   #dex-panel h3 { font-size: 12px; font-weight: 700; color: #ffe9a8; letter-spacing: 3px; margin-bottom: 12px; }
@@ -93,7 +105,9 @@
 </style>
 </head>
 <body>
-<canvas id="sky"></canvas>
+<canvas id="sky" tabindex="0" role="img" aria-label="麦门星图"></canvas>
+<div id="a11y-live" class="sr-only" aria-live="polite"></div>
+<ul id="a11y-list" class="sr-only"></ul>
 <div class="hud" id="title"><h1>麦门宇宙</h1><p>MCUNIVERSE · 你的每一单，都是星海里的一颗星</p></div>
 <div class="hud" id="demo-badge">演示数据 · <a href="https://github.com/TianWenzzzh/mcd-universe" target="_blank">用你的真实订单生成 →</a></div>
 <div id="switcher"><span class="lbl">换个麦门看看</span><a href="./">深夜</a><a href="breakfast.html">早餐</a><a href="dessert.html">甜点</a><a href="burger.html">汉堡</a></div>
@@ -115,6 +129,17 @@
     <div class="ob-step"><b>3</b><div><i>带走它</i><span>保存 1080×1440 分享卡，或打开人格图鉴，看你是七种麦门人里的哪一种</span></div></div>
     <button id="ob-go">开始探索</button>
     <p class="ob-tip">订单数据本地处理 · Token 不出本机</p>
+  </div>
+</div>
+<div id="export-panel">
+  <div class="ep-card">
+    <h3>选一个风格导出</h3>
+    <div class="ep-styles">
+      <button class="ep-style" data-style="deep"><canvas width="176" height="235"></canvas><span>深空金</span></button>
+      <button class="ep-style" data-style="nebula"><canvas width="176" height="235"></canvas><span>星云紫</span></button>
+      <button class="ep-style" data-style="minimal"><canvas width="176" height="235"></canvas><span>极简海报</span></button>
+    </div>
+    <p class="ep-tip">点击风格即导出 1080×1440 PNG · 带扫码入口</p>
   </div>
 </div>
 <div id="actions">
@@ -327,7 +352,7 @@
     }
   }
 
-  // ---------- 星座连线 ----------
+  // ---------- 星轨连线 ----------
   function drawConstellation() {
     if (stars.length < 2) return;
     ctx.globalCompositeOperation = "lighter";
@@ -558,10 +583,11 @@
     var el = document.getElementById("achievements");
     if (!el) return;
     if (isNebula || !DATA.persona) { el.innerHTML = ""; return; }
-    var cats = {}, night = 0, morning = 0, total = 0;
+    var cats = {}, night = 0, morning = 0, total = 0, maxAmount = 0;
     stars.forEach(function (s) {
       cats[s.category] = (cats[s.category] || 0) + 1;
       total += s.amount || 0;
+      maxAmount = Math.max(maxAmount, s.amount || 0);
       if (s.time && s.time.length >= 13) {
         var h = parseInt(s.time.slice(11, 13), 10);
         if (h >= 22 || h < 3) night++;
@@ -569,19 +595,21 @@
       }
     });
     var defs = [
-      ["🌟", "初星觉醒", stars.length >= 1],
-      ["🌌", "星座大满贯", Object.keys(cats).length >= 5],
-      ["🔟", "星河十连", stars.length >= 10],
-      ["🌙", "夜航员", night >= 3],
-      ["🍦", "甜品守护者", (cats["甜品"] || 0) >= 3],
-      ["🍔", "堡门信徒", (cats["汉堡"] || 0) >= 3],
-      ["🌅", "晨光先行者", morning >= 2],
-      ["💎", "麦门投资人", total >= 100]
+      ["\ud83c\udf1f", "初星觉醒", stars.length >= 1, ""],
+      ["\ud83c\udf0c", "品类大满贯", Object.keys(cats).length >= 5, "五类餐品各来一单（" + Object.keys(cats).length + "/5）"],
+      ["\ud83d\udd1f", "星河十连", stars.length >= 10, "累计 10 单（" + stars.length + "/10）"],
+      ["\ud83c\udf19", "夜航员", night >= 3, "深夜订单 3 单（" + night + "/3）"],
+      ["\ud83c\udf66", "甜品守护者", (cats["甜品"] || 0) >= 3, "甜品 3 单（" + (cats["甜品"] || 0) + "/3）"],
+      ["\ud83c\udf54", "堡门信徒", (cats["汉堡"] || 0) >= 3, "汉堡 3 单（" + (cats["汉堡"] || 0) + "/3）"],
+      ["\ud83c\udf05", "晨光先行者", morning >= 2, "早餐时段 2 单（" + morning + "/2）"],
+      ["\u2615", "咖啡因依赖", (cats["饮品"] || 0) >= 3, "饮品 3 单（" + (cats["饮品"] || 0) + "/3）"],
+      ["\ud83d\udc8e", "麦门投资人", total >= 100, "累计 ¥100（¥" + total.toFixed(0) + "/100）"],
+      ["\ud83d\udc51", "单笔王者", maxAmount >= 50, "单笔 ¥50（最高 ¥" + maxAmount.toFixed(0) + "）"]
     ];
     var unlocked = defs.filter(function (d) { return d[2]; }).length;
     el.innerHTML = defs.map(function (d) {
-      return '<span class="chip' + (d[2] ? "" : " locked") + '">' + d[0] + " " + d[1] + "</span>";
-    }).join("") + '<span class="count">已解锁 ' + unlocked + " / " + defs.length + " 项麦门成就</span>";
+      return '<span class="chip' + (d[2] ? "" : " locked") + '" title="' + d[3] + '">' + d[0] + " " + d[1] + "</span>";
+    }).join("") + '<span class="count">已解锁 ' + unlocked + " / " + defs.length + " 项麦门成就（灰项悬停看进度）</span>";
   }
 
   // ---------- 交互：悬停 / 视差 / 拖拽旋转 / 滚轮缩放 / 点击 ----------
@@ -676,6 +704,55 @@
     view.zoom = Math.max(0.6, Math.min(2.4, view.zoom * (e.deltaY < 0 ? 1.09 : 0.92)));
   }, { passive: false });
 
+  // ---------- 键盘操作（无障碍）----------
+  function announce(i) {
+    var live = document.getElementById("a11y-live");
+    if (!live || i < 0 || !stars[i]) return;
+    var s = stars[i];
+    live.textContent = "第 " + (i + 1) + " 颗星：" + (s.product || "未知餐品") + "，" +
+      s.category + "品类，" + s.magnitude + " 等，实付 " + (s.amount || 0).toFixed(1) + " 元，" + (s.time || "");
+  }
+  function stepSelect(dir) {
+    if (isNebula || !stars.length) return;
+    selected = selected < 0 ? (dir > 0 ? 0 : stars.length - 1) : (selected + dir + stars.length) % stars.length;
+    showDetail(selected);
+    announce(selected);
+  }
+  canvas.addEventListener("keydown", function (e) {
+    var k = e.key;
+    if (k === "ArrowRight" || k === "ArrowDown") { e.preventDefault(); stepSelect(1); }
+    else if (k === "ArrowLeft" || k === "ArrowUp") { e.preventDefault(); stepSelect(-1); }
+    else if (k === "Enter" || k === " ") { e.preventDefault(); if (selected >= 0) { showDetail(selected); announce(selected); } }
+    else if (k === "+" || k === "=") { e.preventDefault(); view.zoom = Math.min(2.4, view.zoom * 1.12); }
+    else if (k === "-" || k === "_") { e.preventDefault(); view.zoom = Math.max(0.6, view.zoom * 0.9); }
+    else if (k === "Escape") {
+      detail.classList.remove("show");
+      dexPanel.classList.remove("show");
+      onboard.classList.remove("show");
+      exportPanel.classList.remove("show");
+      selected = -1;
+    }
+  });
+
+  // 屏幕阅读器可读的星点清单
+  function renderA11yList() {
+    var ul = document.getElementById("a11y-list");
+    var cv = document.getElementById("sky");
+    if (!ul) return;
+    if (isNebula) {
+      ul.innerHTML = "<li>当前账号暂无订单，星图为「宇宙初开」状态</li>";
+      if (cv) cv.setAttribute("aria-label", "麦门星图：暂无订单，宇宙初开状态");
+      return;
+    }
+    ul.innerHTML = stars.map(function (s, i) {
+      return "<li>第 " + (i + 1) + " 颗：" + esc(s.product || "未知餐品") + " · " + s.category +
+        " · " + s.magnitude + " 等 · ¥" + (s.amount || 0).toFixed(1) + " · " + esc(s.time || "") + "</li>";
+    }).join("");
+    if (cv) {
+      cv.setAttribute("aria-label", "麦门星图：共 " + stars.length + " 颗星。方向键逐颗查看，回车查看详情，加减号缩放。");
+    }
+  }
+
   // ---------- 星语音效（默认关闭，点击开启）----------
   var NOTE = [440, 523.25, 587.33, 659.25, 783.99];
   var audio = { ctx: null, on: false, master: null };
@@ -723,12 +800,22 @@
     toastTimer = setTimeout(function () { toastEl.classList.remove("show"); }, 2600);
   }
 
-  // ---------- 分享卡 ----------
-  function composeCard() {
-    drawScene(1e9, { still: true });
+  // ---------- 分享卡（三种风格）----------
+  var CARD_STYLES = {
+    deep: { name: "深空金", title: "#ffe9a8", sub: "rgba(214,208,236,.72)", line: "rgba(255,217,122,.5)", glow: "rgba(255,217,122,.55)" },
+    nebula: { name: "星云紫", title: "#ffd6f5", sub: "rgba(230,214,248,.78)", line: "rgba(255,150,235,.5)", glow: "rgba(255,110,220,.6)" },
+    minimal: { name: "极简海报", title: "#ffe9a8", sub: "rgba(214,208,236,.6)", line: "rgba(255,217,122,.45)", glow: "rgba(255,217,122,.5)" }
+  };
+
+  function composeCard(style) {
+    style = style || "deep";
+    var th = CARD_STYLES[style] || CARD_STYLES.deep;
     var ec = document.createElement("canvas");
     ec.width = 1080; ec.height = 1440;
     var ex = ec.getContext("2d");
+    if (style === "minimal") { drawMinimalCard(ex, th); return ec; }
+
+    drawScene(1e9, { still: true });
     var g = ex.createRadialGradient(540, 600, 0, 540, 600, 980);
     g.addColorStop(0, "#100c26"); g.addColorStop(.55, "#080614"); g.addColorStop(1, "#03020a");
     ex.fillStyle = g; ex.fillRect(0, 0, 1080, 1440);
@@ -737,6 +824,16 @@
       var dw = canvas.width * scale, dh = canvas.height * scale;
       ex.drawImage(canvas, (1080 - dw) / 2, (1440 - dh) / 2, dw, dh);
     } catch (err) {}
+    if (style === "nebula") {
+      ex.globalCompositeOperation = "lighter";
+      var n1 = ex.createRadialGradient(150, 1260, 0, 150, 1260, 720);
+      n1.addColorStop(0, "rgba(255,60,190,.26)"); n1.addColorStop(1, "rgba(255,60,190,0)");
+      ex.fillStyle = n1; ex.fillRect(0, 0, 1080, 1440);
+      var n2 = ex.createRadialGradient(950, 240, 0, 950, 240, 660);
+      n2.addColorStop(0, "rgba(60,200,255,.22)"); n2.addColorStop(1, "rgba(60,200,255,0)");
+      ex.fillStyle = n2; ex.fillRect(0, 0, 1080, 1440);
+      ex.globalCompositeOperation = "source-over";
+    }
     var band = ex.createLinearGradient(0, 980, 0, 1440);
     band.addColorStop(0, "rgba(4,3,11,0)");
     band.addColorStop(.45, "rgba(4,3,11,.82)");
@@ -747,44 +844,104 @@
     ex.fillStyle = top; ex.fillRect(0, 0, 1080, 240);
 
     ex.textAlign = "center";
-    ex.shadowColor = "rgba(255,217,122,.55)"; ex.shadowBlur = 34;
-    ex.fillStyle = "#ffe9a8";
+    ex.shadowColor = th.glow; ex.shadowBlur = 34;
+    ex.fillStyle = th.title;
     ex.font = "700 66px -apple-system, PingFang SC, Microsoft YaHei, sans-serif";
     ex.fillText("麦门宇宙", 540, 128);
     ex.shadowBlur = 0;
-    ex.fillStyle = "rgba(214,208,236,.72)"; ex.font = "26px -apple-system, PingFang SC, sans-serif";
+    ex.fillStyle = th.sub; ex.font = "26px -apple-system, PingFang SC, sans-serif";
     ex.fillText("MCUNIVERSE · 我的每一单，都是星海里的一颗星", 540, 178);
 
     var lg = ex.createLinearGradient(240, 0, 840, 0);
     lg.addColorStop(0, "rgba(255,217,122,0)");
-    lg.addColorStop(.5, "rgba(255,217,122,.5)");
+    lg.addColorStop(.5, th.line);
     lg.addColorStop(1, "rgba(255,217,122,0)");
     ex.strokeStyle = lg; ex.lineWidth = 1;
     ex.beginPath(); ex.moveTo(240, 1246); ex.lineTo(840, 1246); ex.stroke();
 
     if (DATA.persona) {
-      ex.shadowColor = "rgba(255,217,122,.5)"; ex.shadowBlur = 22;
-      ex.fillStyle = "#ffe9a8";
+      ex.shadowColor = th.glow; ex.shadowBlur = 22;
+      ex.fillStyle = th.title;
       ex.font = "700 46px -apple-system, PingFang SC, Microsoft YaHei, sans-serif";
       ex.fillText("麦门人格 · " + DATA.persona.name, 540, 1308);
       ex.shadowBlur = 0;
-      ex.fillStyle = "rgba(214,208,236,.8)"; ex.font = "25px -apple-system, PingFang SC, sans-serif";
+      ex.fillStyle = th.sub; ex.font = "25px -apple-system, PingFang SC, sans-serif";
       wrapText(ex, DATA.persona.desc, 540, 1352, 720, 34);
     }
     ex.fillStyle = "rgba(163,157,194,.62)"; ex.font = "21px -apple-system, PingFang SC, sans-serif";
     ex.fillText((DATA.summary.orderCount || 0) + " 颗星 · 累计 ¥" + (DATA.summary.totalAmount || 0).toFixed(1)
       + " · 数据本地处理", 540, 1424);
-    // 二维码：扫码直达演示页
-    if (qrImg.complete && qrImg.naturalWidth) {
-      ex.fillStyle = "rgba(255,233,168,.62)"; ex.font = "16px -apple-system, PingFang SC, sans-serif";
-      ex.fillText("扫码生成你的", 986, 1258);
-      ex.fillStyle = "#ffffff";
-      if (ex.roundRect) { ex.beginPath(); ex.roundRect(916, 1268, 140, 140, 10); ex.fill(); }
-      else { ex.fillRect(916, 1268, 140, 140); }
-      ex.drawImage(qrImg, 924, 1276, 124, 124);
-    }
+    drawCardQR(ex, 916, 1268, th);
     return ec;
   }
+
+  function drawCardQR(ex, x, y, th) {
+    if (!(qrImg.complete && qrImg.naturalWidth)) return;
+    ex.textAlign = "center";
+    ex.fillStyle = "rgba(255,233,168,.62)"; ex.font = "16px -apple-system, PingFang SC, sans-serif";
+    ex.fillText("扫码生成你的", x + 70, y - 10);
+    ex.fillStyle = "#ffffff";
+    if (ex.roundRect) { ex.beginPath(); ex.roundRect(x, y, 140, 140, 10); ex.fill(); }
+    else { ex.fillRect(x, y, 140, 140); }
+    ex.drawImage(qrImg, x + 8, y + 8, 124, 124);
+  }
+
+  function drawMinimalCard(ex, th) {
+    var g = ex.createRadialGradient(540, 500, 0, 540, 500, 940);
+    g.addColorStop(0, "#171226"); g.addColorStop(1, "#05040e");
+    ex.fillStyle = g; ex.fillRect(0, 0, 1080, 1440);
+    ex.strokeStyle = "rgba(255,217,122,.26)"; ex.lineWidth = 2;
+    ex.strokeRect(56, 56, 968, 1328);
+
+    ex.textAlign = "center";
+    ex.fillStyle = "rgba(214,208,236,.5)";
+    ex.font = "22px -apple-system, PingFang SC, sans-serif";
+    ex.fillText("M C U N I V E R S E   ·   2 0 2 6", 540, 190);
+
+    ex.shadowColor = th.glow; ex.shadowBlur = 46;
+    ex.fillStyle = th.title;
+    ex.font = "700 104px -apple-system, PingFang SC, Microsoft YaHei, sans-serif";
+    ex.fillText("麦门宇宙", 540, 372);
+    ex.shadowBlur = 0;
+
+    ex.fillStyle = "rgba(214,208,236,.55)"; ex.font = "24px -apple-system, PingFang SC, sans-serif";
+    ex.fillText("MY MCD UNIVERSE", 540, 432);
+
+    ex.fillStyle = "rgba(214,208,236,.7)"; ex.font = "26px -apple-system, PingFang SC, sans-serif";
+    ex.fillText("麦门人格", 540, 610);
+    ex.shadowColor = th.glow; ex.shadowBlur = 30;
+    ex.fillStyle = th.title;
+    ex.font = "700 66px -apple-system, PingFang SC, Microsoft YaHei, sans-serif";
+    ex.fillText(DATA.persona ? DATA.persona.name : "麦门旅人", 540, 700);
+    ex.shadowBlur = 0;
+    if (DATA.persona) {
+      ex.fillStyle = th.sub; ex.font = "26px -apple-system, PingFang SC, sans-serif";
+      wrapText(ex, DATA.persona.desc, 540, 766, 720, 42);
+    }
+
+    var maxMag = 0;
+    stars.forEach(function (st) { maxMag = Math.max(maxMag, st.magnitude || 0); });
+    var stats = [
+      [String(DATA.summary.orderCount || 0), "颗星"],
+      ["¥" + (DATA.summary.totalAmount || 0).toFixed(0), "累计消费"],
+      [String(maxMag), "最高星等"]
+    ];
+    stats.forEach(function (st, i) {
+      var cx2 = 260 + i * 280;
+      ex.fillStyle = th.title; ex.font = "700 56px -apple-system, PingFang SC, sans-serif";
+      ex.fillText(st[0], cx2, 990);
+      ex.fillStyle = "rgba(214,208,236,.55)"; ex.font = "21px -apple-system, PingFang SC, sans-serif";
+      ex.fillText(st[1], cx2, 1030);
+    });
+
+    ex.strokeStyle = th.line; ex.lineWidth = 1;
+    ex.beginPath(); ex.moveTo(260, 1090); ex.lineTo(820, 1090); ex.stroke();
+
+    drawCardQR(ex, 470, 1160, th);
+    ex.fillStyle = "rgba(163,157,194,.55)"; ex.font = "19px -apple-system, PingFang SC, sans-serif";
+    ex.fillText("数据本地处理 · TOKEN 不出本机", 540, 1352);
+  }
+
   function wrapText(c, text, x, y, maxW, lh) {
     var line = "", yy = y;
     for (var i = 0; i < text.length; i++) {
@@ -794,14 +951,38 @@
     if (line) c.fillText(line, x, yy);
   }
 
+  // 导出面板：三种风格预览 → 点击导出
+  var exportPanel = document.getElementById("export-panel");
+  function renderPreviews() {
+    exportPanel.querySelectorAll(".ep-style").forEach(function (btn) {
+      var cv = btn.querySelector("canvas");
+      var ec = composeCard(btn.getAttribute("data-style"));
+      var c2 = cv.getContext("2d");
+      c2.clearRect(0, 0, cv.width, cv.height);
+      c2.drawImage(ec, 0, 0, cv.width, cv.height);
+    });
+  }
   document.getElementById("btn-save").addEventListener("click", function () {
-    var ec = composeCard();
-    var a = document.createElement("a");
-    a.download = "麦门宇宙-分享卡.png";
-    a.href = ec.toDataURL("image/png");
-    a.click();
-    chime(659.25, 0.25); setTimeout(function () { chime(783.99, 0.4); }, 140);
-    toast("分享卡已导出 · 去晒出你的麦门宇宙吧");
+    renderPreviews();
+    exportPanel.classList.add("show");
+    chime(659.25, 0.22);
+  });
+  exportPanel.addEventListener("click", function (e) {
+    if (e.target === exportPanel) exportPanel.classList.remove("show");
+  });
+  exportPanel.querySelectorAll(".ep-style").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var style = btn.getAttribute("data-style");
+      var th = CARD_STYLES[style] || CARD_STYLES.deep;
+      var ec = composeCard(style);
+      var a = document.createElement("a");
+      a.download = "麦门宇宙-分享卡-" + th.name + ".png";
+      a.href = ec.toDataURL("image/png");
+      a.click();
+      exportPanel.classList.remove("show");
+      chime(783.99, 0.4);
+      toast("已导出「" + th.name + "」分享卡");
+    });
   });
 
   // ---------- 图鉴 ----------
@@ -850,6 +1031,7 @@
   if (!isNebula) layoutStars();
   buildParticles();
   renderHUD();
+  renderA11yList();
   if (DATA.demo) {
     var badge = document.getElementById("demo-badge");
     if (badge) badge.style.display = "block";
