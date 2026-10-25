@@ -98,6 +98,7 @@
   var canvas = document.getElementById("sky");
   var ctx = canvas.getContext("2d");
   var W = 0, H = 0, DPR = Math.min(window.devicePixelRatio || 1, 2);
+  var REDUCED = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   var stars = DATA.stars || [];
   var isNebula = !stars.length;
   var particles = [], raf = 0, startT = 0, selected = -1;
@@ -107,6 +108,7 @@
     canvas.width = W * DPR; canvas.height = H * DPR;
     canvas.style.width = W + "px"; canvas.style.height = H + "px";
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    bgCache = null;  // 视口变化，离屏背景缓存作废
     if (isNebula) return;  // 星云态无需布局：粒子随机漂移（曾因调用未定义的 layoutNebula 启动即崩）
     layoutStars();  // 视口变化必须重算星点，否则出画（移动端实测坑）
     // 入场动画之后的 resize：粒子直接归位到新星点；动画中的 resize 不动粒子（继续飞向新目标）
@@ -118,10 +120,11 @@
 
   // ---- 星点布局：角度=时间轴，半径=品类带+星等 ----
   function layoutStars() {
-    // 注意：dt 字段在 Python 侧不可序列化已被剥离，这里自行解析 time 字符串
+    // 注意：dt 字段在 Python 侧不可序列化已被剥离，这里自行解析 time 字符串；
+    // 显式锁 +08:00（门店时间为北京时间），避免跨时区用户星点位移。
     var times = stars.map(function (s) {
       if (!s.time) return 0;
-      var d = new Date(String(s.time).replace(" ", "T"));
+      var d = new Date(String(s.time).replace(" ", "T") + "+08:00");
       return isNaN(d.getTime()) ? 0 : d.getTime();
     });
     var tMin = Math.min.apply(null, times), tMax = Math.max.apply(null, times);
@@ -200,6 +203,15 @@
 
     if (isNebula) { drawNebula(el); return; }
 
+    if (REDUCED) {
+      // 减少动效模式：跳过粒子入场，直接呈现静态星图（点击/图鉴仍可用）
+      drawConstellation(el);
+      stars.forEach(function (s) { drawStar(s, 0); });
+      document.getElementById("persona").classList.add("show");
+      raf = requestAnimationFrame(frame);
+      return;
+    }
+
     var toStars = el > PHASE_TEXT + PHASE_HOLD;
     var k = Math.min(1, el / PHASE_TEXT);
     var ease = 1 - Math.pow(1 - k, 3);
@@ -225,32 +237,41 @@
     raf = requestAnimationFrame(frame);
   }
 
-  function drawBackdrop(el) {
-    var g = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) * 0.7);
+  var bgCache = null;
+  function buildBackdropCache() {
+    // 背景（径向渐变 + 星云雾 + 静态碎星）离屏缓存一次，每帧只 drawImage，省掉每帧 4 次渐变创建
+    bgCache = document.createElement("canvas");
+    bgCache.width = W * DPR; bgCache.height = H * DPR;
+    var bc = bgCache.getContext("2d");
+    bc.setTransform(DPR, 0, 0, DPR, 0, 0);
+    var g = bc.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) * 0.7);
     g.addColorStop(0, "#141428"); g.addColorStop(1, "#0a0a1a");
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-    // 星云底衬：三团低透明度色雾，制造深空层次
+    bc.fillStyle = g; bc.fillRect(0, 0, W, H);
     var blobs = [[0.22, 0.28, "#2a1f4a"], [0.78, 0.68, "#1f2f4a"], [0.5, 0.85, "#3a2340"]];
     for (var b = 0; b < blobs.length; b++) {
       var bx = W * blobs[b][0], by = H * blobs[b][1], br = Math.min(W, H) * 0.42;
-      var bg = ctx.createRadialGradient(bx, by, 0, bx, by, br);
+      var bg = bc.createRadialGradient(bx, by, 0, bx, by, br);
       bg.addColorStop(0, blobs[b][2] + "38"); bg.addColorStop(1, blobs[b][2] + "00");
-      ctx.fillStyle = bg;
-      ctx.fillRect(bx - br, by - br, br * 2, br * 2);
+      bc.fillStyle = bg;
+      bc.fillRect(bx - br, by - br, br * 2, br * 2);
     }
-    ctx.fillStyle = "rgba(255,255,255,.18)";
     for (var i = 0; i < 60; i++) {
       var x = (i * 97.13) % W, y = (i * 57.31) % H;
-      var a = 0.05 + 0.1 * Math.abs(Math.sin(el / 1400 + i));
-      ctx.fillStyle = "rgba(255,255,255," + a + ")";
-      ctx.fillRect(x, y, 1.4, 1.4);
+      bc.fillStyle = "rgba(255,255,255," + (0.08 + 0.06 * (i % 3)) + ")";
+      bc.fillRect(x, y, 1.4, 1.4);
     }
+  }
+
+  function drawBackdrop(el) {
+    if (!bgCache) buildBackdropCache();
+    ctx.drawImage(bgCache, 0, 0, W, H);
     drawShootingStars(el);
   }
 
   // 流星：随机生成，斜向拖尾
   var meteors = [], nextMeteor = 1200;
   function drawShootingStars(el) {
+    if (REDUCED) return;  // 尊重 prefers-reduced-motion
     if (el > nextMeteor && meteors.length < 2) {
       nextMeteor = el + 1800 + Math.random() * 2600;
       var fromLeft = Math.random() < 0.5;
@@ -316,8 +337,9 @@
     ctx.fillStyle = "rgba(232,230,240,.55)"; ctx.font = "13px sans-serif";
     ctx.fillText("你的第一颗星还没点亮 —— 去麦麦吧，未来可期", W / 2, H / 2 + 22);
     particles.forEach(function (p) {
-      p.x += Math.sin(el / 2000 + p.delay) * 0.3;
-      p.y += Math.cos(el / 2600 + p.delay) * 0.3;
+      var drift = REDUCED ? 0 : 1;
+      p.x += Math.sin(el / 2000 + p.delay) * 0.3 * drift;
+      p.y += Math.cos(el / 2600 + p.delay) * 0.3 * drift;
       if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
       if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
       dot(p.x, p.y, p.size, p.color);
@@ -382,7 +404,7 @@
   function esc(s) { var d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
 
   // ---- 分享卡导出（1080x1440 竖版，小红书尺寸）----
-  document.getElementById("btn-save").addEventListener("click", function () {
+  function composeCard() {
     var ec = document.createElement("canvas");
     ec.width = 1080; ec.height = 1440;
     var ex = ec.getContext("2d");
@@ -409,6 +431,11 @@
     ex.fillStyle = "rgba(154,150,184,.6)"; ex.font = "24px sans-serif";
     ex.fillText((DATA.summary.orderCount || 0) + " 颗星 · 累计 ¥" + (DATA.summary.totalAmount || 0).toFixed(1)
       + " · 数据本地处理", 540, 1410);
+    return ec;
+  }
+
+  document.getElementById("btn-save").addEventListener("click", function () {
+    var ec = composeCard();
     var a = document.createElement("a");
     a.download = "麦门宇宙-分享卡.png";
     a.href = ec.toDataURL("image/png");
@@ -464,7 +491,11 @@
     if (badge) badge.style.display = "block";
   }
   // 调试/自动化测试句柄
-  window.__mcuniverse = { stars: stars, data: DATA, isNebula: isNebula, phase: function () { return performance.now() - startT; } };
+  window.__mcuniverse = {
+    stars: stars, data: DATA, isNebula: isNebula, reduced: REDUCED,
+    composeCard: composeCard,
+    phase: function () { return performance.now() - startT; }
+  };
   raf = requestAnimationFrame(frame);
 })();
 </script>

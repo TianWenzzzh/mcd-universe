@@ -5,6 +5,7 @@
 
 用法：python scripts/lint_template.py
 """
+
 import os
 import re
 import sys
@@ -12,10 +13,29 @@ import sys
 TEMPLATE = os.path.join(os.path.dirname(__file__), "..", "templates", "starmap.html")
 
 BUILTINS = {
-    "JSON", "Math", "Date", "Number", "String", "Object", "Array", "isNaN", "parseInt",
-    "parseFloat", "document", "window", "performance", "location", "console",
-    "requestAnimationFrame", "cancelAnimationFrame", "setTimeout", "URLSearchParams",
-    "Image", "Uint8Array", "Error", "TypeError",
+    "JSON",
+    "Math",
+    "Date",
+    "Number",
+    "String",
+    "Object",
+    "Array",
+    "isNaN",
+    "parseInt",
+    "parseFloat",
+    "document",
+    "window",
+    "performance",
+    "location",
+    "console",
+    "requestAnimationFrame",
+    "cancelAnimationFrame",
+    "setTimeout",
+    "URLSearchParams",
+    "Image",
+    "Uint8Array",
+    "Error",
+    "TypeError",
 }
 
 

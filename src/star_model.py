@@ -8,13 +8,16 @@
 
 0 单账号输出 "nebula"（星云）状态，不是空报错——新账号也是有效用户。
 """
+
+from __future__ import annotations
+
 from datetime import datetime
 
 # 品类规则：(品类, 色, 关键词)。自上而下首个命中生效——早餐关键词更具体，必须置于汉堡之前。
 CATEGORY_RULES = [
     ("早餐", "#BA7517", ["早餐", "麦满分", "猪柳", "烟肉", "火腿扒", "脆薯饼", "滑蛋"]),
     ("汉堡", "#E24B4A", ["汉堡", "巨无霸", "腿堡", "板烧", "麦香鱼", "安格斯", "培根", "双层"]),
-    ("甜品", "#D4537E", ["新地", "冰淇淋", "圆筒", "甜筒", "派", "蛋挞", "蛋糕", "巧克力", " Cocoa"]),
+    ("甜品", "#D4537E", ["新地", "冰淇淋", "圆筒", "甜筒", "派", "蛋挞", "蛋糕", "巧克力", "可可"]),
     ("小食", "#EF9F27", ["薯条", "麦乐鸡", "鸡翅", "玉米杯", "洋葱圈", "鸡块", "鸡排", "盐酥鸡"]),
     ("饮品", "#378ADD", ["可乐", "雪碧", "咖啡", "拿铁", "美式", "茶", "果汁", "奶昔", "冰饮", "雪冰"]),
 ]
@@ -22,7 +25,7 @@ CATEGORY_NAMES = ["汉堡", "早餐", "甜品", "小食", "饮品"]
 FALLBACK_CATEGORY = "小食"
 
 
-def categorize(product_name):
+def categorize(product_name: str) -> str:
     """餐品名 -> 品类。规则自上而下首个命中。"""
     for cat, _color, keywords in CATEGORY_RULES:
         if any(k in product_name for k in keywords):
@@ -30,14 +33,14 @@ def categorize(product_name):
     return FALLBACK_CATEGORY
 
 
-def category_color(cat):
+def category_color(cat: str) -> str:
     for c, color, _kw in CATEGORY_RULES:
         if c == cat:
             return color
     return "#888780"
 
 
-def _order_main_product(order):
+def _order_main_product(order: dict) -> str | None:
     products = order.get("orderProductList") or []
     if not products:
         return None
@@ -46,7 +49,7 @@ def _order_main_product(order):
     return main.get("productName") or None
 
 
-def _parse_time(create_time):
+def _parse_time(create_time: str | None) -> datetime | None:
     if not create_time:
         return None
     for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"):
@@ -57,7 +60,7 @@ def _parse_time(create_time):
     return None
 
 
-def _magnitude(amount, qty):
+def _magnitude(amount: object, qty: int) -> int:
     """星等 1~5：金额为主，数量加成。"""
     try:
         amt = float(amount)
@@ -67,7 +70,7 @@ def _magnitude(amount, qty):
     return min(5, base + (1 if qty >= 4 else 0))
 
 
-def build_starmap(orders):
+def build_starmap(orders: list) -> dict:
     """订单列表 -> 星图数据。0 单返回 nebula 状态。"""
     if not orders:
         return {"status": "nebula", "stars": [], "summary": {"orderCount": 0, "totalAmount": 0.0}}
@@ -83,18 +86,20 @@ def build_starmap(orders):
         except (TypeError, ValueError):
             amount = 0.0
         total += amount
-        stars.append({
-            "id": order.get("orderId") or f"star-{i}",
-            "category": cat,
-            "color": category_color(cat),
-            "magnitude": _magnitude(order.get("realTotalAmount"), qty),
-            "time": order.get("createTime"),
-            "dt": _parse_time(order.get("createTime")),
-            "product": name,
-            "store": order.get("storeName"),
-            "amount": amount,
-            "quantity": qty,
-        })
+        stars.append(
+            {
+                "id": order.get("orderId") or f"star-{i}",
+                "category": cat,
+                "color": category_color(cat),
+                "magnitude": _magnitude(order.get("realTotalAmount"), qty),
+                "time": order.get("createTime"),
+                "dt": _parse_time(order.get("createTime")),
+                "product": name,
+                "store": order.get("storeName"),
+                "amount": amount,
+                "quantity": qty,
+            }
+        )
 
     stars.sort(key=lambda s: s["dt"] or datetime.min)
     return {
@@ -116,13 +121,14 @@ PERSONAS = {
 }
 
 
-def detect_personality(starmap):
+def detect_personality(starmap: dict) -> str:
     """麦门人格鉴定。全部正面向；任何输入都有结果（默认：麦门旅人）。"""
     stars = starmap.get("stars") or []
     if not stars:
         return "麦门旅人"
 
     from collections import Counter
+
     cats = Counter(s["category"] for s in stars)
     total = len(stars)
     hours = [s["dt"].hour for s in stars if s["dt"]]

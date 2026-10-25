@@ -1,0 +1,39 @@
+[project]
+name = "mcuniverse"
+version = "1.0.0"
+description = "麦门宇宙：基于麦当劳中国官方 MCP 的个人订单星图与麦门人格鉴定 Skill"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "TianWenzzzh" }]
+keywords = ["mcd-mcp", "mcp", "workbuddy", "data-visualization", "canvas"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["ruff>=0.8", "pytest>=8.0"]
+
+[project.urls]
+Homepage = "https://github.com/TianWenzzzh/mcd-universe"
+Demo = "https://tianwenzzzh.github.io/mcd-universe/demo/"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+src = ["src", "scripts", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "C4", "SIM"]
+ignore = ["E501", "SIM105"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"

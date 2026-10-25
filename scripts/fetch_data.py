@@ -6,6 +6,7 @@
 
 安全：Token 只从环境变量读；订单等个人数据只落本地 samples/，已被 .gitignore 排除。
 """
+
 import json
 import os
 import sys
@@ -23,7 +24,12 @@ def main():
 
     tools = client.list_tools()
     with open(os.path.join(SAMPLES_DIR, "mcp_tools.json"), "w", encoding="utf-8") as f:
-        json.dump([{"name": t["name"], "description": t.get("description", "")} for t in tools], f, ensure_ascii=False, indent=2)
+        json.dump(
+            [{"name": t["name"], "description": t.get("description", "")} for t in tools],
+            f,
+            ensure_ascii=False,
+            indent=2,
+        )
     print(f"tools: {len(tools)} -> samples/mcp_tools.json")
 
     nutrition = client.call_tool("list-nutrition-foods")

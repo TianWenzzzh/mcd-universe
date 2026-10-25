@@ -7,6 +7,9 @@
     export MCD_MCP_TOKEN="your_token"
     python scripts/generate_report.py --live -o report.html
 """
+
+from __future__ import annotations
+
 import argparse
 import json
 import os
@@ -21,13 +24,13 @@ TEMPLATE = os.path.join(os.path.dirname(__file__), "..", "templates", "starmap.h
 PLACEHOLDER = "__STARMAP_DATA__"
 
 
-def load_orders_demo(path):
+def load_orders_demo(path: str) -> list:
     with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 
-def load_daily(client):
-    """今日麦签：从活动日历取最近一个带标题的活动。"""
+def load_daily(client) -> dict | None:
+    """今日麦签：优先今天，其次最近未来，再次最近往期（不再默认取第一条）。"""
     try:
         cal = client.call_tool("campaign-calendar")
         daily = (cal.get("data") or {}).get("dailyList") or []
@@ -37,16 +40,22 @@ def load_daily(client):
             for ev in day.get("events") or []:
                 title = ((ev.get("articleDto") or {}).get("title") or "").strip()
                 if title:
-                    candidates.append({"date": day.get("date"), "title": title})
-        for c in candidates:  # 优先今天
+                    candidates.append({"date": day.get("date") or "", "title": title})
+        for c in candidates:
             if c["date"] == today:
                 return c
+        future = [c for c in candidates if c["date"] > today]
+        if future:
+            return min(future, key=lambda c: c["date"])
+        past = [c for c in candidates if c["date"] and c["date"] < today]
+        if past:
+            return max(past, key=lambda c: c["date"])
         return candidates[0] if candidates else None
     except (MCPError, AttributeError, KeyError):
         return None
 
 
-def load_orders_live():
+def load_orders_live() -> tuple:
     client = MCDClient()
     orders = parse_orders(client.call_tool("order-list"))
     account = {}
@@ -59,7 +68,9 @@ def load_orders_live():
     return orders, account, daily
 
 
-def render(starmap, out_path, demo=False, account=None, daily=None):
+def render(
+    starmap: dict, out_path: str, demo: bool = False, account: dict | None = None, daily: dict | None = None
+) -> None:
     payload = {
         "status": starmap["status"],
         "stars": [{k: v for k, v in s.items() if k != "dt"} for s in starmap.get("stars", [])],
@@ -74,9 +85,7 @@ def render(starmap, out_path, demo=False, account=None, daily=None):
         payload["persona"] = {"name": name, "desc": PERSONAS[name]}
     # 人格图鉴：全员亮相 + 自己的那枚高亮（单一数据源，图鉴与鉴定永不漂移）
     mine = payload["persona"]["name"] if payload["persona"] else None
-    payload["personas"] = [
-        {"name": n, "desc": d, "mine": n == mine} for n, d in PERSONAS.items()
-    ]
+    payload["personas"] = [{"name": n, "desc": d, "mine": n == mine} for n, d in PERSONAS.items()]
 
     with open(TEMPLATE, encoding="utf-8") as f:
         html = f.read()
@@ -87,8 +96,10 @@ def render(starmap, out_path, demo=False, account=None, daily=None):
     os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(html)
-    print(f"报告已生成: {out_path}（{payload['summary']['orderCount']} 颗星"
-          + (f"，人格：{payload['persona']['name']}" if payload["persona"] else "，星云状态）"))
+    print(
+        f"报告已生成: {out_path}（{payload['summary']['orderCount']} 颗星"
+        + (f"，人格：{payload['persona']['name']}" if payload["persona"] else "，星云状态）")
+    )
 
 
 def main():
