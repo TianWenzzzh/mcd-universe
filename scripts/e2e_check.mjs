@@ -74,6 +74,50 @@ async function checkPage(browser, url, opts) {
       if (card.style === "achievement") writeFileSync(`${OUT_DIR}/share-card-achievement.png`, Buffer.from(b64, "base64"));
     }
     state.cardBytes = Object.values(state.cards).join("/");
+
+    // 卡片几何：直接读 cardLayout() 规格算，不靠像素（星场随机星会干扰像素判定）。
+    // 这条管的是"换个更长的文案就撞车""脚注被平台圆角切掉"这类只在真实数据下才暴露的问题。
+    const geo = await page.evaluate(() => {
+      const mc = window.__mcuniverse;
+      const out = [];
+      const desc = mc.data.persona ? mc.data.persona.desc : "";
+      for (const style of ["deep", "nebula", "minimal", "achievement"]) {
+        const L = mc.cardLayout(style);
+        const q = L.qr;
+        const problems = [];
+        const SAFE = 48;
+        if (q.x + q.size > 1080 - SAFE) problems.push(`二维码右边距 ${1080 - q.x - q.size}px`);
+        if (q.y + q.size > 1440 - SAFE) problems.push(`二维码下边距 ${1440 - q.y - q.size}px`);
+        const footGap = 1440 - (L.footer + L.footerSize * 0.25);
+        if (footGap < SAFE) problems.push(`脚注下边距 ${Math.round(footGap)}px`);
+        if (q.label && q.label + 4 > q.y) problems.push("二维码说明压在码上");
+        if (L.desc) {
+          // 描述按实际文案断行，最后一行必须落在脚注上方，且不能伸到二维码那一列
+          const lines = mc.wrapLines(desc, L.desc.maxW, L.desc.size);
+          const lastBase = L.desc.y + (lines.length - 1) * L.desc.lh;
+          const lastFoot = lastBase + L.desc.size * 0.25;
+          if (lastFoot > L.footer - L.footerSize * 0.9) {
+            problems.push(`描述最后一行(${Math.round(lastFoot)})压到脚注(${L.footer})`);
+          }
+          if (lines.length > 3) problems.push(`描述断成 ${lines.length} 行，超出卡片预留高度`);
+          for (const t of lines) {
+            if (/^[，。、；：！？）】》”’%]/.test(t)) problems.push(`行首挂了标点: ${t}`);
+            const w = (() => {
+              const c = document.createElement("canvas").getContext("2d");
+              c.font = L.desc.size + "px -apple-system, PingFang SC, sans-serif";
+              return c.measureText(t).width;
+            })();
+            if (w > L.desc.maxW + 1) problems.push(`行宽 ${Math.round(w)} 超出版心 ${L.desc.maxW}: ${t}`);
+          }
+          if (q.x > 540 && 540 + L.desc.maxW / 2 > q.x - 16) problems.push("描述版心伸进了二维码那一列");
+        }
+        out.push({ style, lines: L.desc ? mc.wrapLines(desc, L.desc.maxW, L.desc.size).length : 0, problems });
+      }
+      return out;
+    });
+    state.geo = geo.map((g) => `${g.style}:${g.lines}行`).join(" ");
+    for (const g of geo) for (const p of g.problems) problems.push(`${g.style} 版式: ${p}`);
+
     const after = await page.evaluate(() =>
       window.__mcuniverse.stars.map((s) => [Math.round(s.bx), Math.round(s.by)]),
     );

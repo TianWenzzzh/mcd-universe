@@ -292,8 +292,11 @@
       CX = padL + aw / 2; CY = padT + ah / 2;
       ax = aw * 0.46; ay = Math.min(ah * 0.46, ax * 0.58);
     }
-    // 大屏上星点同步放大，否则 2K 屏上像一粒沙
-    var rScale = narrow ? 1 : Math.min(1.3, Math.max(1, Math.min(W, H) / 900));
+    // 大屏上星点同步放大，否则 2K 屏上像一粒沙。
+    // 导出卡片时不跟屏幕走：卡片按 scale 放大后星点会跟着变粗，改成反推，让 1080 宽的
+    // 成品里星点半径恒为 (3+星等*1.5)*2.2，电脑和手机导出的卡看起来才是同一张。
+    var rScale = box && box.cardScale ? 2.2 / box.cardScale
+      : (narrow ? 1 : Math.min(1.3, Math.max(1, Math.min(W, H) / 900)));
     var times = stars.map(function (s) {
       if (!s.time) return 0;
       var d = new Date(String(s.time).replace(" ", "T") + "+08:00");
@@ -1019,64 +1022,136 @@
   };
 
   // 分享卡构图：卡片是 1080x1440 竖版，取自画布 cover 裁切 —— 只有中间的 3:4 会留下。
-  // 桌面版构图（星群偏右、横向拉宽）直接拿去裁会把右半边切掉，所以导出时按竖版重排一次。
+  //
+  // 这里踩过一个隐蔽的坑：cover 把屏幕放大后裁掉溢出部分，所以"卡片里的哪一块"取决于
+  // 屏幕宽高比。同一个 cardBox 在 1280x720（横向裁）和 390x844（纵向裁）上，落进卡片的
+  // 位置差得很远 —— 结果是同一份数据在电脑上导出和手机上导出，星群大小和位置都不一样。
+  // 现在先算裁切窗口，再把"想要的卡片坐标"反推回屏幕坐标，四种画幅下卡片构图一致。
+  function cardClip() {
+    var scale = Math.max(1080 / W, 1440 / H);
+    return { scale: scale, ox: W / 2 - 540 / scale, oy: H / 2 - 720 / scale };
+  }
+  // 目标（卡片坐标）：星群占 x 90~990、y 280~1100，正好填满标题与底部信息带之间。
   function cardBox() {
-    var cw = Math.min(W, H * 0.75);
-    return { cx: W / 2, cy: H * 0.42, ax: cw * 0.43, ay: H * 0.235 };
+    var c = cardClip();
+    return {
+      cx: c.ox + 540 / c.scale,
+      cy: c.oy + 690 / c.scale,
+      ax: 450 / c.scale,
+      ay: 410 / c.scale,
+      cardScale: c.scale,
+    };
+  }
+
+  // 分享卡版式规格（1080x1440）。所有 y 坐标集中在这一处，绘制函数只读这份规格。
+  //
+  // 为什么要收拢：以前每个 block 的 y 散落在绘制代码里写死，攒出三处硬伤 ——
+  //   ① 深空金/星云紫底部脚注压到 y=1424（下边距只剩 9px），右侧还有亮像素顶到 x=1079；
+  //   ② 二维码与人格描述只隔 16px，描述换成更长的文案就会贴上去；
+  //   ③ 星图收尾到信息带之间空了 144px，版面被切成上下两截。
+  // 收拢之后 card_audit.mjs 能直接对着数字验，而不是靠肉眼"感觉一下"。
+  function cardLayout(style) {
+    // fs 只收"几何断言要用到"的字号：断行算得出描述占到哪一行、脚注的字脚会不会出界。
+    // 其余字号仍写在各绘制函数里（不影响版式判定），避免两边各存一份容易漂移。
+    var L = {
+      pad: 56,
+      title: 136, sub: 186, range: 222,
+      hero: { top: 280, bottom: 1100 },
+      rule: 1128,
+      persona: 1196,
+      desc: { y: 1240, lh: 38, maxW: 620, size: 27 },
+      qr: { size: 140, x: 884, y: 1176, label: 1156, labelSize: 21 },
+      footer: 1350, footerSize: 26,
+    };
+    if (style === "minimal") {
+      L = {
+        pad: 56, frame: 56,
+        eyebrow: 178, title: 350, en: 408,
+        tick: 470,
+        label: 556, name: 646,
+        desc: { y: 710, lh: 44, maxW: 700, size: 27 },
+        range: 816,
+        stats: 936, statLabel: 982,
+        rule: 1038,
+        qr: { size: 132, x: 474, y: 1114, label: 1096, labelSize: 21 },
+        footer: 1328, footerSize: 24,
+      };
+    }
+    if (style === "achievement") {
+      L = {
+        pad: 56, frame: 56,
+        title: 234, en: 286,
+        grid: { startY: 338, cw: 400, ch: 104, gapX: 40, gapY: 20 },
+        progress: 1046, progressLabel: 1090,
+        qr: { size: 132, x: 474, y: 1158, label: 1140, labelSize: 21 },
+        footer: 1350, footerSize: 24,
+      };
+    }
+    return L;
+  }
+
+  function cardFont(size, weight) {
+    return (weight ? weight + " " : "") + size + "px -apple-system, PingFang SC, Microsoft YaHei, sans-serif";
   }
 
   function composeCard(style) {
     style = style || "deep";
     var th = CARD_STYLES[style] || CARD_STYLES.deep;
+    var L = cardLayout(style);
     var ec = document.createElement("canvas");
     ec.width = 1080; ec.height = 1440;
     var ex = ec.getContext("2d");
-    if (style === "minimal") { drawMinimalCard(ex, th); return ec; }
-    if (style === "achievement") { drawAchievementCard(ex, th); return ec; }
+    if (style === "minimal") { drawMinimalCard(ex, th, L); return ec; }
+    if (style === "achievement") { drawAchievementCard(ex, th, L); return ec; }
 
     drawScene(1e9, { still: true, box: cardBox() });
     var g = ex.createRadialGradient(540, 600, 0, 540, 600, 980);
     g.addColorStop(0, "#100c26"); g.addColorStop(.55, "#080614"); g.addColorStop(1, "#03020a");
     ex.fillStyle = g; ex.fillRect(0, 0, 1080, 1440);
     try {
-      var scale = Math.max(1080 / canvas.width, 1440 / canvas.height);
-      var dw = canvas.width * scale, dh = canvas.height * scale;
+      var c = cardClip();
+      // 用 CSS 尺寸换算（scale 是"卡片像素 / 屏幕 CSS 像素"），drawImage 自己处理 DPR，
+      // 这样 2x 屏和 1x 屏导出的卡片构图完全一致
+      var dw = W * c.scale, dh = H * c.scale;
       ex.drawImage(canvas, (1080 - dw) / 2, (1440 - dh) / 2, dw, dh);
     } catch (err) {}
     // 立即把屏幕上的星群摆回原构图：否则下一帧会沿用竖版坐标，用户会看到星图凭空变形一次
     layoutStars();
     rotateStars(startT ? performance.now() - startT : 0);
     if (style === "nebula") {
+      // 星云紫的紫雾以前铺到卡片底部，把信息带下面的背景整体提亮，字压在上面发灰。
+      // 两团雾上移到星场区域、整体降一档，紫味还在，文字底色重新压回深色。
       ex.globalCompositeOperation = "lighter";
-      var n1 = ex.createRadialGradient(150, 1260, 0, 150, 1260, 720);
-      n1.addColorStop(0, "rgba(255,60,190,.26)"); n1.addColorStop(1, "rgba(255,60,190,0)");
+      var n1 = ex.createRadialGradient(170, 980, 0, 170, 980, 620);
+      n1.addColorStop(0, "rgba(255,60,190,.20)"); n1.addColorStop(1, "rgba(255,60,190,0)");
       ex.fillStyle = n1; ex.fillRect(0, 0, 1080, 1440);
-      var n2 = ex.createRadialGradient(950, 240, 0, 950, 240, 660);
-      n2.addColorStop(0, "rgba(60,200,255,.22)"); n2.addColorStop(1, "rgba(60,200,255,0)");
+      var n2 = ex.createRadialGradient(930, 420, 0, 930, 420, 600);
+      n2.addColorStop(0, "rgba(60,200,255,.18)"); n2.addColorStop(1, "rgba(60,200,255,0)");
       ex.fillStyle = n2; ex.fillRect(0, 0, 1080, 1440);
       ex.globalCompositeOperation = "source-over";
     }
-    var band = ex.createLinearGradient(0, 980, 0, 1440);
+    // 底部信息带：从星图收尾（1100）下方开始压暗，接到卡片下沿
+    var band = ex.createLinearGradient(0, 1010, 0, 1440);
     band.addColorStop(0, "rgba(4,3,11,0)");
-    band.addColorStop(.45, "rgba(4,3,11,.82)");
-    band.addColorStop(1, "rgba(4,3,11,.96)");
-    ex.fillStyle = band; ex.fillRect(0, 980, 1080, 460);
-    var top = ex.createLinearGradient(0, 0, 0, 240);
-    top.addColorStop(0, "rgba(4,3,11,.88)"); top.addColorStop(1, "rgba(4,3,11,0)");
-    ex.fillStyle = top; ex.fillRect(0, 0, 1080, 240);
+    band.addColorStop(.35, "rgba(4,3,11,.86)");
+    band.addColorStop(1, "rgba(4,3,11,.97)");
+    ex.fillStyle = band; ex.fillRect(0, 1010, 1080, 430);
+    var top = ex.createLinearGradient(0, 0, 0, 260);
+    top.addColorStop(0, "rgba(4,3,11,.9)"); top.addColorStop(1, "rgba(4,3,11,0)");
+    ex.fillStyle = top; ex.fillRect(0, 0, 1080, 260);
 
     ex.textAlign = "center";
     ex.shadowColor = th.glow; ex.shadowBlur = 34;
     ex.fillStyle = th.title;
     ex.font = "700 66px -apple-system, PingFang SC, Microsoft YaHei, sans-serif";
-    ex.fillText("麦门宇宙", 540, 128);
+    ex.fillText("麦门宇宙", 540, L.title);
     ex.shadowBlur = 0;
-    ex.fillStyle = th.sub; ex.font = "26px -apple-system, PingFang SC, sans-serif";
-    ex.fillText("MCUNIVERSE · 我的每一单，都是麦门宇宙里的一颗星", 540, 178);
+    ex.fillStyle = th.sub; ex.font = cardFont(27);
+    ex.fillText("MCUNIVERSE · 我的每一单，都是麦门宇宙里的一颗星", 540, L.sub);
     var rng = cardRange();
     if (rng) {
-      ex.fillStyle = "rgba(163,157,194,.6)"; ex.font = "20px -apple-system, PingFang SC, sans-serif";
-      ex.fillText(rng + " · 共 " + stars.length + " 顿", 540, 214);
+      ex.fillStyle = "rgba(178,172,206,.72)"; ex.font = cardFont(23);
+      ex.fillText(rng + " · 共 " + stars.length + " 顿", 540, L.range);
     }
 
     var lg = ex.createLinearGradient(240, 0, 840, 0);
@@ -1084,66 +1159,83 @@
     lg.addColorStop(.5, th.line);
     lg.addColorStop(1, "rgba(255,217,122,0)");
     ex.strokeStyle = lg; ex.lineWidth = 1;
-    ex.beginPath(); ex.moveTo(240, 1246); ex.lineTo(840, 1246); ex.stroke();
+    ex.beginPath(); ex.moveTo(240, L.rule); ex.lineTo(840, L.rule); ex.stroke();
 
     if (DATA.persona) {
       ex.shadowColor = th.glow; ex.shadowBlur = 22;
       ex.fillStyle = th.title;
-      ex.font = "700 46px -apple-system, PingFang SC, Microsoft YaHei, sans-serif";
-      ex.fillText("麦门人格 · " + DATA.persona.name, 540, 1308);
+      ex.font = "700 48px -apple-system, PingFang SC, Microsoft YaHei, sans-serif";
+      ex.fillText("麦门人格 · " + DATA.persona.name, 540, L.persona);
       ex.shadowBlur = 0;
-      ex.fillStyle = th.sub; ex.font = "25px -apple-system, PingFang SC, sans-serif";
-      wrapText(ex, DATA.persona.desc, 540, 1352, 720, 34);
+      ex.fillStyle = th.sub; ex.font = cardFont(L.desc.size);
+      wrapText(ex, DATA.persona.desc, 540, L.desc.y, L.desc.maxW, L.desc.lh);
     }
-    ex.fillStyle = "rgba(163,157,194,.62)"; ex.font = "21px -apple-system, PingFang SC, sans-serif";
+    // 脚注贴底但必须留出安全边距：微信/小红书会加圆角与边框，9px 的下边距等于被切
+    ex.fillStyle = "rgba(178,172,206,.7)"; ex.font = cardFont(L.footerSize);
     ex.fillText((DATA.summary.orderCount || 0) + " 颗星 · 累计 ¥" + (DATA.summary.totalAmount || 0).toFixed(1)
-      + " · 数据本地处理", 540, 1424);
-    drawCardQR(ex, 916, 1268, th);
+      + " · 数据本地处理", 540, L.footer);
+    drawCardQR(ex, L.qr, th);
     return ec;
   }
 
-  function drawCardQR(ex, x, y, th) {
+  function drawCardQR(ex, q, th) {
     if (!(qrImg.complete && qrImg.naturalWidth)) return;
+    var s = q.size || 140;
     ex.textAlign = "center";
-    ex.fillStyle = "rgba(255,233,168,.62)"; ex.font = "16px -apple-system, PingFang SC, sans-serif";
-    ex.fillText("扫码生成你的", x + 70, y - 10);
+    if (q.label) {
+      // 二维码上的说明字在信息流缩略图里会被压到 6~7px：16px 字号是印在纸上的尺寸，
+      // 1080 的卡缩到 390pt 宽只有 5.8px，等于没有。这里按"缩到一屏宽仍有 7.5px"反推。
+      ex.fillStyle = "rgba(255,233,168,.72)"; ex.font = cardFont(q.labelSize || 21);
+      ex.fillText("扫码生成你的", q.x + s / 2, q.label);
+    }
     ex.fillStyle = "#ffffff";
-    if (ex.roundRect) { ex.beginPath(); ex.roundRect(x, y, 140, 140, 10); ex.fill(); }
-    else { ex.fillRect(x, y, 140, 140); }
-    ex.drawImage(qrImg, x + 8, y + 8, 124, 124);
+    if (ex.roundRect) { ex.beginPath(); ex.roundRect(q.x, q.y, s, s, 12); ex.fill(); }
+    else { ex.fillRect(q.x, q.y, s, s); }
+    var in3 = Math.round(s * 0.057);
+    ex.drawImage(qrImg, q.x + in3, q.y + in3, s - in3 * 2, s - in3 * 2);
   }
 
-  function drawMinimalCard(ex, th) {
+  function drawMinimalCard(ex, th, L) {
     var g = ex.createRadialGradient(540, 500, 0, 540, 500, 940);
     g.addColorStop(0, "#171226"); g.addColorStop(1, "#05040e");
     ex.fillStyle = g; ex.fillRect(0, 0, 1080, 1440);
     ex.strokeStyle = "rgba(255,217,122,.26)"; ex.lineWidth = 2;
-    ex.strokeRect(56, 56, 968, 1328);
+    ex.strokeRect(L.frame, L.frame, 968, 1328);
 
     ex.textAlign = "center";
-    ex.fillStyle = "rgba(214,208,236,.5)";
-    ex.font = "22px -apple-system, PingFang SC, sans-serif";
-    ex.fillText("M C U N I V E R S E   ·   2 0 2 6", 540, 190);
+    ex.fillStyle = "rgba(214,208,236,.55)";
+    ex.font = cardFont(24);
+    ex.fillText("M C U N I V E R S E   ·   2 0 2 6", 540, L.eyebrow);
 
     ex.shadowColor = th.glow; ex.shadowBlur = 46;
     ex.fillStyle = th.title;
     ex.font = "700 104px -apple-system, PingFang SC, Microsoft YaHei, sans-serif";
-    ex.fillText("麦门宇宙", 540, 372);
+    ex.fillText("麦门宇宙", 540, L.title);
     ex.shadowBlur = 0;
 
-    ex.fillStyle = "rgba(214,208,236,.55)"; ex.font = "24px -apple-system, PingFang SC, sans-serif";
-    ex.fillText("MY MCD UNIVERSE", 540, 432);
+    ex.fillStyle = "rgba(214,208,236,.6)"; ex.font = cardFont(26);
+    ex.fillText("MY MCD UNIVERSE", 540, L.en);
 
-    ex.fillStyle = "rgba(214,208,236,.7)"; ex.font = "26px -apple-system, PingFang SC, sans-serif";
-    ex.fillText("麦门人格", 540, 610);
+    // 短横线做段落分隔：极简版靠留白立住版面，但留白必须有边界，否则读成"没排完"
+    ex.strokeStyle = th.line; ex.lineWidth = 1;
+    ex.beginPath(); ex.moveTo(492, L.tick); ex.lineTo(588, L.tick); ex.stroke();
+
+    ex.fillStyle = "rgba(214,208,236,.75)"; ex.font = cardFont(27);
+    ex.fillText("麦门人格", 540, L.label);
     ex.shadowColor = th.glow; ex.shadowBlur = 30;
     ex.fillStyle = th.title;
-    ex.font = "700 66px -apple-system, PingFang SC, Microsoft YaHei, sans-serif";
-    ex.fillText(DATA.persona ? DATA.persona.name : "麦门旅人", 540, 700);
+    ex.font = "700 70px -apple-system, PingFang SC, Microsoft YaHei, sans-serif";
+    ex.fillText(DATA.persona ? DATA.persona.name : "麦门旅人", 540, L.name);
     ex.shadowBlur = 0;
     if (DATA.persona) {
-      ex.fillStyle = th.sub; ex.font = "26px -apple-system, PingFang SC, sans-serif";
-      wrapText(ex, DATA.persona.desc, 540, 766, 720, 42);
+      ex.fillStyle = th.sub; ex.font = cardFont(L.desc.size);
+      wrapText(ex, DATA.persona.desc, 540, L.desc.y, L.desc.maxW, L.desc.lh);
+    }
+    // 数据跨度：原来极简版连"这些星是什么时候的"都没有，日期能替掉中间那块空洞
+    var rng = cardRange();
+    if (rng) {
+      ex.fillStyle = "rgba(178,172,206,.62)"; ex.font = cardFont(22);
+      ex.fillText(rng + " · 共 " + stars.length + " 顿", 540, L.range);
     }
 
     var maxMag = 0;
@@ -1156,46 +1248,45 @@
     stats.forEach(function (st, i) {
       var cx2 = 260 + i * 280;
       ex.fillStyle = th.title; ex.font = "700 56px -apple-system, PingFang SC, sans-serif";
-      ex.fillText(st[0], cx2, 990);
-      ex.fillStyle = "rgba(214,208,236,.55)"; ex.font = "21px -apple-system, PingFang SC, sans-serif";
-      ex.fillText(st[1], cx2, 1030);
+      ex.fillText(st[0], cx2, L.stats);
+      ex.fillStyle = "rgba(214,208,236,.6)"; ex.font = cardFont(24);
+      ex.fillText(st[1], cx2, L.statLabel);
     });
 
     ex.strokeStyle = th.line; ex.lineWidth = 1;
-    ex.beginPath(); ex.moveTo(260, 1090); ex.lineTo(820, 1090); ex.stroke();
+    ex.beginPath(); ex.moveTo(260, L.rule); ex.lineTo(820, L.rule); ex.stroke();
 
-    drawCardQR(ex, 470, 1160, th);
-    ex.fillStyle = "rgba(163,157,194,.55)"; ex.font = "19px -apple-system, PingFang SC, sans-serif";
-    ex.fillText("数据本地处理 · Token 不出本机", 540, 1352);
+    drawCardQR(ex, L.qr, th);
+    ex.fillStyle = "rgba(178,172,206,.62)"; ex.font = cardFont(L.footerSize);
+    ex.fillText("数据本地处理 · Token 不出本机", 540, L.footer);
   }
 
-  function drawAchievementCard(ex, th) {
+  function drawAchievementCard(ex, th, L) {
     var g = ex.createRadialGradient(540, 460, 0, 540, 460, 960);
     g.addColorStop(0, "#151026"); g.addColorStop(1, "#05040e");
     ex.fillStyle = g; ex.fillRect(0, 0, 1080, 1440);
     ex.strokeStyle = "rgba(255,217,122,.26)"; ex.lineWidth = 2;
-    ex.strokeRect(56, 56, 968, 1328);
+    ex.strokeRect(L.frame, L.frame, 968, 1328);
 
     ex.textAlign = "center";
     ex.shadowColor = th.glow; ex.shadowBlur = 40;
     ex.fillStyle = th.title;
     ex.font = "700 88px -apple-system, PingFang SC, Microsoft YaHei, sans-serif";
-    ex.fillText("麦门成就", 540, 240);
+    ex.fillText("麦门成就", 540, L.title);
     ex.shadowBlur = 0;
-    ex.fillStyle = "rgba(214,208,236,.55)";
-    ex.font = "22px -apple-system, PingFang SC, sans-serif";
-    ex.fillText("M C D   A C H I E V E M E N T S", 540, 292);
+    ex.fillStyle = "rgba(214,208,236,.6)";
+    ex.font = cardFont(24);
+    ex.fillText("M C D   A C H I E V E M E N T S", 540, L.en);
 
     var res = computeAchievements();
-    var cols = 2, cw = 400, chh = 96, gapX = 40, gapY = 18;
-    var startX = 540 - (cols * cw + (cols - 1) * gapX) / 2;
-    var startY = 360;
+    var G = L.grid, cols = 2;
+    var startX = 540 - (cols * G.cw + (cols - 1) * G.gapX) / 2;
     res.defs.forEach(function (d, i) {
-      var cx = startX + (i % cols) * (cw + gapX);
-      var cy = startY + Math.floor(i / cols) * (chh + gapY);
+      var cx = startX + (i % cols) * (G.cw + G.gapX);
+      var cy = G.startY + Math.floor(i / cols) * (G.ch + G.gapY);
       ex.beginPath();
-      if (ex.roundRect) ex.roundRect(cx, cy, cw, chh, 16);
-      else ex.rect(cx, cy, cw, chh);
+      if (ex.roundRect) ex.roundRect(cx, cy, G.cw, G.ch, 16);
+      else ex.rect(cx, cy, G.cw, G.ch);
       ex.fillStyle = d[2] ? "rgba(255,217,122,.10)" : "rgba(255,255,255,.025)";
       ex.fill();
       ex.strokeStyle = d[2] ? "rgba(255,217,122,.55)" : "rgba(255,255,255,.08)";
@@ -1205,33 +1296,55 @@
       ex.font = "700 38px -apple-system, PingFang SC, Microsoft YaHei, sans-serif";
       // 未解锁项别做到"看不见"：灰但可读（.4 的 alpha 在深底上对比度不足 3:1）
       ex.fillStyle = d[2] ? "#ffe9a8" : "rgba(196,190,218,.62)";
-      ex.fillText(d[0], cx + 24, cy + 62);
+      ex.fillText(d[0], cx + 24, cy + 66);
       ex.font = "600 26px -apple-system, PingFang SC, sans-serif";
       ex.fillStyle = d[2] ? "#f2eefc" : "rgba(206,200,230,.6)";
-      ex.fillText(d[1], cx + 84, cy + 54);
-      ex.font = "19px -apple-system, PingFang SC, sans-serif";
-      ex.fillStyle = d[2] ? "rgba(255,217,122,.7)" : "rgba(190,184,214,.5)";
-      ex.fillText(d[2] ? "已解锁" : "未解锁", cx + 84, cy + 80);
+      ex.fillText(d[1], cx + 84, cy + 58);
+      ex.font = "23px -apple-system, PingFang SC, sans-serif";
+      ex.fillStyle = d[2] ? "rgba(255,217,122,.72)" : "rgba(190,184,214,.58)";
+      ex.fillText(d[2] ? "已解锁" : "未解锁", cx + 84, cy + 90);
     });
 
     ex.textAlign = "center";
-    ex.fillStyle = th.title; ex.font = "700 46px -apple-system, PingFang SC, sans-serif";
-    ex.fillText(res.unlocked + " / " + res.defs.length, 540, 1052);
-    ex.fillStyle = "rgba(214,208,236,.55)"; ex.font = "22px -apple-system, PingFang SC, sans-serif";
-    ex.fillText("项麦门成就 · " + (DATA.persona ? DATA.persona.name : "麦门旅人"), 540, 1094);
+    ex.fillStyle = th.title; ex.font = "700 50px -apple-system, PingFang SC, sans-serif";
+    ex.fillText(res.unlocked + " / " + res.defs.length, 540, L.progress);
+    ex.fillStyle = "rgba(214,208,236,.6)"; ex.font = cardFont(24);
+    ex.fillText("项麦门成就 · " + (DATA.persona ? DATA.persona.name : "麦门旅人"), 540, L.progressLabel);
 
-    drawCardQR(ex, 470, 1156, th);
-    ex.fillStyle = "rgba(163,157,194,.5)"; ex.font = "18px -apple-system, PingFang SC, sans-serif";
-    ex.fillText("数据本地处理 · Token 不出本机", 540, 1352);
+    drawCardQR(ex, L.qr, th);
+    ex.fillStyle = "rgba(178,172,206,.62)"; ex.font = cardFont(L.footerSize);
+    ex.fillText("数据本地处理 · Token 不出本机", 540, L.footer);
+  }
+
+  // 断行：按字贪心会切在词中间（"…你是夜色 / 里最忠实的那颗星。"），读起来像被打断。
+  // 换行点回退到最近的句读（，。、；：！？），找不到才按字硬切；同时保证行宽不超版心
+  // ——旧实现把溢出的那个字一起画进了上一行，长行会顶出版心。
+  var NO_LINE_HEAD = "，。、；：！？）】》”’%";
+  function wrapLines(text, maxW, font) {
+    var mc2 = document.createElement("canvas").getContext("2d");
+    // font 允许直接给字号（测试与版式规格只关心字号），也可以是完整的 font 字符串。
+    // 直接把数字赋给 ctx.font 会静默失败退回 10px，量出来的宽度全是假的、永远不断行。
+    mc2.font = typeof font === "number" ? cardFont(font) : (font || cardFont(27));
+    var lines = [], line = "";
+    for (var i = 0; i < text.length; i++) {
+      var ch = text[i];
+      if (line && mc2.measureText(line + ch).width > maxW) {
+        var cut = -1;
+        for (var k = line.length - 1; k >= Math.max(0, line.length - 8); k--) {
+          if (NO_LINE_HEAD.indexOf(line[k]) >= 0) { cut = k; break; }
+        }
+        if (cut >= 0) { lines.push(line.slice(0, cut + 1)); line = line.slice(cut + 1) + ch; }
+        else { lines.push(line); line = ch; }
+      } else {
+        line += ch;
+      }
+    }
+    if (line) lines.push(line);
+    return lines;
   }
 
   function wrapText(c, text, x, y, maxW, lh) {
-    var line = "", yy = y;
-    for (var i = 0; i < text.length; i++) {
-      line += text[i];
-      if (c.measureText(line).width > maxW) { c.fillText(line, x, yy); line = ""; yy += lh; }
-    }
-    if (line) c.fillText(line, x, yy);
+    wrapLines(text, maxW, c.font).forEach(function (t, i) { c.fillText(t, x, y + i * lh); });
   }
 
   // 下载出口：桌面直接下载；iOS Safari 不支持 a.download，改为预览层长按保存
@@ -1402,6 +1515,10 @@
   window.__mcuniverse = {
     stars: stars, data: DATA, isNebula: isNebula, reduced: REDUCED, coarse: COARSE,
     composeCard: composeCard,
+    // 版式规格与裁切窗口都给测试：卡片的几何断言不靠"再抄一遍常数"
+    cardLayout: cardLayout,
+    cardClip: cardClip,
+    wrapLines: wrapLines,
     dismissOnboard: obDismiss,
     zoom: function () { return view.zoom; },
     phase: function () { return performance.now() - startT; }
