@@ -105,7 +105,7 @@ def main() -> int:
 
         print("HTTP 自检：")
         ok = check(client)
-        print("镜像地址: http://%s/mcd/demo/" % HOST)
+        print(f"镜像地址: http://{HOST}/mcd/demo/")
         return 0 if ok else 1
     finally:
         client.close()
