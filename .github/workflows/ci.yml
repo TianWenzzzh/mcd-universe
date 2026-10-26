@@ -39,3 +39,6 @@ jobs:
 
       - name: Link integrity check
         run: python scripts/check_links.py
+
+      - name: Demo pages in sync with template
+        run: python scripts/build_demo.py --check

@@ -84,12 +84,14 @@
   #export-panel { position: absolute; inset: 0; z-index: 28; display: none; align-items: center; justify-content: center; background: rgba(4,3,11,.78); backdrop-filter: blur(6px); }
   #export-panel.show { display: flex; }
   .ep-card { padding: 22px 24px 18px; background: linear-gradient(170deg, rgba(26,22,48,.98), rgba(10,8,22,.98)); border: 1px solid rgba(255,217,122,.26); border-radius: 18px; box-shadow: 0 24px 80px rgba(0,0,0,.7); }
-  .ep-card h3 { font-size: 13px; color: #ffe9a8; letter-spacing: 3px; margin-bottom: 16px; text-align: center; }
+  .ep-card h3 { font-size: 15px; color: #ffe9a8; letter-spacing: 4px; margin-bottom: 18px; text-align: center; }
   .ep-styles { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
   .ep-style { background: none; border: 1px solid rgba(255,255,255,.12); border-radius: 12px; padding: 8px; cursor: pointer; transition: border-color .2s, transform .15s; }
-  .ep-style:hover { border-color: rgba(255,217,122,.55); transform: translateY(-2px); }
-  .ep-style canvas { display: block; border-radius: 7px; }
-  .ep-style span { display: block; margin-top: 7px; font-size: 11px; color: #b9b3d6; letter-spacing: 1px; }
+  .ep-style:hover, .ep-style:focus-visible { border-color: rgba(255,217,122,.55); transform: translateY(-2px); outline: none; }
+  .ep-style:focus-visible { box-shadow: 0 0 0 2px rgba(255,217,122,.45); }
+  /* 缩略图按 2 倍像素绘制、按 1 倍显示：高分屏与投稿截图都不糊 */
+  .ep-style canvas { display: block; border-radius: 7px; width: 196px; height: 261px; }
+  .ep-style span { display: block; margin-top: 7px; font-size: 11.5px; color: #cfc9e6; letter-spacing: 1px; }
   #img-preview { position: absolute; inset: 0; z-index: 32; display: none; align-items: center; justify-content: center; background: rgba(4,3,11,.9); backdrop-filter: blur(8px); }
   #img-preview.show { display: flex; }
   .ip-card { width: min(360px, calc(100% - 40px)); text-align: center; }
@@ -176,14 +178,14 @@
     <p class="ob-tip">订单数据本地处理 · Token 不出本机 · <a href="https://tianwenzzzh.github.io/mcd-universe/docs/about.html" target="_blank" rel="noopener">关于这个作品</a></p>
   </div>
 </div>
-<div id="export-panel">
+<div id="export-panel" role="dialog" aria-modal="true" aria-label="选择分享卡风格">
   <div class="ep-card">
     <h3>选一个风格导出</h3>
     <div class="ep-styles">
-      <button class="ep-style" data-style="deep"><canvas width="176" height="235"></canvas><span>深空金</span></button>
-      <button class="ep-style" data-style="nebula"><canvas width="176" height="235"></canvas><span>星云紫</span></button>
-      <button class="ep-style" data-style="minimal"><canvas width="176" height="235"></canvas><span>极简海报</span></button>
-      <button class="ep-style" data-style="achievement"><canvas width="176" height="235"></canvas><span>成就卡</span></button>
+      <button class="ep-style" data-style="deep" aria-label="导出深空金风格分享卡"><canvas width="392" height="522"></canvas><span>深空金</span></button>
+      <button class="ep-style" data-style="nebula" aria-label="导出星云紫风格分享卡"><canvas width="392" height="522"></canvas><span>星云紫</span></button>
+      <button class="ep-style" data-style="minimal" aria-label="导出极简海报风格分享卡"><canvas width="392" height="522"></canvas><span>极简海报</span></button>
+      <button class="ep-style" data-style="achievement" aria-label="导出成就卡风格分享卡"><canvas width="392" height="522"></canvas><span>成就卡</span></button>
     </div>
     <p class="ep-tip">点击风格即导出 1080×1440 PNG · 带扫码入口</p>
   </div>
@@ -224,14 +226,32 @@
   var view = { userRot: 0, zoom: 1, px: 0, py: 0 };
   var mouse = { x: -999, y: -999, inside: false };
   var hovered = -1;
-  var PHASE_TEXT = 2300, PHASE_HOLD = 600, FADE_START = 1400, FADE_DUR = 1800;
+  // 文字阶段延长到 2.6s + 0.7s 定格：粒子收敛本身要 ~2s，太短等于字刚成形就炸开了
+  var PHASE_TEXT = 2600, PHASE_HOLD = 1000, FADE_START = 1400, FADE_DUR = 1800;
 
   // ---------- 布局：时间序 → 星系旋臂 ----------
-  function layoutStars() {
+  // 构图原则：星群要填满「没被 HUD 占住」的那块区域，而不是永远缩在屏幕正中。
+  // 宽屏左侧被标题/图例/人格卡占掉约 1/4，星群中心右移并放大；竖屏全宽、纵向让开上下 HUD。
+  // box 参数给分享卡用：卡片是 1080x1440 竖版，需要一套自己的竖版构图（否则被裁掉半边）。
+  function layoutStars(box) {
     var n = stars.length;
     var narrow = W < 640;
-    var minD = Math.min(W, H) * (narrow ? 1.34 : 1);  // 竖屏放大一档，避免星群缩在中间
-    CX = W / 2; CY = H * (narrow ? 0.56 : 0.52);
+    var ax, ay;
+    if (box) {
+      CX = box.cx; CY = box.cy; ax = box.ax; ay = box.ay;
+    } else if (narrow) {
+      var mW = Math.max(180, W - 60), mH = Math.max(160, H * 0.51);
+      CX = W / 2; CY = H * 0.19 + mH / 2;
+      ax = mW * 0.46; ay = Math.min(mH * 0.46, ax * 0.72);
+    } else {
+      var padL = Math.min(520, W * 0.30), padR = Math.min(150, W * 0.07);
+      var padT = H * 0.16, padB = H * 0.15;
+      var aw = Math.max(240, W - padL - padR), ah = Math.max(200, H - padT - padB);
+      CX = padL + aw / 2; CY = padT + ah / 2;
+      ax = aw * 0.46; ay = Math.min(ah * 0.46, ax * 0.58);
+    }
+    // 大屏上星点同步放大，否则 2K 屏上像一粒沙
+    var rScale = narrow ? 1 : Math.min(1.3, Math.max(1, Math.min(W, H) / 900));
     var times = stars.map(function (s) {
       if (!s.time) return 0;
       var d = new Date(String(s.time).replace(" ", "T") + "+08:00");
@@ -241,11 +261,12 @@
     stars.forEach(function (s, i) {
       var t = tMax > tMin ? (times[i] - tMin) / (tMax - tMin) : (n > 1 ? i / (n - 1) : 0.5);
       var ang = -Math.PI * 0.75 + t * Math.PI * 2.05;
-      var rad = minD * 0.085 + Math.pow(t, 0.9) * minD * 0.315 + (s.magnitude - 1) * 4;
-      s.bx = CX + Math.cos(ang) * rad;
-      s.by = CY + Math.sin(ang) * rad * 0.6;
+      // k：归一化半径，0.18 起步保证内圈不挤成一点
+      var k = 0.18 + Math.pow(t, 0.9) * 0.82 + (s.magnitude - 1) * 0.012;
+      s.bx = CX + Math.cos(ang) * ax * k;
+      s.by = CY + Math.sin(ang) * ay * k;
       s.ang = ang;
-      s.r = 3.0 + s.magnitude * 1.5;
+      s.r = (3.0 + s.magnitude * 1.5) * rScale;
       s.phase = Math.random() * Math.PI * 2;
       s.tw = 0.55 + Math.random() * 0.9;
       s.x = s.bx; s.y = s.by;
@@ -461,7 +482,7 @@
     octx.fillText("麦门宇宙", W / 2, H / 2);
     var img = octx.getImageData(0, 0, W, H).data;
     var pts = [];
-    var step = Math.max(3, Math.floor(W / 220));
+    var step = Math.max(2, Math.floor(W / 300));
     for (var y = 0; y < H; y += step) {
       for (var x = 0; x < W; x += step) {
         if (img[(y * W + x) * 4 + 3] > 128) pts.push({ x: x, y: y });
@@ -482,6 +503,7 @@
         tx: pts.length ? pts[i % pts.length].x : W / 2 + (Math.random() - 0.5) * W * 0.62,
         ty: pts.length ? pts[i % pts.length].y : H / 2 + (Math.random() - 0.5) * H * 0.62,
         star: star, size: star ? star.r * 0.62 : 0.7 + Math.random() * 1.5,
+        textSize: 1 + Math.random() * 1.05,  // 文字阶段的小点：太大就糊成一团
         color: star ? hexA(star.color, 0.95) : "rgba(220,225,255," + (0.25 + Math.random() * 0.55) + ")",
         speed: 0.011 + Math.random() * 0.02, delay: Math.random() * 480
       });
@@ -502,6 +524,7 @@
 
     if (isNebula) { drawNebula(el); return; }
 
+    if (opts && opts.box) layoutStars(opts.box);  // 分享卡：先用竖版构图重排
     rotateStars(el);
     drawGalacticCore(el);
 
@@ -520,45 +543,61 @@
     }
 
     if (!still && fade > 0.01) {
+      var small = Math.min(W, H) < 640;
+      // 位移统一更新：文字阶段与星图阶段共用一套缓动，区别只在下笔方式
+      for (var pi = 0; pi < particles.length; pi++) {
+        var pp = particles[pi];
+        if (el < pp.delay) continue;
+        pp.px = pp.x; pp.py = pp.y;
+        var pt = toStars && pp.star ? { x: pp.star.x, y: pp.star.y } : { x: pp.tx, y: pp.ty };
+        // 收敛速度下限：原来的 0.011~0.031 是指数缓动，2.3 秒内只走完 ~87%，
+        // 几百个粒子停在离目标几十像素的地方 →"麦门宇宙"四个字永远是糊的。
+        var sp = Math.max(pp.speed, 0.055) * (toStars ? 1.7 : 1);
+        pp.x += (pt.x - pp.x) * sp;
+        pp.y += (pt.y - pp.y) * sp;
+      }
       ctx.globalCompositeOperation = "lighter";
       ctx.globalAlpha = fade;
-      var small = Math.min(W, H) < 640;
-      Object.keys(colorGroups).forEach(function (color) {
-        var list = colorGroups[color];
-        var trail = !small ? [] : null;
-        ctx.fillStyle = color;
+      if (!toStars) {
+        // 文字阶段：所有粒子统一暖白小点。按星色、按星等半径画会糊成一团彩色云，
+        // 观众根本读不出"麦门宇宙"四个字 —— 字形优先于配色。
+        ctx.fillStyle = "rgba(255,240,208,.9)";
         ctx.beginPath();
-        for (var i = 0; i < list.length; i++) {
-          var p = list[i];
-          if (el < p.delay) {
-            ctx.moveTo(p.x + p.size, p.y);
-            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-            continue;
-          }
-          p.px = p.x; p.py = p.y;
-          var target = toStars && p.star ? { x: p.star.x, y: p.star.y } : { x: p.tx, y: p.ty };
-          p.x += (target.x - p.x) * p.speed * (toStars ? 1.7 : 1);
-          p.y += (target.y - p.y) * p.speed * (toStars ? 1.7 : 1);
-          if (trail && (i & 1) === 0) {
-            var dx = p.x - p.px, dy = p.y - p.py;
-            if (dx * dx + dy * dy > 1.5) trail.push(p);
-          }
-          ctx.moveTo(p.x + p.size, p.y);
-          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        for (var qi = 0; qi < particles.length; qi++) {
+          var qp = particles[qi];
+          ctx.moveTo(qp.x + qp.textSize, qp.y);
+          ctx.arc(qp.x, qp.y, qp.textSize, 0, Math.PI * 2);
         }
         ctx.fill();
-        if (trail && trail.length) {
-          ctx.globalAlpha = 0.3 * fade;
-          ctx.strokeStyle = color; ctx.lineWidth = 0.9;
+      } else {
+        Object.keys(colorGroups).forEach(function (color) {
+          var list = colorGroups[color];
+          var trail = !small ? [] : null;
+          ctx.fillStyle = color;
           ctx.beginPath();
-          for (var j = 0; j < trail.length; j++) {
-            var t = trail[j];
-            ctx.moveTo(t.px, t.py); ctx.lineTo(t.x, t.y);
+          for (var i = 0; i < list.length; i++) {
+            var p = list[i];
+            if (trail && (i & 1) === 0) {
+              var dx = p.x - p.px, dy = p.y - p.py;
+              if (dx * dx + dy * dy > 1.5) trail.push(p);
+            }
+            ctx.moveTo(p.x + p.size, p.y);
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
           }
-          ctx.stroke();
-          ctx.globalAlpha = fade;
-        }
-      });
+          ctx.fill();
+          if (trail && trail.length) {
+            ctx.globalAlpha = 0.3 * fade;
+            ctx.strokeStyle = color; ctx.lineWidth = 0.9;
+            ctx.beginPath();
+            for (var j = 0; j < trail.length; j++) {
+              var t = trail[j];
+              ctx.moveTo(t.px, t.py); ctx.lineTo(t.x, t.y);
+            }
+            ctx.stroke();
+            ctx.globalAlpha = fade;
+          }
+        });
+      }
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = "source-over";
     }
@@ -894,6 +933,13 @@
     achievement: { name: "成就卡", title: "#ffe9a8", sub: "rgba(214,208,236,.6)", line: "rgba(255,217,122,.45)", glow: "rgba(255,217,122,.55)" }
   };
 
+  // 分享卡构图：卡片是 1080x1440 竖版，取自画布 cover 裁切 —— 只有中间的 3:4 会留下。
+  // 桌面版构图（星群偏右、横向拉宽）直接拿去裁会把右半边切掉，所以导出时按竖版重排一次。
+  function cardBox() {
+    var cw = Math.min(W, H * 0.75);
+    return { cx: W / 2, cy: H * 0.42, ax: cw * 0.43, ay: H * 0.235 };
+  }
+
   function composeCard(style) {
     style = style || "deep";
     var th = CARD_STYLES[style] || CARD_STYLES.deep;
@@ -903,7 +949,7 @@
     if (style === "minimal") { drawMinimalCard(ex, th); return ec; }
     if (style === "achievement") { drawAchievementCard(ex, th); return ec; }
 
-    drawScene(1e9, { still: true });
+    drawScene(1e9, { still: true, box: cardBox() });
     var g = ex.createRadialGradient(540, 600, 0, 540, 600, 980);
     g.addColorStop(0, "#100c26"); g.addColorStop(.55, "#080614"); g.addColorStop(1, "#03020a");
     ex.fillStyle = g; ex.fillRect(0, 0, 1080, 1440);
@@ -912,6 +958,9 @@
       var dw = canvas.width * scale, dh = canvas.height * scale;
       ex.drawImage(canvas, (1080 - dw) / 2, (1440 - dh) / 2, dw, dh);
     } catch (err) {}
+    // 立即把屏幕上的星群摆回原构图：否则下一帧会沿用竖版坐标，用户会看到星图凭空变形一次
+    layoutStars();
+    rotateStars(startT ? performance.now() - startT : 0);
     if (style === "nebula") {
       ex.globalCompositeOperation = "lighter";
       var n1 = ex.createRadialGradient(150, 1260, 0, 150, 1260, 720);
@@ -1134,10 +1183,27 @@
   document.getElementById("btn-save").addEventListener("click", function () {
     renderPreviews();
     exportPanel.classList.add("show");
+    // 焦点移进面板：键盘用户不会因为"焦点还留在按钮上"而 Tab 到面板外面去
+    var first = exportPanel.querySelector(".ep-style");
+    if (first) first.focus();
     chime(659.25, 0.22);
   });
+  function closeExport() {
+    exportPanel.classList.remove("show");
+    document.getElementById("btn-save").focus();
+  }
+  exportPanel.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") { e.preventDefault(); closeExport(); return; }
+    if (e.key !== "Tab") return;
+    // 面板里只有四个风格按钮，焦点在首尾之间循环（简易 focus trap）
+    var items = [].slice.call(exportPanel.querySelectorAll(".ep-style"));
+    if (!items.length) return;
+    var i = items.indexOf(document.activeElement);
+    if (e.shiftKey && i <= 0) { e.preventDefault(); items[items.length - 1].focus(); }
+    else if (!e.shiftKey && i === items.length - 1) { e.preventDefault(); items[0].focus(); }
+  });
   exportPanel.addEventListener("click", function (e) {
-    if (e.target === exportPanel) exportPanel.classList.remove("show");
+    if (e.target === exportPanel) closeExport();
   });
   exportPanel.querySelectorAll(".ep-style").forEach(function (btn) {
     btn.addEventListener("click", function () {
@@ -1145,7 +1211,7 @@
       var th = CARD_STYLES[style] || CARD_STYLES.deep;
       var ec = composeCard(style);
       saveCard(ec, "麦门宇宙-分享卡-" + th.name + ".png");
-      exportPanel.classList.remove("show");
+      closeExport();
       chime(783.99, 0.4);
       toast("已导出「" + th.name + "」分享卡");
     });
@@ -1211,7 +1277,7 @@
       var cur = location.pathname.split("/").pop() || "index.html";
       if (cur === "" || cur === "index.html") cur = "./";
       sw.querySelectorAll("a").forEach(function (a) {
-        if (a.getAttribute("href") === cur) a.className = "cur";
+        if (a.getAttribute("href") === cur) { a.className = "cur"; a.setAttribute("aria-current", "page"); }
       });
     }
   }

@@ -46,6 +46,11 @@ async function checkPage(browser, url, opts) {
     problems.push(`星点数不符: ${state.stars} != ${opts.expectStars}`);
   }
   if (opts.exportCard) {
+    // 导出走的是"临时把舞台重排成竖版卡片构图"的路子：导完必须把屏幕上的星群摆回原位，
+    // 否则用户会看到星图凭空变形（本项目的经典复发 bug 类型：副作用泄漏回主视图）。
+    const before = await page.evaluate(() =>
+      window.__mcuniverse.stars.map((s) => [Math.round(s.bx), Math.round(s.by)]),
+    );
     const cards = await page.evaluate(() => {
       return ["deep", "nebula", "minimal", "achievement"].map((style) => {
         const ec = window.__mcuniverse.composeCard(style);
@@ -64,6 +69,12 @@ async function checkPage(browser, url, opts) {
       if (card.style === "achievement") writeFileSync(`${OUT_DIR}/share-card-achievement.png`, Buffer.from(b64, "base64"));
     }
     state.cardBytes = Object.values(state.cards).join("/");
+    const after = await page.evaluate(() =>
+      window.__mcuniverse.stars.map((s) => [Math.round(s.bx), Math.round(s.by)]),
+    );
+    if (JSON.stringify(before) !== JSON.stringify(after)) {
+      problems.push("导出分享卡后屏幕构图未复位（卡片竖版布局泄漏到了主视图）");
+    }
   }
   if (opts.ui) {
     // 导航闭环：首访引导里必须有通往作品说明页的入口
@@ -72,6 +83,12 @@ async function checkPage(browser, url, opts) {
       return a ? a.getAttribute("href") : null;
     });
     if (!obLink || !obLink.includes("docs/about.html")) problems.push("首访引导缺少作品说明入口");
+    // 当前人格页要在切换器里被标出来：视觉 .cur 之外还要有语义 aria-current
+    const ariaCur = await page.evaluate(() => {
+      const a = document.querySelector('#switcher a[aria-current="page"]');
+      return a ? a.getAttribute("href") : null;
+    });
+    if (ariaCur !== "./") problems.push(`切换器 aria-current 缺失或错位: ${ariaCur}`);
     // 首访引导会拦截点击：先关掉（同时验证引导层可关闭）
     await page.evaluate(() => window.__mcuniverse.dismissOnboard());
     await page.waitForTimeout(200);
@@ -89,14 +106,35 @@ async function checkPage(browser, url, opts) {
       }).length;
     });
     if (previewCount !== 4) problems.push(`风格预览应为 4 张，实际绘出 ${previewCount}`);
+    // 焦点应进入面板，且在四个风格按钮之间循环（focus trap）
+    const focusFirst = await page.evaluate(() =>
+      document.activeElement ? document.activeElement.getAttribute("data-style") : null,
+    );
+    if (focusFirst !== "deep") problems.push(`打开面板后焦点未进入面板: ${focusFirst}`);
+    for (let i = 0; i < 4; i++) await page.keyboard.press("Tab");
+    const wrapped = await page.evaluate(() =>
+      document.activeElement ? document.activeElement.getAttribute("data-style") : null,
+    );
+    if (wrapped !== "deep") problems.push(`面板焦点未在四格间循环（Tab 4 次落到 ${wrapped}）`);
     const downloadPromise = page.waitForEvent("download", { timeout: 15000 }).catch(() => null);
     await page.click('.ep-style[data-style="minimal"]');
     const dl = await downloadPromise;
     if (!dl) problems.push("点击风格后未触发下载");
     else state.download = dl.suggestedFilename();
 
-    // 键盘：方向键逐颗浏览，详情面板应展开
+    // Esc：关闭面板并把焦点交还给触发按钮
+    await page.click("#btn-save");
+    await page.waitForTimeout(400);
     await page.keyboard.press("Escape");
+    await page.waitForTimeout(300);
+    const escState = await page.evaluate(() => ({
+      closed: !document.getElementById("export-panel").classList.contains("show"),
+      focus: document.activeElement ? document.activeElement.id : null,
+    }));
+    if (!escState.closed) problems.push("Esc 未关闭导出面板");
+    if (escState.focus !== "btn-save") problems.push(`Esc 后焦点未回到触发按钮: ${escState.focus}`);
+
+    // 键盘：方向键逐颗浏览，详情面板应展开
     await page.focus("#sky");
     await page.keyboard.press("ArrowRight");
     await page.waitForTimeout(300);

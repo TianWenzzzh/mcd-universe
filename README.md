@@ -9,7 +9,7 @@
 [![CI](https://github.com/TianWenzzzh/mcd-universe/actions/workflows/ci.yml/badge.svg)](https://github.com/TianWenzzzh/mcd-universe/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.8%2B-blue)
 ![零依赖](https://img.shields.io/badge/dependencies-0-brightgreen)
-![测试](https://img.shields.io/badge/selftest-25%20passed-success)
+![测试](https://img.shields.io/badge/selftest-29%20passed-success)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 ## 在线演示
@@ -26,7 +26,7 @@
 
 | 桌面端 | 移动端 | 星点详情 |
 |---|---|---|
-| ![桌面端（人设切换 + 悬停提示 + 成就）](docs/assets/desktop-v8.png) | ![移动端](docs/assets/mobile-v8.png) | ![详情](docs/assets/demo-detail.png) |
+| ![桌面端（人设切换 + 悬停提示 + 成就）](docs/assets/submit-1.png) | ![移动端](docs/assets/submit-3.png) | ![详情](docs/assets/demo-detail.png) |
 
 ## 功能
 
@@ -55,7 +55,7 @@ python scripts/generate_report.py --demo samples/demo_orders.json -o report.html
 
 ## 技术栈
 
-Python（MCP 客户端 + 订单解析 + 星图模型 + 人格鉴定，25 条测试全绿）+ 单文件 HTML/Canvas（星图渲染，零依赖零外链，离线可用）。
+Python（MCP 客户端 + 订单解析 + 星图模型 + 人格鉴定，29 条测试全绿）+ 单文件 HTML/Canvas（星图渲染，零依赖零外链，离线可用）。
 
 ## 工程细节
 
@@ -81,7 +81,7 @@ flowchart TD
 ├── SKILL.md                  # Skill 定义
 ├── src/                      # MCP 客户端、星图数据模型、人格鉴定
 ├── templates/                # 星图 HTML 报告模板（Canvas 渲染）
-├── scripts/                  # 数据拉取、报告生成、模板静态检查、链接检查、E2E
+├── scripts/                  # 数据拉取、报告生成、演示页重建、模板/链接检查、E2E、截图与 GIF
 ├── samples/                  # 演示数据（匿名化）与官方营养数据
 ├── tests/                    # 测试（先证伪再交付）
 ├── demo/                     # 在线演示页
