@@ -21,7 +21,12 @@ const BASE = process.argv[2] || "https://tianwenzzzh.github.io/mcd-universe/demo
 const OUT_DIR = process.argv[3] || "docs/assets";
 
 async function checkPage(browser, url, opts) {
-  const page = await browser.newPage({ viewport: opts.viewport });
+  // 触屏参数必须真的传给 newPage：只给 viewport 的话 (pointer: coarse) 仍然为 false，
+  // 页面会走鼠标分支 —— 那这条触屏断言就成了"看着跑了、其实没测"。
+  const ctxOpts = { viewport: opts.viewport };
+  if (opts.isMobile) { ctxOpts.isMobile = true; ctxOpts.hasTouch = true; }
+  if (opts.deviceScaleFactor) ctxOpts.deviceScaleFactor = opts.deviceScaleFactor;
+  const page = await browser.newPage(ctxOpts);
   const problems = [];
   page.on("console", (m) => {
     if (m.type() === "error") problems.push("console: " + m.text());
@@ -77,6 +82,12 @@ async function checkPage(browser, url, opts) {
     }
   }
   if (opts.ui) {
+    // 桌面端引导文案要讲鼠标与键盘（跟触屏版互为对照，防止"两边都写死成同一套"）
+    const deskStep2 = await page.evaluate(() => {
+      const el = document.getElementById("ob-step2");
+      return el ? el.textContent : "";
+    });
+    if (!/悬停|滚轮/.test(deskStep2)) problems.push(`桌面引导文案缺鼠标动作: ${deskStep2}`);
     // 导航闭环：首访引导里必须有通往作品说明页的入口
     const obLink = await page.evaluate(() => {
       const a = document.querySelector(".ob-tip a");
@@ -155,6 +166,75 @@ async function checkPage(browser, url, opts) {
       if (!tipShown) problems.push("悬停未出现餐品气泡");
     }
   }
+  if (opts.touch) {
+    // 触屏专项：文案、布局、手势三件事都必须按"没有鼠标"的现实来
+    const t = await page.evaluate(() => {
+      const ob = document.getElementById("ob-step2");
+      const lg = document.getElementById("legend");
+      const lr = lg.getBoundingClientRect();
+      return {
+        coarse: window.__mcuniverse.coarse,
+        step2: ob ? ob.textContent : "",
+        legendDir: getComputedStyle(lg).flexDirection,
+        legendH: Math.round(lr.height),
+        touchAction: getComputedStyle(document.getElementById("sky")).touchAction,
+      };
+    });
+    if (!t.coarse) problems.push("触屏环境未识别为 coarse pointer（文案会退回鼠标版）");
+    if (!/轻点|点按|捏合/.test(t.step2)) problems.push(`触屏引导文案没有触屏动作: ${t.step2}`);
+    if (/悬停|滚轮|键盘/.test(t.step2)) problems.push(`触屏引导文案仍在讲鼠标/键盘: ${t.step2}`);
+    if (t.legendDir !== "row") problems.push(`竖屏图例未改横排（${t.legendDir}），会占掉纵向空间`);
+    if (t.legendH > 76) problems.push(`竖屏图例高度 ${t.legendH}px 超过两行预算`);
+    if (t.touchAction !== "none") problems.push(`画布 touch-action=${t.touchAction}，双指手势会被浏览器截走`);
+
+    // 星点不许钻进 HUD 底下：把整圈旋转角扫一遍，任何角度下星心落在 HUD 矩形内都算失败
+    // （卡片不透明，钻进去=那颗星凭空消失）。这比截一张图可信，因为它覆盖所有角度。
+    const hidden = await page.evaluate(() => {
+      const ids = ["title", "legend", "persona", "actions", "stats", "demo-badge", "switcher"];
+      const rects = ids.map((id) => {
+        const el = document.getElementById(id);
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        return r.height > 1 ? { id, t: r.top, b: r.bottom, l: r.left, r: r.right } : null;
+      }).filter(Boolean);
+      const out = {};
+      for (let a = 0; a < Math.PI * 2; a += 0.08) {
+        for (const s of window.__mcuniverse.stars) {
+          const an = s.ang + a;
+          const cx = s.bx - Math.cos(s.ang) * s.ex * s.k;
+          const cy = s.by - Math.sin(s.ang) * s.ey * s.k;
+          const px = cx + Math.cos(an) * s.ex * s.k;
+          const py = cy + Math.sin(an) * s.ey * s.k;
+          for (const rc of rects) {
+            if (px > rc.l && px < rc.r && py > rc.t && py < rc.b) out[rc.id] = (out[rc.id] || 0) + 1;
+          }
+        }
+      }
+      return out;
+    });
+    if (Object.keys(hidden).length) {
+      problems.push("星点会钻到 HUD 底下: " + JSON.stringify(hidden));
+    }
+
+    // 双指捏合：手机上唯一的缩放入口，走真实 pointer 事件链
+    const z0 = await page.evaluate(() => window.__mcuniverse.zoom());
+    const z1 = await page.evaluate(() => {
+      const cv = document.getElementById("sky");
+      const mk = (type, id, x, y) => new PointerEvent(type, {
+        pointerId: id, clientX: x, clientY: y, bubbles: true, pointerType: "touch", isPrimary: id === 1,
+      });
+      cv.dispatchEvent(mk("pointerdown", 1, 150, 300));
+      cv.dispatchEvent(mk("pointerdown", 2, 250, 300));
+      cv.dispatchEvent(mk("pointermove", 1, 100, 300));
+      cv.dispatchEvent(mk("pointermove", 2, 300, 300));
+      const z = window.__mcuniverse.zoom();
+      cv.dispatchEvent(mk("pointerup", 1, 100, 300));
+      cv.dispatchEvent(mk("pointerup", 2, 300, 300));
+      return z;
+    });
+    if (!(z1 > z0 * 1.3)) problems.push(`双指捏合未缩放: ${z0} -> ${z1}`);
+    state.pinch = `${z0}->${z1}`;
+  }
   if (opts.overlapCheck) {
     // HUD 互相压叠是这个项目反复复发的一类 bug（按钮被画布盖、徽章压副标、切换器重叠）。
     // 这里量真实布局矩形，任何两块可见 HUD 有 >2px 交集都算失败。
@@ -203,6 +283,8 @@ async function main() {
   results.push(
     await checkPage(browser, BASE + "?nebula=1&e2e=1", {
       viewport: { width: 390, height: 844 },
+      isMobile: true,
+      hasTouch: true,
       expectNebula: true,
       expectStars: 0,
     }),
@@ -214,13 +296,28 @@ async function main() {
       expectStars: 10,
     }),
   );
-  // 移动端银河态：HUD 元素多，是重叠 bug 的高发区
+  // 移动端银河态：HUD 元素多，是重叠 bug 的高发区；hasTouch 让页面真的走触屏分支
   results.push(
     await checkPage(browser, BASE + "?e2e=1&mobile=1", {
       viewport: { width: 390, height: 844 },
+      isMobile: true,
+      hasTouch: true,
       expectNebula: false,
       expectStars: 10,
       overlapCheck: true,
+      touch: true,
+    }),
+  );
+  // 小屏（360x640）：可用纵向空间最紧张的一档，星群最容易挤爆或钻到 HUD 底下
+  results.push(
+    await checkPage(browser, BASE + "?e2e=1&small=1", {
+      viewport: { width: 360, height: 640 },
+      isMobile: true,
+      hasTouch: true,
+      expectNebula: false,
+      expectStars: 10,
+      overlapCheck: true,
+      touch: true,
     }),
   );
   const rm = await checkPage(browser, BASE + "?e2e=1&rm=1", {
@@ -241,6 +338,7 @@ async function main() {
     console.log(`     stars=${r.state.stars} nebula=${r.state.isNebula} persona=${r.state.persona}` +
       (r.state.cards ? ` cards=${Object.entries(r.state.cards).map(([k, v]) => k + ":" + Math.round(v / 1024) + "KB").join(" ")}` : ""));
     if (r.state.download) console.log(`     download=${r.state.download}`);
+    if (r.state.pinch) console.log(`     pinch=${r.state.pinch}`);
     r.problems.forEach((p) => console.log("     - " + p));
   }
   process.exit(failed ? 1 : 0);

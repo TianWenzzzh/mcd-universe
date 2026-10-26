@@ -9,7 +9,7 @@
 [![CI](https://github.com/TianWenzzzh/mcd-universe/actions/workflows/ci.yml/badge.svg)](https://github.com/TianWenzzzh/mcd-universe/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.8%2B-blue)
 ![零依赖](https://img.shields.io/badge/dependencies-0-brightgreen)
-![测试](https://img.shields.io/badge/selftest-29%20passed-success)
+![测试](https://img.shields.io/badge/selftest-34%20passed-success)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 ## 在线演示
@@ -31,8 +31,8 @@
 ## 功能
 
 - **麦门星图**：每一笔订单化为一颗星——颜色=餐品品类（汉堡/早餐/甜品/小食/饮品），星等=消费频次与金额，位置=下单时间，沿星系旋臂铺开并缓慢旋转。粒子汇聚「麦门宇宙」四字后炸开成星图；深空星场 460 颗背景星三层纵深、星云雾带、流星、暗角聚焦。
-- **可玩的交互**：悬停星点发光放大并显示餐品名、鼠标提灯视差、拖拽转动星系、滚轮拉近拉远、点击看订单详情、可选星语音效（环境音 + 悬停音阶）；支持键盘操作（←/→ 逐颗浏览、Enter 看详情、± 缩放、Esc 关闭）与屏幕阅读器结构化清单。
-- **麦门成就**：10 项成就（初星觉醒 / 品类大满贯 / 星河十连 / 夜航员 / 甜品守护者 / 堡门信徒 / 晨光先行者 / 咖啡因依赖 / 麦门投资人 / 单笔王者），依真实订单自动解锁，未解锁项悬停看进度。
+- **可玩的交互**：悬停星点发光放大并显示餐品名、鼠标提灯视差、拖拽转动星系、滚轮拉近拉远、点击看订单详情、可选星语音效（环境音 + 悬停音阶）；触屏上自动换成「轻点看详情 / 单指转动 / 双指捏合缩放」；支持键盘操作（←/→ 逐颗浏览、Enter 看详情、± 缩放、Esc 关闭）与屏幕阅读器结构化清单。
+- **麦门成就**：10 项成就（初星觉醒 / 品类大满贯 / 星河十连 / 夜航员 / 甜品守护者 / 堡门信徒 / 晨光先行者 / 咖啡因依赖 / 麦门投资人 / 单笔王者），依真实订单自动解锁，未解锁项悬停（触屏点按）看进度。
 - **麦门人格 × 图鉴**：7 种正面向人格（深夜麦门人 / 早餐先行者 / 甜点星住民 / 周末麦门人 / 硬核堡星人 / 麦门探索者 / 麦门旅人）——鉴定你的人格，图鉴里全员亮相、你的那枚高亮。宇宙不只有深夜，每一种吃麦方式都有一颗星。
 - **分享卡**：四种风格（深空金 / 星云紫 / 极简海报 / 成就卡）任选导出 1080×1440 竖版 PNG，带扫码入口与等比裁剪防变形。
 - **积分哨兵**：积分余额与「下月过期」提醒，守住每一分。
@@ -55,7 +55,7 @@ python scripts/generate_report.py --demo samples/demo_orders.json -o report.html
 
 ## 技术栈
 
-Python（MCP 客户端 + 订单解析 + 星图模型 + 人格鉴定，29 条测试全绿）+ 单文件 HTML/Canvas（星图渲染，零依赖零外链，离线可用）。
+Python（MCP 客户端 + 订单解析 + 星图模型 + 人格鉴定，34 条测试全绿）+ 单文件 HTML/Canvas（星图渲染，零依赖零外链，离线可用）。
 
 ## 工程细节
 
@@ -73,7 +73,7 @@ flowchart TD
     R --> C[分享卡 PNG<br/>1080×1440 竖版]
 ```
 
-`src/mcp_client.py` 处理了麦当劳 MCP 实测的四种返回形态：干净 JSON、文本包装内嵌 JSON、`[N]{列名}:` 文本表格、「JSON 里再套文本表格」的二层包装——错误响应还会在标记后先输出人话再跟 JSON，且业务错误 `isError=false` 但 `success=false`（如 query-order 非本人订单 610301），均已归一化并有测试覆盖。`scripts/lint_template.py` 对渲染模板做静态检查（未定义函数调用 / 缺失 DOM 引用），防住只在罕见路径暴露的崩溃。`scripts/check_links.py` 校验页面间的本地引用是否真的可达（`./` 与 `../` 写错会让评委点进 404）。`scripts/e2e_check.mjs` 用真实浏览器跑五态冒烟（银河 / 星云 / 甜点 / 减少动效 / 移动端银河）并校验分享卡导出产物与移动端 HUD 不重叠。CI 覆盖 Python 3.10–3.13 四个版本 + ruff + pytest + 模板检查 + 链接检查。详见 [MCP_INTEGRATION.md](MCP_INTEGRATION.md) 与 [CONTRIBUTING.md](CONTRIBUTING.md)。
+`src/mcp_client.py` 处理了麦当劳 MCP 实测的四种返回形态：干净 JSON、文本包装内嵌 JSON、`[N]{列名}:` 文本表格、「JSON 里再套文本表格」的二层包装——错误响应还会在标记后先输出人话再跟 JSON，且业务错误 `isError=false` 但 `success=false`（如 query-order 非本人订单 610301），均已归一化并有测试覆盖。`scripts/lint_template.py` 对渲染模板做静态检查（未定义函数调用 / 缺失 DOM 引用），防住只在罕见路径暴露的崩溃。`scripts/check_links.py` 校验页面间的本地引用是否真的可达（`./` 与 `../` 写错会让评委点进 404）。`scripts/e2e_check.mjs` 用真实浏览器跑六态冒烟（银河 / 星云 / 甜点 / 减少动效 / 触屏 390×844 / 小屏 360×640）并校验分享卡导出产物、移动端 HUD 不重叠、触屏文案不含鼠标动作、双指捏合真的会缩放、以及星点在任何旋转角度下都不钻到 HUD 底下。CI 覆盖 Python 3.10–3.13 四个版本 + ruff + pytest + 模板检查 + 链接检查。详见 [MCP_INTEGRATION.md](MCP_INTEGRATION.md) 与 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ## 目录结构
 

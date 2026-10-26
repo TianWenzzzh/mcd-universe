@@ -6,7 +6,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⭐</text></svg>">
 <meta property="og:title" content="麦门宇宙 McUniverse">
 <meta property="og:description" content="你的每一单，都是麦门宇宙里的一颗星。基于麦当劳MCP的个人订单星图与麦门人格鉴定。">
-<meta property="og:image" content="https://tianwenzzzh.github.io/mcd-universe/docs/assets/desktop-v8.png">
+<meta property="og:image" content="https://tianwenzzzh.github.io/mcd-universe/docs/assets/submit-1.png">
 <meta property="og:type" content="website">
 <meta name="description" content="麦门宇宙：基于麦当劳中国官方MCP的订单星图与麦门人格鉴定Skill，数据本地处理。">
 <title>麦门宇宙 McUniverse</title>
@@ -14,14 +14,14 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 100%; height: 100%; overflow: hidden; background: #04030b; }
   body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; color: #ece9f7; }
-  #sky { position: absolute; inset: 0; display: block; }
+  #sky { position: absolute; inset: 0; display: block; touch-action: none; }
   .hud { position: absolute; z-index: 10; pointer-events: none; }
   .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
   #sky:focus-visible { outline: 2px solid rgba(255,217,122,.6); outline-offset: -4px; }
   #title { top: 26px; left: 28px; }
   #title h1 { font-size: 23px; font-weight: 700; letter-spacing: 7px; text-shadow: 0 0 24px rgba(255,217,122,.45), 0 0 60px rgba(255,217,122,.18); }
   #title p { font-size: 11px; color: #9d97bd; margin-top: 7px; letter-spacing: 2.5px; }
-  #stats { top: 26px; right: 28px; text-align: right; font-size: 11px; color: #9d97bd; line-height: 2; letter-spacing: 1px; }
+  #stats { top: 26px; right: 28px; text-align: right; font-size: 11px; color: #9d97bd; line-height: 2; letter-spacing: 1px; text-shadow: 0 1px 10px rgba(4,3,11,.95); }
   #stats b { color: #ffe9a8; font-size: 19px; font-weight: 700; text-shadow: 0 0 16px rgba(255,217,122,.4); }
   #daily { top: 86px; right: 28px; display: none; max-width: 250px; text-align: right; font-size: 11px; color: #ffd97a; line-height: 1.7; }
   #daily .tag { display: inline-block; background: rgba(255,217,122,.1); border: 1px solid rgba(255,217,122,.28); border-radius: 999px; padding: 1px 8px; margin-bottom: 4px; font-size: 10px; letter-spacing: 1.5px; }
@@ -39,7 +39,7 @@
   #detail .row { display: flex; justify-content: space-between; gap: 24px; font-size: 13px; line-height: 2.1; }
   #detail .row .k { color: #918ab3; }
   #detail .row .v { color: #fff; text-align: right; }
-  #legend { left: 28px; top: 172px; display: flex; flex-direction: column; gap: 7px; font-size: 10.5px; color: #a39dc2; letter-spacing: 1px; }
+  #legend { left: 28px; top: 172px; display: flex; flex-direction: column; flex-wrap: wrap; gap: 7px; font-size: 10.5px; color: #a39dc2; letter-spacing: 1px; }
   #legend span { display: flex; align-items: center; gap: 7px; background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.07); border-radius: 999px; padding: 3px 10px 3px 7px; width: fit-content; }
   #legend i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; box-shadow: 0 0 8px currentColor; }
   #legend .size-hint { gap: 3px; padding: 3px 10px 3px 8px; }
@@ -51,8 +51,8 @@
   #toast { position: absolute; left: 50%; bottom: 150px; transform: translateX(-50%) translateY(8px); z-index: 20; font-size: 12.5px; color: #ffe9a8; background: rgba(16,12,32,.94); border: 1px solid rgba(255,217,122,.32); border-radius: 999px; padding: 10px 22px; letter-spacing: 1px; opacity: 0; transition: opacity .3s, transform .3s; pointer-events: none; }
   #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   #achievements { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 5px; }
-  #achievements .chip { font-size: 10px; color: #ffd97a; background: rgba(255,217,122,.08); border: 1px solid rgba(255,217,122,.26); border-radius: 999px; padding: 2px 8px; letter-spacing: .5px; }
-  #achievements .chip.locked { color: rgba(163,157,194,.4); background: rgba(255,255,255,.02); border-color: rgba(255,255,255,.06); }
+  #achievements .chip { pointer-events: auto; cursor: pointer; font-size: 10px; color: #ffd97a; background: rgba(255,217,122,.08); border: 1px solid rgba(255,217,122,.26); border-radius: 999px; padding: 2px 8px; letter-spacing: .5px; }
+  #achievements .chip.locked { color: rgba(206,200,230,.8); background: rgba(255,255,255,.035); border-color: rgba(255,255,255,.14); }
   #achievements .count { font-size: 10px; color: #948eb5; width: 100%; margin-top: 3px; letter-spacing: 1px; }
   #demo-badge { top: 96px; left: 28px; display: none; font-size: 10.5px; color: #ffd97a; background: rgba(255,217,122,.07); border: 1px solid rgba(255,217,122,.3); border-radius: 999px; padding: 5px 12px; letter-spacing: 1px; }
   #demo-badge a { color: #ffd97a; pointer-events: auto; text-decoration: none; }
@@ -123,7 +123,10 @@
     .t-en { display: none; }
     #demo-badge { top: 76px; font-size: 9.5px; padding: 4px 9px; }
     #switcher { top: 104px; left: 20px; font-size: 9.5px; gap: 4px; }
-    #legend { top: 138px; gap: 4px; font-size: 9px; }
+    /* 竖排图例在手机上要吃掉 140px 纵向空间，把星群压成一条扁带 —— 改横排换行，只占两行 */
+    #legend { top: 132px; left: 20px; width: calc(100% - 40px); flex-direction: row; align-items: center; gap: 4px 6px; font-size: 9px; }
+    #legend span { padding: 2px 8px 2px 6px; }
+    #legend .size-hint { padding: 2px 8px 2px 7px; }
     #stats { top: 22px; right: 22px; }
     #persona { max-width: calc(100% - 40px); bottom: 114px; padding: 13px 16px; }
     #detail { top: 24%; bottom: auto; max-width: calc(100% - 28px); }
@@ -131,6 +134,12 @@
     #footer { display: none; }
     #actions { left: 14px; right: 14px; bottom: 12px; gap: 6px; flex-wrap: wrap; }
     .btn { flex: 1 1 28%; text-align: center; padding: 8px 4px; font-size: 11px; letter-spacing: 0; }
+  }
+  /* 矮屏（老款小屏手机）：人格卡吃掉太多纵向空间，星群只能挤成一小坨。
+     这里收起成就墙、只留解锁计数 —— 星图留够地方，"6/10"这个信息也没丢。 */
+  @media (max-height: 700px) {
+    #achievements .chip { display: none; }
+    #achievements .count { margin-top: 0; }
   }
 </style>
 </head>
@@ -172,7 +181,7 @@
     <h2>欢迎来到麦门宇宙</h2>
     <p class="ob-sub">你的每一单，都是麦门宇宙里的一颗星</p>
     <div class="ob-step"><b>1</b><div><i>看看你的星</i><span>颜色是餐品品类，大小是你的常点，位置是下单时间，连线按时间先后串起你的麦门轨迹</span></div></div>
-    <div class="ob-step"><b>2</b><div><i>玩一玩</i><span>悬停看餐品、拖拽转动星系、滚轮拉近拉远、点击看详情；键盘 ←/→ 也能逐颗浏览</span></div></div>
+    <div class="ob-step"><b>2</b><div><i>玩一玩</i><span id="ob-step2">悬停看餐品、拖拽转动星系、滚轮拉近拉远、点击看详情；键盘 ←/→ 也能逐颗浏览</span></div></div>
     <div class="ob-step"><b>3</b><div><i>带走它</i><span>保存 1080×1440 分享卡，或打开人格图鉴，看你是七种麦门人里的哪一种</span></div></div>
     <button id="ob-go">开始探索</button>
     <p class="ob-tip">订单数据本地处理 · Token 不出本机 · <a href="https://tianwenzzzh.github.io/mcd-universe/docs/about.html" target="_blank" rel="noopener">关于这个作品</a></p>
@@ -213,6 +222,9 @@
   var ctx = canvas.getContext("2d");
   var W = 0, H = 0, DPR = Math.min(window.devicePixelRatio || 1, 2);
   var REDUCED = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  // 触屏 / 鼠标：文案与交互都要跟着换。手机上写"悬停看餐品、滚轮拉近拉远、键盘 ←/→"
+  // 是一句彻底无效的指引——照着做点不出任何东西。
+  var COARSE = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
   var stars = DATA.stars || [];
   var isNebula = !stars.length;
   var particles = [], colorGroups = {}, raf = 0, startT = 0, selected = -1;
@@ -233,6 +245,29 @@
   // 构图原则：星群要填满「没被 HUD 占住」的那块区域，而不是永远缩在屏幕正中。
   // 宽屏左侧被标题/图例/人格卡占掉约 1/4，星群中心右移并放大；竖屏全宽、纵向让开上下 HUD。
   // box 参数给分享卡用：卡片是 1080x1440 竖版，需要一套自己的竖版构图（否则被裁掉半边）。
+
+  // 量 HUD 的真实矩形，得出竖屏可用的纵向带。
+  // 以前这里写的是 H*0.51 之类的魔数：图例一改成横排、文案一换行，星群就会顶到
+  // 人格卡上或者被图例盖住 —— 每次都得回来重算常数。改成测量之后，谁变都不用管。
+  function hudBand() {
+    var top = 0, bottom = H;
+    ["title", "stats", "daily", "demo-badge", "switcher", "legend"].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      if (getComputedStyle(el).display === "none") return;
+      var r = el.getBoundingClientRect();
+      if (r.height > 1) top = Math.max(top, r.bottom);
+    });
+    ["persona", "actions"].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      if (getComputedStyle(el).display === "none") return;
+      var r = el.getBoundingClientRect();
+      if (r.height > 1) bottom = Math.min(bottom, r.top);
+    });
+    return { top: top, bottom: bottom };
+  }
+
   function layoutStars(box) {
     var n = stars.length;
     var narrow = W < 640;
@@ -240,9 +275,16 @@
     if (box) {
       CX = box.cx; CY = box.cy; ax = box.ax; ay = box.ay;
     } else if (narrow) {
-      var mW = Math.max(180, W - 60), mH = Math.max(160, H * 0.51);
-      CX = W / 2; CY = H * 0.19 + mH / 2;
-      ax = mW * 0.46; ay = Math.min(mH * 0.46, ax * 0.72);
+      // 竖屏：上下 HUD 之间那条带子全给星群用，横向铺满屏宽。
+      // 宁可按这条带子等比缩小，也不让星点钻到底下的人格卡里 —— 卡是不透明的，
+      // 钻进去等于那颗星凭空消失，转到别的角度又冒出来。
+      var band = hudBand();
+      var bTop = band.top + 14, bBot = band.bottom - 12;
+      if (bBot - bTop < 120) { bTop = H * 0.26; bBot = H * 0.58; }
+      CY = (bTop + bBot) / 2;
+      ay = Math.max(48, (bBot - bTop) / 2 * 0.96);
+      ax = Math.min(W / 2 - 22, ay * 1.55);
+      CX = W / 2;
     } else {
       var padL = Math.min(520, W * 0.30), padR = Math.min(150, W * 0.07);
       var padT = H * 0.16, padB = H * 0.15;
@@ -263,9 +305,9 @@
       var ang = -Math.PI * 0.75 + t * Math.PI * 2.05;
       // k：归一化半径，0.18 起步保证内圈不挤成一点
       var k = 0.18 + Math.pow(t, 0.9) * 0.82 + (s.magnitude - 1) * 0.012;
+      s.ang = ang; s.k = k; s.ex = ax; s.ey = ay;
       s.bx = CX + Math.cos(ang) * ax * k;
       s.by = CY + Math.sin(ang) * ay * k;
-      s.ang = ang;
       s.r = (3.0 + s.magnitude * 1.5) * rScale;
       s.phase = Math.random() * Math.PI * 2;
       s.tw = 0.55 + Math.random() * 0.9;
@@ -273,12 +315,15 @@
     });
   }
 
+  // 旋转走「椭圆参数角」而不是旋转坐标：直接转坐标的话，椭圆角上那颗星转 90° 后
+  // 会跑到 sqrt(ax²+ay²) 的位置，越出可用带子压到 HUD 上（拖拽时尤其明显）。
+  // 参数角一改，星点天生就锁在椭圆上，怎么转都不出界。
   function rotateStars(el) {
-    var a = view.userRot + (REDUCED ? 0 : el * ROT_SPEED), ca = Math.cos(a), sa = Math.sin(a);
+    var a = view.userRot + (REDUCED ? 0 : el * ROT_SPEED);
     stars.forEach(function (s) {
-      var dx = s.bx - CX, dy = s.by - CY;
-      s.x = CX + (dx * ca - dy * sa) * view.zoom;
-      s.y = CY + (dx * sa + dy * ca) * view.zoom;
+      var an = s.ang + a;
+      s.x = CX + Math.cos(an) * s.ex * s.k * view.zoom;
+      s.y = CY + Math.sin(an) * s.ey * s.k * view.zoom;
     });
   }
 
@@ -690,7 +735,6 @@
   // ---------- 麦门成就 ----------
   function computeAchievements() {
     var cats = {}, night = 0, morning = 0, total = 0, maxAmount = 0;
-    var cats = {}, night = 0, morning = 0, total = 0, maxAmount = 0;
     stars.forEach(function (s) {
       cats[s.category] = (cats[s.category] || 0) + 1;
       total += s.amount || 0;
@@ -723,8 +767,19 @@
     var res = computeAchievements();
     el.innerHTML = res.defs.map(function (d) {
       return '<span class="chip' + (d[2] ? "" : " locked") + '" title="' + d[3] + '">' + d[0] + " " + d[1] + "</span>";
-    }).join("") + '<span class="count">已解锁 ' + res.unlocked + " / " + res.defs.length + " 项麦门成就（未解锁项悬停看进度）</span>";
+    }).join("") + '<span class="count">已解锁 ' + res.unlocked + " / " + res.defs.length + " 项麦门成就" +
+      (COARSE ? "（点按单项看进度）" : "（未解锁项悬停看进度）") + "</span>";
   }
+
+  // 进度原本只写在 title 里 —— 触屏没有悬停，手机上永远看不到"还差几单"。
+  // 补一条点击/点按出口：触屏点一下就弹提示，桌面点击同样有效（不依赖悬停）。
+  document.getElementById("achievements").addEventListener("click", function (e) {
+    var chip = e.target && e.target.closest ? e.target.closest(".chip") : null;
+    if (!chip) return;
+    var prog = chip.getAttribute("title") || "";
+    var locked = chip.className.indexOf("locked") >= 0;
+    toast(chip.textContent.replace(/^\S+\s*/, "") + (locked ? " · 还差 " + (prog || "一点") : " · 已解锁"));
+  });
 
   // ---------- 交互：悬停 / 视差 / 拖拽旋转 / 滚轮缩放 / 点击 ----------
   var detail = document.getElementById("detail");
@@ -773,11 +828,32 @@
     }
   }
 
+  // 双指捏合缩放：手机上唯一"拉近拉远"的手势。只做滚轮的话，
+  // 触屏用户根本没有缩放入口（而且画布不设 touch-action: none 时，
+  // 浏览器会把这套手势当成整页缩放，画布上的代码一次都收不到）。
+  var pts = {}, pinch = { on: false, d0: 1, z0: 1 };
+  function ptList() { return Object.keys(pts).map(function (k) { return pts[k]; }); }
+  function pinchDist() {
+    var l = ptList();
+    return l.length < 2 ? 0 : Math.hypot(l[0].x - l[1].x, l[0].y - l[1].y);
+  }
+  function pinchStart() {
+    pinch.on = true; pinch.d0 = pinchDist() || 1; pinch.z0 = view.zoom;
+    drag.active = false; drag.moved = true;   // 双指不是点击，别在抬手时弹详情
+    hovered = -1; tip.style.display = "none";
+  }
+
   canvas.addEventListener("pointermove", function (e) {
     var rect = canvas.getBoundingClientRect();
     var mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    if (pts[e.pointerId]) { pts[e.pointerId].x = mx; pts[e.pointerId].y = my; }
     mouse.x = mx; mouse.y = my; mouse.inside = true;
     view.px = (mx / W - 0.5) * 2; view.py = (my / H - 0.5) * 2;
+    if (pinch.on) {
+      var d = pinchDist();
+      if (d > 8) view.zoom = Math.max(0.6, Math.min(2.4, pinch.z0 * d / pinch.d0));
+      return;
+    }
     if (drag.active) {
       var dx = mx - drag.x;
       if (Math.abs(mx - drag.startX) + Math.abs(my - drag.startY) > 5) drag.moved = true;
@@ -790,12 +866,21 @@
   });
   canvas.addEventListener("pointerdown", function (e) {
     var rect = canvas.getBoundingClientRect();
+    pts[e.pointerId] = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    if (ptList().length >= 2) { pinchStart(); return; }
     drag.active = true; drag.moved = false;
     drag.x = drag.startX = e.clientX - rect.left;
     drag.y = drag.startY = e.clientY - rect.top;
     canvas.style.cursor = "grabbing";
   });
+  canvas.addEventListener("pointercancel", function (e) {
+    delete pts[e.pointerId];
+    if (ptList().length < 2) pinch.on = false;
+    drag.active = false;
+  });
   window.addEventListener("pointerup", function (e) {
+    delete pts[e.pointerId];
+    if (ptList().length < 2) pinch.on = false;
     if (!drag.active) return;
     drag.active = false;
     canvas.style.cursor = "grab";
@@ -1118,13 +1203,14 @@
       ex.stroke();
       ex.textAlign = "left";
       ex.font = "700 38px -apple-system, PingFang SC, Microsoft YaHei, sans-serif";
-      ex.fillStyle = d[2] ? "#ffe9a8" : "rgba(163,157,194,.4)";
+      // 未解锁项别做到"看不见"：灰但可读（.4 的 alpha 在深底上对比度不足 3:1）
+      ex.fillStyle = d[2] ? "#ffe9a8" : "rgba(196,190,218,.62)";
       ex.fillText(d[0], cx + 24, cy + 62);
       ex.font = "600 26px -apple-system, PingFang SC, sans-serif";
-      ex.fillStyle = d[2] ? "#f2eefc" : "rgba(163,157,194,.4)";
+      ex.fillStyle = d[2] ? "#f2eefc" : "rgba(206,200,230,.6)";
       ex.fillText(d[1], cx + 84, cy + 54);
       ex.font = "19px -apple-system, PingFang SC, sans-serif";
-      ex.fillStyle = d[2] ? "rgba(255,217,122,.7)" : "rgba(163,157,194,.28)";
+      ex.fillStyle = d[2] ? "rgba(255,217,122,.7)" : "rgba(190,184,214,.5)";
       ex.fillText(d[2] ? "已解锁" : "未解锁", cx + 84, cy + 80);
     });
 
@@ -1263,6 +1349,16 @@
   if (!isNebula) layoutStars();
   buildParticles();
   renderHUD();
+  // renderHUD 之后图例才有真实高度（它是 JS 画出来的），所以再排一次：
+  // 竖屏星群要吃到准确的可用带子，不能拿"图例还没长出来"时的尺寸去算。
+  if (!isNebula) layoutStars();
+  // 引导第二步的文案按输入设备走：触屏用户没有"悬停"和"滚轮"
+  var obStep2 = document.getElementById("ob-step2");
+  if (obStep2) {
+    obStep2.textContent = COARSE
+      ? "轻点星点看订单详情，单指拖动转动星系，双指捏合拉近拉远"
+      : "悬停看餐品、拖拽转动星系、滚轮拉近拉远、点击看详情；键盘 ←/→ 也能逐颗浏览";
+  }
   renderA11yList();
   if (isNebula) {
     var nh = document.getElementById("nebula-hint");
@@ -1304,9 +1400,10 @@
     onboard.classList.add("show");
   });
   window.__mcuniverse = {
-    stars: stars, data: DATA, isNebula: isNebula, reduced: REDUCED,
+    stars: stars, data: DATA, isNebula: isNebula, reduced: REDUCED, coarse: COARSE,
     composeCard: composeCard,
     dismissOnboard: obDismiss,
+    zoom: function () { return view.zoom; },
     phase: function () { return performance.now() - startT; }
   };
   raf = requestAnimationFrame(frame);
