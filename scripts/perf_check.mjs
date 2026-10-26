@@ -145,6 +145,16 @@ async function measure(browser, profile) {
   });
   const page = await ctx.newPage();
   const errors = [];
+  let docBytes = 0;
+  page.on("response", async (r) => {
+    if (!docBytes && r.request().resourceType() === "document") {
+      try {
+        docBytes = (await r.body()).length;
+      } catch {
+        docBytes = 0;
+      }
+    }
+  });
   page.on("pageerror", (e) => errors.push(String(e)));
   page.on("console", (m) => {
     if (m.type() === "error") errors.push("console: " + m.text());
@@ -211,7 +221,8 @@ async function measure(browser, profile) {
     return Math.round(performance.now() - t);
   });
 
-  const pageBytes = readFileSync(decodeURIComponent(new URL(url).pathname.replace(/^\//, ""))).length;
+  // 页面重量：本地跑直接读文件；对线上地址则用主文档响应体（file:// 之外没有本地路径可读）
+  const pageBytes = docBytes || readFileSync(decodeURIComponent(new URL(url).pathname.replace(/^\//, ""))).length;
   const res = await page.evaluate(() => performance.getEntriesByType("resource").map((r) => r.name));
   const external = res.filter((n) => !n.startsWith("data:") && !n.includes("/demo/"));
 
