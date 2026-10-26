@@ -356,7 +356,10 @@ async function checkPage(browser, url, opts) {
     const liveText = await page.evaluate(() => document.getElementById("a11y-live").textContent);
     if (!liveText || !liveText.includes("颗星")) problems.push("aria-live 未播报选中信息");
 
-    // 悬停：鼠标移到第一颗星，应出现餐品气泡
+    // 悬停：鼠标移到第一颗星，应出现餐品气泡。
+    // 先 Esc 取消上一步的键盘选中 —— 卡片开着时，那颗星不再弹同名气泡（卡片第一行就是它）。
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(250);
     const pos = await page.evaluate(() => {
       const s = window.__mcuniverse.stars[0];
       return s ? { x: Math.round(s.x), y: Math.round(s.y) } : null;
@@ -441,6 +444,73 @@ async function checkPage(browser, url, opts) {
     if (!(z1 > z0 * 1.3)) problems.push(`双指捏合未缩放: ${z0} -> ${z1}`);
     state.pinch = `${z0}->${z1}`;
   }
+  if (opts.detailCheck) {
+    // 引导层还没关的话，它是一整屏的遮罩，点哪儿都进不到画布 —— 先关掉再测落点
+    await page.evaluate(() => {
+      if (window.__mcuniverse.dismissOnboard) window.__mcuniverse.dismissOnboard();
+    });
+    await page.waitForTimeout(250);
+    // 详情卡的落点体检：卡片是"贴着那颗星"弹出的，所以每一颗星都可能把它顶到别处。
+    // 三件事不许发生：盖住刚点的那颗星（读详情时最需要它的位置）、压住可见 HUD、
+    // 越出屏幕。旧实现是钉死的 left:50%/bottom:92px，360×640 上直接压住图例 ——
+    // 这组断言就是为那类"定死一个坐标、换个屏就压"的老毛病准备的。
+    const stars = await page.evaluate(() =>
+      window.__mcuniverse.stars.map((s) => ({ x: Math.round(s.x), y: Math.round(s.y) })),
+    );
+    const bad = [];
+    for (const st of stars) {
+      await page.mouse.click(st.x, st.y);
+      // 位置过渡 .3s：不等它落定量到的是动画中间帧（会误报）
+      await page.waitForTimeout(420);
+      const r = await page.evaluate(([sx, sy]) => {
+        const d = document.getElementById("detail");
+        const b = d.getBoundingClientRect();
+        // footer 是贴右缘的竖排装饰字（低对比度责任声明），卡片靠右时允许压它 10 来像素，
+        // 不列入硬断言；其余每一块都是用户要看/要点的东西。
+        const HUD = ["title", "demo-badge", "switcher", "stats", "daily", "legend", "persona", "actions"];
+        const hits = [];
+        for (const id of HUD) {
+          const el = document.getElementById(id);
+          if (!el) continue;
+          const cs = getComputedStyle(el);
+          // opacity<.15 的是"让位中"的人格卡：它此刻是透明的，不算被压
+          if (cs.display === "none" || parseFloat(cs.opacity) < 0.15) continue;
+          const q = el.getBoundingClientRect();
+          if (q.width < 2 || q.height < 2) continue;
+          const ox = Math.min(b.right, q.right) - Math.max(b.left, q.left);
+          const oy = Math.min(b.bottom, q.bottom) - Math.max(b.top, q.top);
+          if (ox > 2 && oy > 2) hits.push(`${id} ${Math.round(ox)}×${Math.round(oy)}px`);
+        }
+        return {
+          shown: d.classList.contains("show"),
+          hits,
+          covers: sx > b.left - 10 && sx < b.right + 10 && sy > b.top - 10 && sy < b.bottom + 10,
+          outView: b.left < -1 || b.top < -1 || b.right > innerWidth + 1 || b.bottom > innerHeight + 1,
+          rect: [Math.round(b.left), Math.round(b.top), Math.round(b.width), Math.round(b.height)],
+        };
+      }, [st.x, st.y]);
+      if (!r.shown) bad.push(`点 (${st.x},${st.y}) 未弹出详情`);
+      if (r.covers) bad.push(`(${st.x},${st.y}) 详情卡盖住了自己那颗星`);
+      if (r.outView) bad.push(`(${st.x},${st.y}) 详情卡越界 ${r.rect.join("x")}`);
+      if (r.hits.length) bad.push(`(${st.x},${st.y}) 详情卡压住 ${r.hits.join("、")}`);
+    }
+    // 收起之后人格卡必须回来（窄屏上它给抽屉让过位，不能让位就不还）
+    await page.evaluate(() => document.getElementById("sky").focus());
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(320);
+    const after = await page.evaluate(() => {
+      const p = document.getElementById("persona");
+      return {
+        open: document.getElementById("detail").classList.contains("show"),
+        yielded: p.classList.contains("yield"),
+        opacity: parseFloat(getComputedStyle(p).opacity),
+      };
+    });
+    if (after.open) bad.push("Esc 未收起详情卡");
+    if (after.yielded || after.opacity < 0.5) bad.push("收起详情后人格卡没有回来");
+    problems.push(...bad);
+    state.detailAudit = `${stars.length} 颗星`;
+  }
   if (opts.overlapCheck) {
     // HUD 互相压叠是这个项目反复复发的一类 bug（按钮被画布盖、徽章压副标、切换器重叠）。
     // 这里量真实布局矩形，任何两块可见 HUD 有 >2px 交集都算失败。
@@ -488,6 +558,7 @@ async function main() {
       onboardDeadline: 9000,
       onboardMin: 4000,
       ui: true,
+      detailCheck: true,
     }),
   );
   results.push(
@@ -516,6 +587,7 @@ async function main() {
       expectStars: 10,
       overlapCheck: true,
       touch: true,
+      detailCheck: true,
     }),
   );
   // 小屏（360x640）：可用纵向空间最紧张的一档，星群最容易挤爆或钻到 HUD 底下
@@ -528,6 +600,7 @@ async function main() {
       expectStars: 10,
       overlapCheck: true,
       touch: true,
+      detailCheck: true,
     }),
   );
   const rm = await checkPage(browser, BASE + "?e2e=1&rm=1", {

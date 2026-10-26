@@ -35,6 +35,8 @@
   #daily .tag { display: inline-block; background: rgba(255,217,122,.1); border: 1px solid rgba(255,217,122,.28); border-radius: 999px; padding: 1px 8px; margin-bottom: 4px; font-size: 10px; letter-spacing: 1.5px; }
   #persona { left: 28px; bottom: 82px; max-width: 330px; padding: 16px 20px; background: linear-gradient(165deg, rgba(28,24,52,.92), rgba(12,10,26,.92)); border: 1px solid rgba(255,217,122,.26); border-radius: 14px; box-shadow: 0 10px 40px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.06); backdrop-filter: blur(10px); opacity: 0; transform: translateY(14px); transition: opacity .9s, transform .9s; }
   #persona.show { opacity: 1; transform: translateY(0); }
+  /* 窄屏上详情卡从底部升起来，人格卡先退场（两张不透明卡片叠在一起会互相切边） */
+  #persona.yield { opacity: 0; pointer-events: none; transition: opacity .2s; }
   #persona h2 { font-size: 16px; font-weight: 700; color: #ffe9a8; letter-spacing: 2px; text-shadow: 0 0 18px rgba(255,217,122,.35); }
   #persona p { font-size: 12px; color: #b9b3d6; margin-top: 7px; line-height: 1.8; }
   #actions { position: absolute; right: 28px; bottom: 28px; display: flex; gap: 10px; z-index: 11; }
@@ -42,8 +44,13 @@
   .btn:hover { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.3); transform: translateY(-1px); }
   .btn.primary { background: linear-gradient(160deg, #ef7f4a, #d85a30); border-color: rgba(255,160,110,.5); box-shadow: 0 6px 24px rgba(216,90,48,.35); }
   .btn.primary:hover { background: linear-gradient(160deg, #f78f5c, #e06a3c); }
-  #detail { left: 50%; bottom: 92px; transform: translateX(-50%) translateY(14px); min-width: 270px; max-width: 430px; padding: 16px 20px; background: linear-gradient(165deg, rgba(24,20,46,.96), rgba(10,8,22,.96)); border: 1px solid rgba(255,255,255,.14); border-radius: 14px; box-shadow: 0 14px 44px rgba(0,0,0,.55); opacity: 0; transition: opacity .3s, transform .3s; pointer-events: none; }
-  #detail.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  /* 详情卡的落点由 placeDetail() 算（贴着自己那颗星，不压星、不压按钮），
+     所以这里只管"从哪儿出发"：left/top 归零，位移全交给 transform，过渡才是合成层的。 */
+  #detail { left: 0; top: 0; --dx: 0px; --dy: 0px; transform: translate3d(var(--dx), calc(var(--dy) + 14px), 0); min-width: 270px; max-width: 430px; padding: 16px 20px; background: linear-gradient(165deg, rgba(24,20,46,.96), rgba(10,8,22,.96)); border: 1px solid rgba(255,255,255,.14); border-radius: 14px; box-shadow: 0 14px 44px rgba(0,0,0,.55); opacity: 0; transition: opacity .3s, transform .3s; pointer-events: none; }
+  #detail.show { opacity: 1; transform: translate3d(var(--dx), var(--dy), 0); }
+  /* 卡片靠右时会压到那条竖排责任声明：它在 DOM 里排在卡片后面，默认会画在卡片上面，
+     视觉上像文字戳穿了卡片。把卡片提到装饰件之上（仍在 toast / 浮层之下）。 */
+  #detail { z-index: 13; }
   #detail .row { display: flex; justify-content: space-between; gap: 24px; font-size: 13px; line-height: 2.1; }
   #detail .row .k { color: #918ab3; }
   #detail .row .v { color: #fff; text-align: right; }
@@ -142,7 +149,11 @@
     #legend .size-hint { padding: 2px 8px 2px 7px; }
     #stats { top: 22px; right: 22px; }
     #persona { max-width: calc(100% - 40px); bottom: 114px; padding: 13px 16px; }
-    #detail { top: 24%; bottom: auto; max-width: calc(100% - 28px); }
+    #detail { max-width: calc(100% - 28px); }
+    /* 矮屏专用：把五行压进 135px，才装得进星群与按钮之间那条缝 */
+    #detail.compact { padding: 11px 15px; }
+    #detail.compact .row { font-size: 11.5px; line-height: 1.75; gap: 14px; }
+    #detail.compact .dhead { padding-bottom: 5px; margin-bottom: 3px; }
     #dex-panel { bottom: 114px; max-height: 46vh; }
     #footer { display: none; }
     #actions { left: 14px; right: 14px; bottom: 12px; gap: 6px; flex-wrap: wrap; }
@@ -847,9 +858,113 @@
     return best;
   }
 
+  // ---------- 详情卡落点 ----------
+  // 旧实现把卡片钉在"屏幕一半高度、水平居中"，那是按 1280×720 调的常数：
+  //   · 360×640 上直接压住图例胶囊（实测重叠）；
+  //   · 桌面 10 颗星里它盖住 2 颗，手机上盖住 4 颗、小屏 5 颗 —— 点一颗星，
+  //     半个星系被挡掉，连"我刚点的是哪颗"都看不见了；
+  //   · 卡片一旦压住右下角按钮区，保存分享卡这个主 CTA 就在视觉上消失了。
+  // 所以改成"贴着自己那颗星、但不许盖住它"，在四个方向里按代价挑一个位置。
+  var DETAIL_GAP = 20;      // 卡片边缘与星心的距离
+  var DETAIL_PAD = 12;      // 与屏幕边缘的安全边距
+  var DETAIL_HUD = ["title", "stats", "daily", "demo-badge", "switcher", "legend", "persona", "actions", "footer"];
+
+  function rectOverlap(a, b) {
+    var w = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+    var h = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+    return w > 0 && h > 0 ? w * h : 0;
+  }
+
+  function placeDetail(s) {
+    var w = detail.offsetWidth, h = detail.offsetHeight;
+    if (!w || !h) return;
+    // 窄屏上这四个候选方向全都落在 HUD 上：星群带只有 200px 高，183px 的卡片怎么摆都要压东西。
+    // 所以手机改走底部抽屉：贴着拇指、压在人格卡上；人格卡此刻是"静态简介"，让位即可。
+    if (W < 640) {
+      var ac = document.getElementById("actions");
+      var acTop = ac ? ac.getBoundingClientRect().top : H;
+      // 360×640 这类矮屏：星群最下一颗在 y≈370、按钮区顶在 y≈538，中间只有 168px，
+      // 标准卡片 183px 装不进去 —— 于是它会盖住刚点的那颗星。先收一档版式再摆。
+      detail.classList.remove("compact");
+      h = detail.offsetHeight; w = detail.offsetWidth;
+      var sheetDy = function (hh) {
+        // 向下取整：宁可离按钮多留一点点，也不要因为小数像素压上去 2px
+        return Math.max(DETAIL_PAD, Math.floor(Math.min(H - DETAIL_PAD - hh, acTop - 14 - hh)));
+      };
+      var sheetX = (W - w) / 2, dy = sheetDy(h);
+      var hits = function (y) {
+        return s.x > sheetX - 10 && s.x < sheetX + w + 10 && s.y > y - 10 && s.y < y + h + 10;
+      };
+      if (hits(dy)) {
+        detail.classList.add("compact");
+        h = detail.offsetHeight; w = detail.offsetWidth;
+        sheetX = (W - w) / 2; dy = sheetDy(h);
+        // 还不够就把卡片让到那颗星旁边：先试下方（不越界、不压按钮），再试上方
+        if (hits(dy)) {
+          var lowCap = Math.min(acTop - 14, H - DETAIL_PAD);
+          if (s.y + 20 + h <= lowCap) dy = s.y + 20;
+          else if (s.y - 20 - h >= DETAIL_PAD) dy = s.y - 20 - h;
+        }
+      }
+      detail.style.setProperty("--dx", Math.round(sheetX) + "px");
+      detail.style.setProperty("--dy", Math.round(dy) + "px");
+      personaEl.classList.add("yield");
+      return;
+    }
+    var boxes = [];
+    DETAIL_HUD.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      if (getComputedStyle(el).display === "none") return;
+      var r = el.getBoundingClientRect();
+      if (r.width < 2 || r.height < 2) return;
+      // 半透明的装饰件（未显示的人格卡 opacity 0）不算障碍
+      if (parseFloat(getComputedStyle(el).opacity) < 0.15) return;
+      boxes.push({ id: id, x: r.left, y: r.top, w: r.width, h: r.height });
+    });
+    var cands = [
+      { x: s.x + DETAIL_GAP, y: s.y - h / 2 },              // 右
+      { x: s.x - DETAIL_GAP - w, y: s.y - h / 2 },          // 左
+      { x: s.x - w / 2, y: s.y + DETAIL_GAP },              // 下
+      { x: s.x - w / 2, y: s.y - DETAIL_GAP - h },          // 上
+      { x: W / 2 - w / 2, y: H - DETAIL_PAD - h },          // 兜底：屏幕下方居中
+    ];
+    var best = null;
+    cands.forEach(function (c, idx) {
+      var x = Math.max(DETAIL_PAD, Math.min(W - DETAIL_PAD - w, c.x));
+      var y = Math.max(DETAIL_PAD, Math.min(H - DETAIL_PAD - h, c.y));
+      var box = { x: x, y: y, w: w, h: h };
+      var score = idx * 6;                                  // 顺序偏好：右 > 左 > 下 > 上
+      // 盖住自己那颗星 = 基本上判负：读详情时最需要的就是"它在这张图里的位置"
+      if (s.x > x - 10 && s.x < x + w + 10 && s.y > y - 10 && s.y < y + h + 10) score += 900;
+      boxes.forEach(function (b) {
+        var a = rectOverlap(box, b);
+        if (!a) return;
+        score += (a / 1000) * (b.id === "actions" ? 8 : 2);
+      });
+      var covered = 0;
+      stars.forEach(function (o) {
+        if (o.x > x - 6 && o.x < x + w + 6 && o.y > y - 6 && o.y < y + h + 6) covered++;
+      });
+      score += covered * 7;
+      score += Math.hypot(x + w / 2 - s.x, y + h / 2 - s.y) * 0.02;  // 同分时选近的
+      if (!best || score < best.score) best = { x: x, y: y, score: score };
+    });
+    if (!best) return;
+    detail.style.setProperty("--dx", Math.round(best.x) + "px");
+    detail.style.setProperty("--dy", Math.round(best.y) + "px");
+  }
+
+  // 收起详情 = 同时把人格卡请回来（窄屏上它给抽屉让过位）
+  function hideDetail() {
+    detail.classList.remove("show");
+    selected = -1;
+    personaEl.classList.remove("yield");
+  }
+
   function showDetail(i) {
     selected = i;
-    if (i < 0) { detail.classList.remove("show"); return; }
+    if (i < 0) { hideDetail(); return; }
     var s = stars[i];
     detail.innerHTML =
       '<div class="row dhead"><span class="k">你的第 ' + (i + 1) + ' 颗星</span><span class="v">' + s.category + " · " + s.magnitude + " 等</span></div>" +
@@ -857,7 +972,11 @@
       '<div class="row"><span class="k">门店</span><span class="v">' + esc(s.store || "—") + "</span></div>" +
       '<div class="row"><span class="k">时间</span><span class="v">' + esc(s.time || "—") + "</span></div>" +
       '<div class="row"><span class="k">实付</span><span class="v">¥' + (s.amount || 0).toFixed(1) + "</span></div>";
+    placeDetail(s);
     detail.classList.add("show");
+    // 卡片就贴在那颗星旁边，"餐品"第一行和悬停气泡是同一句话 —— 让它退场，
+    // 否则两个同名胶囊会叠在一起（截图里字压字）。
+    tip.style.display = "none";
   }
 
   function updateHover(mx, my) {
@@ -867,7 +986,7 @@
       hovered = i;
       if (i >= 0) chime(NOTE[i % NOTE.length], 0.3);
     }
-    if (i >= 0) {
+    if (i >= 0 && i !== selected) {
       var s = stars[i];
       tip.textContent = s.product || "—";
       tip.style.display = "block";
@@ -876,7 +995,8 @@
       canvas.style.cursor = "pointer";
     } else {
       tip.style.display = "none";
-      canvas.style.cursor = drag.active ? "grabbing" : "grab";
+      // 选中的那颗星仍要显示"可点"，只是不再弹同名气泡
+      canvas.style.cursor = i >= 0 ? "pointer" : drag.active ? "grabbing" : "grab";
     }
   }
 
@@ -908,7 +1028,12 @@
     }
     if (drag.active) {
       var dx = mx - drag.x;
-      if (Math.abs(mx - drag.startX) + Math.abs(my - drag.startY) > 5) drag.moved = true;
+      if (Math.abs(mx - drag.startX) + Math.abs(my - drag.startY) > 5) {
+        // 一转星系，星点就离开了卡片原来的位置 —— 卡片贴着的已经不是"那颗星"了，
+        // 与其继续挂在原地误导人，不如收起（再点一下即可）。
+        if (!drag.moved) hideDetail();
+        drag.moved = true;
+      }
       view.userRot += dx * 0.005;   // 拖拽转星系
       drag.x = mx; drag.y = my;
       tip.style.display = "none";
@@ -919,7 +1044,7 @@
   canvas.addEventListener("pointerdown", function (e) {
     var rect = canvas.getBoundingClientRect();
     pts[e.pointerId] = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-    if (ptList().length >= 2) { pinchStart(); return; }
+    if (ptList().length >= 2) { hideDetail(); pinchStart(); return; }
     drag.active = true; drag.moved = false;
     drag.x = drag.startX = e.clientX - rect.left;
     drag.y = drag.startY = e.clientY - rect.top;
@@ -953,6 +1078,8 @@
   canvas.addEventListener("wheel", function (e) {
     e.preventDefault();
     view.zoom = Math.max(0.6, Math.min(2.4, view.zoom * (e.deltaY < 0 ? 1.09 : 0.92)));
+    // 缩放同样会让星点移位，贴着的卡片立刻过期
+    if (selected >= 0) hideDetail();
   }, { passive: false });
 
   // ---------- 键盘操作（无障碍）----------
@@ -977,7 +1104,7 @@
     else if (k === "+" || k === "=") { e.preventDefault(); view.zoom = Math.min(2.4, view.zoom * 1.12); }
     else if (k === "-" || k === "_") { e.preventDefault(); view.zoom = Math.max(0.6, view.zoom * 0.9); }
     else if (k === "Escape") {
-      detail.classList.remove("show");
+      hideDetail();
       dexPanel.classList.remove("show");
       // 浮层走统一的关闭路径：直接 remove("show") 会把焦点留在已隐藏的元素上，
       // 键盘用户下一步按 Tab 就从文档开头重新开始。
@@ -1550,12 +1677,12 @@
   dexBtn.addEventListener("click", function () {
     renderDex();
     dexPanel.classList.toggle("show");
-    detail.classList.remove("show");
+    hideDetail();
   });
 
   document.getElementById("btn-replay").addEventListener("click", function () {
-    cancelAnimationFrame(raf); startT = 0; selected = -1;
-    detail.classList.remove("show");
+    cancelAnimationFrame(raf); startT = 0;
+    hideDetail();
     dexPanel.classList.remove("show");
     personaEl.classList.remove("show");
     buildParticles(); raf = requestAnimationFrame(frame);
@@ -1572,6 +1699,12 @@
     layoutStars();
     if (startT && performance.now() - startT > PHASE_TEXT + PHASE_HOLD) {
       particles.forEach(function (p) { if (p.star) { p.x = p.star.x; p.y = p.star.y; } });
+    }
+    // 转屏 / 改窗口大小后星点会重排，贴着的详情卡得跟着走，否则指着空气
+    if (selected >= 0) {
+      requestAnimationFrame(function () {
+        if (selected >= 0 && stars[selected]) placeDetail(stars[selected]);
+      });
     }
   }
   window.addEventListener("resize", resize);

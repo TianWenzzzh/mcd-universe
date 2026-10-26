@@ -17,7 +17,7 @@ pip install -r requirements-dev.txt
 ```bash
 ruff check .          # 静态检查
 ruff format .         # 格式化
-pytest                # 测试（44 条）
+pytest                # 测试（48 条）
 python scripts/lint_template.py   # 渲染模板静态检查（未定义函数 / 缺失 DOM 引用）
 python scripts/check_links.py      # 页面间链接完整性（相对路径解析）
 python scripts/check_weight.py     # 页面重量预算 + 零外部依赖（"单文件"承诺的守门人）
