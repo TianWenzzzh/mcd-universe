@@ -40,5 +40,8 @@ jobs:
       - name: Link integrity check
         run: python scripts/check_links.py
 
+      - name: Page weight & no external deps
+        run: python scripts/check_weight.py
+
       - name: Demo pages in sync with template
         run: python scripts/build_demo.py --check

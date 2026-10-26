@@ -125,6 +125,33 @@ async function checkPage(browser, url, opts) {
       problems.push("导出分享卡后屏幕构图未复位（卡片竖版布局泄漏到了主视图）");
     }
   }
+  // 孤悬行检测：换行排布最容易留下"最后一行只剩一颗"，看上去像没做完。
+  // 图例（6 项）在手机上曾排成 5+1、成就墙（10 项）曾排成 3+3+3+1，都吃过这个亏。
+  // 判定按几何位置分组而不看 CSS 实现：是不是网格、三列还是两列都不重要，
+  // 只要最后一行不是"1 项 + 前面多行都多于 1 项"就算过。
+  const rows = await page.evaluate(() => {
+    const rowsOf = (sel) => {
+      const m = {};
+      [...document.querySelectorAll(sel)].forEach((el) => {
+        const cs = getComputedStyle(el);
+        if (cs.display === "none" || cs.visibility === "hidden") return;
+        const t = Math.round(el.getBoundingClientRect().top);
+        m[t] = (m[t] || 0) + 1;
+      });
+      return Object.keys(m)
+        .sort((a, b) => a - b)
+        .map((k) => m[k]);
+    };
+    return { legend: rowsOf("#legend > span"), ach: rowsOf("#achievements .chip") };
+  });
+  state.rows = rows;
+  for (const [name, list] of Object.entries(rows)) {
+    const mixed = list.slice(0, -1).some((n) => n > 1);
+    if (list.length > 1 && list[list.length - 1] === 1 && mixed) {
+      problems.push(`${name} 最后一行只剩 1 项（${list.join("+")}），是孤悬行`);
+    }
+  }
+
   if (opts.ui) {
     // 桌面端引导文案要讲鼠标与键盘（跟触屏版互为对照，防止"两边都写死成同一套"）
     const deskStep2 = await page.evaluate(() => {
@@ -219,15 +246,19 @@ async function checkPage(browser, url, opts) {
       return {
         coarse: window.__mcuniverse.coarse,
         step2: ob ? ob.textContent : "",
-        legendDir: getComputedStyle(lg).flexDirection,
+        // 图例是不是横排：看前两项是不是同一行（不看 display 值，网格/弹性都算横排）
         legendH: Math.round(lr.height),
+        legendSameRow: (() => {
+          const it = [...lg.children].map((e) => Math.round(e.getBoundingClientRect().top));
+          return it.length > 1 && it[0] === it[1];
+        })(),
         touchAction: getComputedStyle(document.getElementById("sky")).touchAction,
       };
     });
     if (!t.coarse) problems.push("触屏环境未识别为 coarse pointer（文案会退回鼠标版）");
     if (!/轻点|点按|捏合/.test(t.step2)) problems.push(`触屏引导文案没有触屏动作: ${t.step2}`);
     if (/悬停|滚轮|键盘/.test(t.step2)) problems.push(`触屏引导文案仍在讲鼠标/键盘: ${t.step2}`);
-    if (t.legendDir !== "row") problems.push(`竖屏图例未改横排（${t.legendDir}），会占掉纵向空间`);
+    if (!t.legendSameRow) problems.push("竖屏图例未改横排，会占掉纵向空间");
     if (t.legendH > 76) problems.push(`竖屏图例高度 ${t.legendH}px 超过两行预算`);
     if (t.touchAction !== "none") problems.push(`画布 touch-action=${t.touchAction}，双指手势会被浏览器截走`);
 

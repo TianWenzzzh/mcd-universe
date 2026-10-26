@@ -9,7 +9,7 @@
 [![CI](https://github.com/TianWenzzzh/mcd-universe/actions/workflows/ci.yml/badge.svg)](https://github.com/TianWenzzzh/mcd-universe/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.8%2B-blue)
 ![零依赖](https://img.shields.io/badge/dependencies-0-brightgreen)
-![测试](https://img.shields.io/badge/selftest-34%20passed-success)
+![测试](https://img.shields.io/badge/selftest-39%20passed-success)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 ## 在线演示
@@ -55,7 +55,7 @@ python scripts/generate_report.py --demo samples/demo_orders.json -o report.html
 
 ## 技术栈
 
-Python（MCP 客户端 + 订单解析 + 星图模型 + 人格鉴定，34 条测试全绿）+ 单文件 HTML/Canvas（星图渲染，零依赖零外链，离线可用）。
+Python（MCP 客户端 + 订单解析 + 星图模型 + 人格鉴定，39 条测试全绿）+ 单文件 HTML/Canvas（星图渲染，零依赖零外链，离线可用）。
 
 ## 工程细节
 
@@ -73,7 +73,19 @@ flowchart TD
     R --> C[分享卡 PNG<br/>1080×1440 竖版]
 ```
 
-`src/mcp_client.py` 处理了麦当劳 MCP 实测的四种返回形态：干净 JSON、文本包装内嵌 JSON、`[N]{列名}:` 文本表格、「JSON 里再套文本表格」的二层包装——错误响应还会在标记后先输出人话再跟 JSON，且业务错误 `isError=false` 但 `success=false`（如 query-order 非本人订单 610301），均已归一化并有测试覆盖。`scripts/lint_template.py` 对渲染模板做静态检查（未定义函数调用 / 缺失 DOM 引用），防住只在罕见路径暴露的崩溃。`scripts/check_links.py` 校验页面间的本地引用是否真的可达（`./` 与 `../` 写错会让评委点进 404）。`scripts/e2e_check.mjs` 用真实浏览器跑六态冒烟（银河 / 星云 / 甜点 / 减少动效 / 触屏 390×844 / 小屏 360×640）并校验分享卡导出产物、移动端 HUD 不重叠、触屏文案不含鼠标动作、双指捏合真的会缩放、以及星点在任何旋转角度下都不钻到 HUD 底下；分享卡版式另有一组几何断言（安全边距、二维码与文案不重叠、文案断行不超版心且不挂行首标点）读的是 `cardLayout()` 规格本身，不靠像素。`scripts/card_audit.mjs` 是分享卡的像素体检：按行统计"墨量"，找出缩略图里才显形的空洞带与贴边。CI 覆盖 Python 3.10–3.13 四个版本 + ruff + pytest + 模板检查 + 链接检查。详见 [MCP_INTEGRATION.md](MCP_INTEGRATION.md) 与 [CONTRIBUTING.md](CONTRIBUTING.md)。
+`src/mcp_client.py` 处理了麦当劳 MCP 实测的四种返回形态：干净 JSON、文本包装内嵌 JSON、`[N]{列名}:` 文本表格、「JSON 里再套文本表格」的二层包装——错误响应还会在标记后先输出人话再跟 JSON，且业务错误 `isError=false` 但 `success=false`（如 query-order 非本人订单 610301），均已归一化并有测试覆盖。`scripts/lint_template.py` 对渲染模板做静态检查（未定义函数调用 / 缺失 DOM 引用），防住只在罕见路径暴露的崩溃。`scripts/check_links.py` 校验页面间的本地引用是否真的可达（`./` 与 `../` 写错会让评委点进 404）。`scripts/check_weight.py` 守住「单文件零依赖」这个承诺：每页字节预算 + 禁止任何指向外部主机的 script/link/img，加一个 CDN 字体就会红。`scripts/e2e_check.mjs` 用真实浏览器跑六态冒烟（银河 / 星云 / 甜点 / 减少动效 / 触屏 390×844 / 小屏 360×640）并校验分享卡导出产物、移动端 HUD 不重叠、触屏文案不含鼠标动作、双指捏合真的会缩放、以及星点在任何旋转角度下都不钻到 HUD 底下；分享卡版式另有一组几何断言（安全边距、二维码与文案不重叠、文案断行不超版心且不挂行首标点）读的是 `cardLayout()` 规格本身，不靠像素。`scripts/card_audit.mjs` 是分享卡的像素体检：按行统计"墨量"，找出缩略图里才显形的空洞带与贴边。`scripts/perf_check.mjs` 是性能体检：手机 4× CPU 降速与桌面两档，量每帧主线程耗时、每帧 canvas 绘制调用数（arc / fill / stroke / 新建渐变）、每帧 DOM 几何读取、堆增长、分享卡导出耗时与页面重量。CI 覆盖 Python 3.10–3.13 四个版本 + ruff + pytest + 模板检查 + 链接检查 + 页面重量检查。详见 [MCP_INTEGRATION.md](MCP_INTEGRATION.md) 与 [CONTRIBUTING.md](CONTRIBUTING.md)。
+
+## 性能
+
+星图是每帧重绘的 Canvas 场景，所以性能不是"跑得动就行"，而是有预算的：每帧只有 16.7ms（60fps）。手机档在 4 倍 CPU 降速下实测：
+
+| 指标 | 开场（上千颗粒子拼字） | 稳态（星图 + 星轨 + 流星） |
+|---|---|---|
+| 每帧主线程耗时 | 0.8ms（p95 1.2） | 0.6ms（p95 3.5） |
+| 每帧 arc / 新建渐变 | 721 / 0.2 | 21 / 0.1 |
+| 每帧 DOM 几何读取 | 0 | 0 |
+
+首屏 409ms、页面 86KB、外部请求 0、6 秒堆增长 0.2MB。曾经的两个真实开销：星轨连线每段新建一个线性渐变（10 颗星 = 每帧 10 个渐变 + 10 次描边，渐变亮端还正好被星点盖住），以及每颗粒子每帧 new 一个 `{x,y}` 临时对象——都改成一条路径一次描边 / 标量运算后，稳态每帧渐变 10 → 0.1。改动前后用固定随机种子做过像素比对（全图平均差 0.032/255），视觉上没有损失。
 
 ## 目录结构
 
@@ -81,7 +93,7 @@ flowchart TD
 ├── SKILL.md                  # Skill 定义
 ├── src/                      # MCP 客户端、星图数据模型、人格鉴定
 ├── templates/                # 星图 HTML 报告模板（Canvas 渲染）
-├── scripts/                  # 数据拉取、报告生成、演示页重建、模板/链接检查、E2E、截图与 GIF
+├── scripts/                  # 数据拉取、报告生成、演示页重建、模板/链接/重量检查、E2E、性能体检、截图与 GIF
 ├── samples/                  # 演示数据（匿名化）与官方营养数据
 ├── tests/                    # 测试（先证伪再交付）
 ├── demo/                     # 在线演示页

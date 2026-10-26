@@ -17,9 +17,10 @@ pip install -r requirements-dev.txt
 ```bash
 ruff check .          # 静态检查
 ruff format .         # 格式化
-pytest                # 测试（34 条）
+pytest                # 测试（39 条）
 python scripts/lint_template.py   # 渲染模板静态检查（未定义函数 / 缺失 DOM 引用）
 python scripts/check_links.py      # 页面间链接完整性（相对路径解析）
+python scripts/check_weight.py     # 页面重量预算 + 零外部依赖（"单文件"承诺的守门人）
 
 # 重建四个演示页（改动 templates/starmap.html 后必须跑，否则线上还是旧页面）
 python scripts/build_demo.py
@@ -40,6 +41,8 @@ npm i -D playwright-core   # 或使用已安装 Edge/Chrome 的 channel
 node scripts/e2e_check.mjs  # 六类断言：五态冒烟、四风格分享卡导出、导出后屏幕构图复位、
                             # 真实点击/键盘/悬停、导出面板焦点循环、切换器 aria-current、移动端 HUD 重叠
 node scripts/card_audit.mjs # 分享卡像素体检：空洞带 / 二维码与文案间距 / 脚注下边距（改版式后跑一遍并肉眼验收产物）
+node scripts/perf_check.mjs # 性能体检：手机 4× 降速 + 桌面两档，量每帧主线程耗时、绘制调用数、
+                            # 布局抖动、堆增长、四张分享卡导出耗时、页面重量（改渲染循环后必跑）
 
 # 投稿截图与 README 动图（可复现重拍；GIF 需要 ffmpeg，可用 pip install imageio-ffmpeg 取二进制）
 node scripts/make_shots.mjs [baseUrl] [outDir]
