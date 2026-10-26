@@ -3,9 +3,13 @@
  * 1. 页面无控制台错误 / 未捕获异常
  * 2. 星点已渲染
  * 3. 分享卡 composeCard() 产出合法 1080x1440 PNG（落盘供人工查看），四种风格全覆盖
- * 4. 五态（银河 / 星云 / 甜点 / 减少动效 / 移动端银河）均可打开
+ * 4. 六态（银河 / 星云 / 甜点 / 减少动效 / 移动端银河 / 小屏）均可打开
  * 5. 交互级断言：导出面板真实点击、键盘浏览、悬停气泡、aria-live、导航入口
  * 6. 移动端 HUD 布局矩形两两不重叠
+ * 7. 分享卡交付路径：微信内必须走"预览 + 长按保存"（微信不实现 a[download]），
+ *    普通浏览器必须走下载；两种路径的提示文案不许混用
+ * 8. 三层浮层（引导 / 预览 / 导出面板）都是真模态：role、焦点进入、Tab 循环、Esc 关闭
+ * 9. 引导层弹出时机：普通模式等粒子入场放完，减少动效模式不等
  *
  * 用法（需要 playwright-core）：
  *   node scripts/e2e_check.mjs [baseUrl]
@@ -20,12 +24,24 @@ const { chromium } = require("playwright-core");
 const BASE = process.argv[2] || "https://tianwenzzzh.github.io/mcd-universe/demo/";
 const OUT_DIR = process.argv[3] || "docs/assets";
 
+// 微信内置浏览器不实现 a[download] + data: URL，但"安卓系统浏览器"实现 ——
+// 同一台设备两种容器，交付路径必须不同，所以要用真实 UA 分别跑。
+const UA_WECHAT_ANDROID = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) " +
+  "Version/4.0 Chrome/116.0.0.0 Mobile Safari/537.36 MicroMessenger/8.0.42.2460(0x28002A33) " +
+  "WeChat/arm64 Weixin NetType/WIFI Language/zh_CN ABI/arm64";
+const UA_IOS_SAFARI = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 " +
+  "(KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1";
+// 同一台安卓手机的系统浏览器：它实现 a[download]，交付路径必须回到下载
+const UA_CHROME_ANDROID = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 " +
+  "(KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36";
+
 async function checkPage(browser, url, opts) {
   // 触屏参数必须真的传给 newPage：只给 viewport 的话 (pointer: coarse) 仍然为 false，
   // 页面会走鼠标分支 —— 那这条触屏断言就成了"看着跑了、其实没测"。
   const ctxOpts = { viewport: opts.viewport };
   if (opts.isMobile) { ctxOpts.isMobile = true; ctxOpts.hasTouch = true; }
   if (opts.deviceScaleFactor) ctxOpts.deviceScaleFactor = opts.deviceScaleFactor;
+  if (opts.ua) ctxOpts.userAgent = opts.ua;
   const page = await browser.newPage(ctxOpts);
   const problems = [];
   page.on("console", (m) => {
@@ -34,6 +50,19 @@ async function checkPage(browser, url, opts) {
   page.on("pageerror", (e) => problems.push("pageerror: " + String(e)));
   if (opts.reducedMotion) await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto(url, { waitUntil: "domcontentloaded", timeout: 90000 });
+  // 引导层弹出时机要"两头卡"：普通模式必须等粒子入场放完（提前弹是打断），
+  // 减少动效模式没有动画可等，必须很快弹（曾经一律等 5.2 秒 = 对着静态星图白站 5 秒）。
+  let onboardAt = 0;
+  if (opts.onboardDeadline) {
+    const t0 = Date.now();
+    const appeared = await page.waitForSelector("#onboard.show", { timeout: opts.onboardDeadline })
+      .then(() => true).catch(() => false);
+    onboardAt = Date.now() - t0;
+    if (!appeared) problems.push(`首访引导 ${opts.onboardDeadline}ms 内没弹出`);
+    else if (opts.onboardMin && onboardAt < opts.onboardMin) {
+      problems.push(`引导弹得太早（${onboardAt}ms），粒子入场还在放`);
+    }
+  }
   await page.waitForTimeout(4500);
   const state = await page.evaluate(() => {
     const mc = window.__mcuniverse;
@@ -44,6 +73,8 @@ async function checkPage(browser, url, opts) {
       persona: mc && mc.data.persona ? mc.data.persona.name : null,
     };
   });
+  if (onboardAt) state.onboardAt = onboardAt;
+
   if (opts.expectNebula !== undefined && state.isNebula !== opts.expectNebula) {
     problems.push(`默认星云态不符: ${state.isNebula}`);
   }
@@ -152,6 +183,106 @@ async function checkPage(browser, url, opts) {
     }
   }
 
+  if (opts.dialogs) {
+    // 浮层必须是真模态。这个项目吃过"看不见的控件在响应"的亏（#actions 三个按钮曾是死的、
+    // 引导层背后 Tab 能落到画布上）—— 遮罩挡住鼠标，键盘却照样穿过去，是最难被发现的一类。
+    await page.waitForSelector("#onboard.show", { timeout: 15000 }).catch(() => null);
+    const dlg = await page.evaluate(() => {
+      const ob = document.getElementById("onboard");
+      return {
+        shown: ob.classList.contains("show"),
+        role: ob.getAttribute("role"),
+        modal: ob.getAttribute("aria-modal"),
+        focusInside: ob.contains(document.activeElement),
+        focusId: document.activeElement ? document.activeElement.id || document.activeElement.tagName : null,
+      };
+    });
+    if (!dlg.shown) problems.push("首访引导没有出现");
+    if (dlg.role !== "dialog" || dlg.modal !== "true") {
+      problems.push(`引导层缺对话框语义: role=${dlg.role} aria-modal=${dlg.modal}`);
+    }
+    if (!dlg.focusInside) problems.push(`引导层弹出后焦点仍在遮罩背后: ${dlg.focusId}`);
+    let escaped = null;
+    for (let i = 0; i < 6; i++) {
+      await page.keyboard.press("Tab");
+      const where = await page.evaluate(() => ({
+        inside: document.getElementById("onboard").contains(document.activeElement),
+        id: document.activeElement ? document.activeElement.id || document.activeElement.tagName : null,
+      }));
+      if (!where.inside) { escaped = where.id; break; }
+    }
+    if (escaped) problems.push(`引导层 Tab 逃到遮罩背后: ${escaped}（不是真模态）`);
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(250);
+    const obClosed = await page.evaluate(() => !document.getElementById("onboard").classList.contains("show"));
+    if (!obClosed) problems.push("Esc 未关闭首访引导");
+    // 关掉后焦点不许留在已隐藏的层里（否则下一次 Tab 从文档开头重来）
+    const obFocus = await page.evaluate(() => ({
+      hiddenFocused: document.getElementById("onboard").contains(document.activeElement),
+    }));
+    if (obFocus.hiddenFocused) problems.push("引导关闭后焦点留在了隐藏层内");
+  }
+  if (opts.delivery) {
+    // 分享卡的最后一公里：微信里 a[download] 是空操作，而提示若还写"已导出"，
+    // 用户以为存好了，其实相册里什么都没有 —— 分享链就此断在这里。
+    await page.evaluate(() => window.__mcuniverse.dismissOnboard());
+    await page.waitForTimeout(250);
+    const saveMode = await page.evaluate(() => window.__mcuniverse.saveMode());
+    state.saveMode = saveMode;
+    if (saveMode !== opts.delivery) problems.push(`交付路径应为 ${opts.delivery}，实际 ${saveMode}`);
+    await page.click("#btn-save");
+    await page.waitForTimeout(700);
+    // 面板上"点击即导出"这句话在微信里是假话，必须换成"生成后长按保存"
+    const panelTip = await page.evaluate(() => (document.querySelector(".ep-tip") || {}).textContent || "");
+    if (opts.delivery === "preview" && !/长按/.test(panelTip)) {
+      problems.push(`导出面板仍在承诺下载（微信里不会发生）: ${panelTip}`);
+    }
+    if (opts.delivery === "download" && /长按/.test(panelTip)) {
+      problems.push(`下载容器却提示长按保存: ${panelTip}`);
+    }
+    // 先挂上下载监听再点：微信路径下这里必须"等不到"下载事件
+    const dlPromise = page.waitForEvent("download", { timeout: 3000 }).catch(() => null);
+    await page.click('.ep-style[data-style="deep"]');
+    const dl = await dlPromise;
+    await page.waitForTimeout(350);
+    const after = await page.evaluate(() => ({
+      preview: document.getElementById("img-preview").classList.contains("show"),
+      toast: document.getElementById("toast").textContent,
+      tip: (document.querySelector(".ip-card .ip-tip") || {}).textContent || "",
+      role: document.getElementById("img-preview").getAttribute("role"),
+      modal: document.getElementById("img-preview").getAttribute("aria-modal"),
+      focus: document.activeElement ? document.activeElement.id || document.activeElement.tagName : null,
+      live: document.getElementById("a11y-live").textContent,
+      src: (document.querySelector(".ip-card img") || {}).src || "",
+    }));
+    if (opts.delivery === "preview") {
+      if (dl) problems.push(`微信/iOS 内仍走了下载路径（${dl.suggestedFilename()}）：微信不实现 a[download]，等于点了没反应`);
+      if (!after.preview) problems.push("微信/iOS 内点导出后未弹出长按保存层（分享卡无处可存）");
+      if (!/^data:image\/png/.test(after.src)) problems.push("预览层里的图片不是生成的分享卡");
+      if (!/长按/.test(after.tip)) problems.push(`保存提示没讲长按: ${after.tip}`);
+      if (opts.wechatHint && !/浏览器/.test(after.tip)) problems.push(`微信内提示没给"换浏览器"兜底: ${after.tip}`);
+      if (!opts.wechatHint && /浏览器/.test(after.tip)) problems.push(`非微信容器不该提换浏览器: ${after.tip}`);
+      if (/已导出/.test(after.toast)) problems.push(`预览路径却谎报「已导出」: ${after.toast}`);
+      if (after.role !== "dialog" || after.modal !== "true") {
+        problems.push(`预览层缺对话框语义: role=${after.role} aria-modal=${after.modal}`);
+      }
+      if (after.focus !== "ip-close") problems.push(`预览层焦点未进入: ${after.focus}`);
+      if (!/保存/.test(after.live)) problems.push(`读屏未播报保存方式: ${after.live}`);
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(300);
+      const closed = await page.evaluate(() => ({
+        open: document.getElementById("img-preview").classList.contains("show"),
+        focus: document.activeElement ? document.activeElement.id || document.activeElement.tagName : null,
+      }));
+      if (closed.open) problems.push("Esc 未关闭预览层");
+      if (closed.focus !== "btn-save") problems.push(`关掉预览层后焦点未回到保存按钮: ${closed.focus}`);
+    } else {
+      if (after.preview) problems.push("普通浏览器不该弹长按保存层");
+      if (!dl) problems.push("普通浏览器点导出未触发下载");
+      else state.download = dl.suggestedFilename();
+      if (/长按/.test(after.toast)) problems.push(`下载路径的提示串成了长按文案: ${after.toast}`);
+    }
+  }
   if (opts.ui) {
     // 桌面端引导文案要讲鼠标与键盘（跟触屏版互为对照，防止"两边都写死成同一套"）
     const deskStep2 = await page.evaluate(() => {
@@ -352,6 +483,10 @@ async function main() {
       expectNebula: false,
       expectStars: 10,
       exportCard: true,
+      // 桌面档同时验两件事：引导等入场放完才弹（不能提前打断），三层浮层是真模态
+      dialogs: true,
+      onboardDeadline: 9000,
+      onboardMin: 4000,
       ui: true,
     }),
   );
@@ -400,9 +535,49 @@ async function main() {
     expectNebula: false,
     expectStars: 10,
     reducedMotion: true,
+    // 减少动效没有入场动画可等，引导不该再站 5.2 秒
+    onboardDeadline: 2500,
   });
   if (rm.state.reduced !== true) rm.problems.push("prefers-reduced-motion 未生效");
   results.push(rm);
+  // 分享卡交付：微信（安卓 X5 与 iOS WKWebView）内一律"预览 + 长按保存"，
+  // 两种容器的提示文案不同（微信要多给一条"换浏览器打开"的兜底）
+  results.push(
+    await checkPage(browser, BASE + "?e2e=1&wx=1", {
+      viewport: { width: 390, height: 844 },
+      isMobile: true,
+      hasTouch: true,
+      ua: UA_WECHAT_ANDROID,
+      delivery: "preview",
+      wechatHint: true,
+      expectNebula: false,
+      expectStars: 10,
+    }),
+  );
+  results.push(
+    await checkPage(browser, BASE + "?e2e=1&ios=1", {
+      viewport: { width: 390, height: 844 },
+      isMobile: true,
+      hasTouch: true,
+      ua: UA_IOS_SAFARI,
+      delivery: "preview",
+      wechatHint: false,
+      expectNebula: false,
+      expectStars: 10,
+    }),
+  );
+  // 同一台安卓设备的系统浏览器：这里必须还能下载（判据是容器，不是设备）
+  results.push(
+    await checkPage(browser, BASE + "?e2e=1&and=1", {
+      viewport: { width: 390, height: 844 },
+      isMobile: true,
+      hasTouch: true,
+      ua: UA_CHROME_ANDROID,
+      delivery: "download",
+      expectNebula: false,
+      expectStars: 10,
+    }),
+  );
   await browser.close();
 
   let failed = 0;
@@ -412,6 +587,8 @@ async function main() {
     console.log(`${ok ? "PASS" : "FAIL"} ${r.url}`);
     console.log(`     stars=${r.state.stars} nebula=${r.state.isNebula} persona=${r.state.persona}` +
       (r.state.cards ? ` cards=${Object.entries(r.state.cards).map(([k, v]) => k + ":" + Math.round(v / 1024) + "KB").join(" ")}` : ""));
+    if (r.state.onboardAt) console.log(`     onboard=${r.state.onboardAt}ms`);
+    if (r.state.saveMode) console.log(`     saveMode=${r.state.saveMode}`);
     if (r.state.download) console.log(`     download=${r.state.download}`);
     if (r.state.pinch) console.log(`     pinch=${r.state.pinch}`);
     r.problems.forEach((p) => console.log("     - " + p));
