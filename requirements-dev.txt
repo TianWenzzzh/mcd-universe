@@ -1,3 +1,7 @@
 # 开发依赖（运行时零依赖，仅 stdlib）
 ruff>=0.8
 pytest>=8.0
+
+# 镜像同步（仅开发机需要）
+paramiko>=3.0
+pillow>=10.0

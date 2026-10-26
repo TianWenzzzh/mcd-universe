@@ -22,11 +22,13 @@
 
 📄 [作品说明页](https://tianwenzzzh.github.io/mcd-universe/docs/about.html)（一页讲清玩法与技术）
 
-![演示动画：粒子汇聚成字，炸开成星图](docs/assets/demo.gif)
+⚡ **国内镜像**（杭州 ECS，实测快 5–13 倍）：<http://47.114.38.125/mcd/demo/> · [说明页](http://47.114.38.125/mcd/docs/about.html)
+
+![演示动画：粒子汇聚成字，炸开成星图](docs/assets/demo-web.gif)
 
 | 桌面端 | 移动端 | 星点详情 |
 |---|---|---|
-| ![桌面端（人设切换 + 悬停提示 + 成就）](docs/assets/submit-1.png) | ![移动端](docs/assets/submit-3.png) | ![详情](docs/assets/demo-detail.png) |
+| ![桌面端（人设切换 + 悬停提示 + 成就）](docs/assets/submit-1-web.jpg) | ![移动端](docs/assets/submit-3-web.jpg) | ![详情](docs/assets/demo-detail-web.jpg) |
 
 ## 功能
 

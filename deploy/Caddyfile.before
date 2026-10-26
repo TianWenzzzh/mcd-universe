@@ -1,0 +1,98 @@
+47.114.38.125.sslip.io {
+    tls {
+        client_auth {
+            mode verify_if_given
+            trust_pool file /certs/trust-bundle.pem
+        }
+    }
+    reverse_proxy 127.0.0.1:18031
+}
+
+ros1.47.114.38.125.sslip.io {
+
+	# [ADD-xiaoxing 2026-09-24] 小星 AI 助手：同源反代千问（key 在 /opt/caddy/dashscope.auth）
+	@xp path /api/assistant
+	handle @xp {
+		@wpost method POST
+		handle @wpost {
+			request_body {
+				max_size 64KB
+			}
+			rewrite * /compatible-mode/v1/chat/completions
+			reverse_proxy https://dashscope.aliyuncs.com {
+				header_up Host dashscope.aliyuncs.com
+				import /config/dashscope.auth
+				flush_interval -1
+			}
+		}
+		respond 405
+	}
+	root * /config/ros1-site
+	file_server
+	encode gzip
+	header {
+		X-Frame-Options DENY
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		Strict-Transport-Security "max-age=15552000"
+	}
+	handle_errors {
+		rewrite * /404.html
+		file_server
+	}
+}
+
+http://47.114.38.125 {
+
+	# [ADD-xiaoxing 2026-09-24] 小星 AI 助手：同源反代千问（key 在 /opt/caddy/dashscope.auth）
+	@xp path /api/assistant
+	handle @xp {
+		@wpost method POST
+		handle @wpost {
+			request_body {
+				max_size 64KB
+			}
+			rewrite * /compatible-mode/v1/chat/completions
+			reverse_proxy https://dashscope.aliyuncs.com {
+				header_up Host dashscope.aliyuncs.com
+				import /config/dashscope.auth
+				flush_interval -1
+			}
+		}
+		respond 405
+	}
+	root * /config/ros1-site
+	file_server
+	encode gzip
+	header {
+		X-Frame-Options DENY
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+
+	# [ADD-cat 2026-09-24] 喵星图对外路径：未备案域名被拦、裸 IP 可用 → http://<ip>/cat/
+	@catno path /cat
+	redir @catno /cat/ 302
+	handle_path /cat/* {
+		root * /config/cat-site
+		@mani path /_manifest.json
+		respond @mani 404
+		rewrite / /中北喵星图.html
+		file_server
+	}
+	handle_errors {
+		rewrite * /404.html
+		file_server
+	}
+}
+
+cat.47.114.38.125.sslip.io {
+	root * /config/cat-site
+	rewrite / /中北喵星图.html
+	file_server
+	encode gzip zstd
+	header {
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+}

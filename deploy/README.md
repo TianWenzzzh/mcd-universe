@@ -1,39 +1,76 @@
-# 国内镜像部署（可选）
+# 国内镜像部署（当前线上形态）
 
-GitHub Pages 在国内网络下实测首屏 2–18s，评委体验打折。这里提供一份可选的国内镜像方案：把同一份静态站点部署到自己的 Ubuntu 云服务器，走 8080 端口（避免域名备案）。
+> 主站：GitHub Pages `https://tianwenzzzh.github.io/mcd-universe/`
+> 镜像：阿里云杭州 ECS `http://47.114.38.125/mcd/demo/`（裸 IP，免备案）
 
-## 一条命令
+## 为什么需要镜像
 
-在服务器上执行：
+国内网络实测（2026-10-27，8 次取中位）：
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/TianWenzzzh/mcd-universe/main/deploy/setup.sh | sudo bash
+| 页面 | GitHub Pages | 国内镜像 |
+|---|---|---|
+| 演示页首屏 | 1.4–3.6 s | 0.21–0.27 s |
+| 作品说明页 | 1.07 s | 0.12 s |
+
+镜像快 5–13 倍。GitHub Pages 仍是主入口（评审默认点这个），镜像是加速副本，两者内容一致。
+
+## 这台服务器上实际长什么样
+
+服务器不是空的：同时跑着「研伴」的 7 个 Docker 容器、MySQL、Redis，以及**中北喵星图**（`/cat/`）。本项目**纯增量**挂载，不碰任何现有服务。
+
+- 反代：Caddy（容器 `caddy-https`），配置 `/opt/caddy/Caddyfile`
+- 挂载：`/opt/caddy/config/mcd-site`（容器内 `/config/mcd-site`）
+- 路由：HTTP 裸 IP 的 `/mcd/*`（沿用 `/cat/*` 的既有模式）
+- 说明：`docs/` 与 `demo/` 原样发布，`/mcd/` 与 `/mcd/demo/` 均 302 到演示页
+
+Caddyfile 增量片段（已上线，勿重复添加）：
+
+```caddyfile
+	# [ADD-mcuniverse 2026-10-27] 麦门宇宙：http://47.114.38.125/mcd/
+	@mcdbare path /mcd
+	redir @mcdbare /mcd/ 302
+	@mcdroot path /mcd/
+	redir @mcdroot /mcd/demo/ 302
+	handle_path /mcd/* {
+		root * /config/mcd-site
+		file_server
+		encode gzip
+	}
 ```
 
-脚本做的事（幂等，可重复执行）：
+## 同步方式（免密）
 
-1. 安装 nginx / git
-2. 浅克隆仓库到 `/opt/mcuniverse-src` 并更新到最新 main
-3. 发布 `demo/` 与 `docs/` 到 `/var/www/mcuniverse`（根路径重定向到演示页）
-4. 写 nginx 站点配置（8080、gzip、HTML 不缓存 / 静态资源长缓存）
-5. 自检三个路径并打印访问地址
-
-## 必须做的一步
-
-在云厂商控制台的**安全组**放行 `8080/tcp`，否则公网访问不通：
-
-- 阿里云：ECS → 安全组 → 配置规则 → 入方向 → 添加 8080/8080，授权对象 0.0.0.0/0
-
-## 验证
+一次性配置：本机 `~/.ssh/mcuniverse_deploy` 私钥，公钥已加入服务器 `root/.ssh/authorized_keys`（注释 `mcuniverse-deploy`）。撤销：删除该行即可。
 
 ```bash
-curl -sI http://127.0.0.1:8080/demo/ | head -5
+python deploy/sync_mirror.py           # 打包上传 + HTTP 自检
+python deploy/sync_mirror.py --check   # 只自检
 ```
 
-## 更新
+- 只上传 `demo/` 与 `docs/`；`docs/assets` 走白名单（`*-web.jpg`、`*-web.gif`、`.mp4`、`demo-poster.jpg`），原图不进镜像
+- 上传前保留上一版到 `mcd-site.prev` 便于回滚
+- 结束会自检 `/mcd/demo/` 与 `/mcd/docs/about.html`，非 200 即失败退出
 
-仓库有新提交后，再执行一次同一条命令即可（脚本会 `reset --hard origin/main`）。
+## 回滚
 
-## 与 GitHub Pages 的关系
+```bash
+# 站点文件回滚
+ssh -i ~/.ssh/mcuniverse_deploy root@47.114.38.125 \
+  'rm -rf /opt/caddy/config/mcd-site && cp -a /opt/caddy/config/mcd-site.prev /opt/caddy/config/mcd-site'
 
-GitHub Pages 仍是主站与评审默认入口；国内镜像只是**加速副本**，两者内容逐字节一致（同一份 `demo/`、`docs/`）。因此镜像挂掉不影响评审，反之亦然。
+# Caddyfile 回滚（自动备份在 /opt/caddy/Caddyfile.bak-*）
+ssh -i ~/.ssh/mcuniverse_deploy root@47.114.38.125 \
+  'ls -t /opt/caddy/Caddyfile.bak-* | head -1 | xargs -I{} cp {} /opt/caddy/Caddyfile && docker exec caddy-https caddy reload --config /etc/caddy/Caddyfile'
+```
+
+## 带宽约束（重要）
+
+ECS 出口实测约 **1.3 Mbps**。因此：
+
+- 页面资源全部转 Web 优化版（2 倍 PNG → 渐进式 JPEG，1.45MB → 80KB；GIF → H.264 MP4，1.1MB → 104KB）
+- 镜像全站约 **2.1 MB**，说明页首屏约 500KB（≈3s）
+- 大图/视频不要回退成原始 PNG/GIF，否则单文件就要 5–7 秒
+
+## 另：空服务器的 nginx 方案
+
+`deploy/setup.sh` 是给**干净 Ubuntu** 用的一键脚本（nginx :8080），当前这台机器**未使用**（已有 Caddy，且 8080 被研伴占用），仅作备用。
