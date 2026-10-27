@@ -131,6 +131,8 @@ def social_check() -> bool:
     if not os.path.isfile(script):
         print("跳过抓取自检（找不到 scripts/check_social.py）")
         return True
+    # 父进程的输出被管道缓冲时，子进程的日志会抢在前面 —— 先 flush，日志顺序才读得懂。
+    sys.stdout.flush()
     return subprocess.run([sys.executable, script, "--base", MIRROR_BASE], check=False).returncode == 0
 
 
