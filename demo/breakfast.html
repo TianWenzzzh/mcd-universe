@@ -115,6 +115,18 @@
   /* 缩略图按 2 倍像素绘制、按 1 倍显示：高分屏与投稿截图都不糊 */
   .ep-style canvas { display: block; border-radius: 7px; width: 196px; height: 261px; }
   .ep-style span { display: block; margin-top: 7px; font-size: 11.5px; color: #cfc9e6; letter-spacing: 1px; }
+  #import-panel { position: absolute; inset: 0; z-index: 31; display: none; align-items: center; justify-content: center; background: rgba(4,3,11,.86); backdrop-filter: blur(8px); }
+  #import-panel.show { display: flex; }
+  .im-card { width: min(560px, calc(100% - 32px)); max-height: 86vh; overflow-y: auto; padding: 22px 22px 18px; background: linear-gradient(170deg, rgba(26,22,48,.98), rgba(10,8,22,.98)); border: 1px solid rgba(255,217,122,.26); border-radius: 18px; box-shadow: 0 24px 80px rgba(0,0,0,.7); }
+  .im-card h3 { font-size: 15px; color: #ffe9a8; letter-spacing: 2px; }
+  .im-card .im-sub { font-size: 11.5px; color: #9189b5; margin: 8px 0 12px; line-height: 1.8; }
+  #import-text { width: 100%; height: 132px; resize: vertical; background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.14); border-radius: 10px; color: #dcd8ee; font: 12px/1.6 ui-monospace, Consolas, monospace; padding: 10px 12px; outline: none; }
+  #import-text:focus { border-color: rgba(255,217,122,.5); }
+  .im-row { display: flex; gap: 9px; margin-top: 12px; }
+  .im-row button { flex: 1; padding: 10px; border-radius: 10px; font-size: 12.5px; cursor: pointer; border: 1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.05); color: #e8e4f6; letter-spacing: 1px; }
+  .im-row button.primary { background: linear-gradient(160deg, #ef7f4a, #d85a30); border-color: rgba(255,160,110,.5); color: #fff; }
+  .im-row button:hover { border-color: rgba(255,255,255,.34); }
+  #import-err { margin-top: 10px; font-size: 11.5px; color: #ff9c9c; min-height: 17px; line-height: 1.6; }
   #img-preview { position: absolute; inset: 0; z-index: 32; display: none; align-items: center; justify-content: center; background: rgba(4,3,11,.9); backdrop-filter: blur(8px); }
   #img-preview.show { display: flex; }
   .ip-card { width: min(360px, calc(100% - 40px)); text-align: center; }
@@ -179,7 +191,7 @@
 <ul id="a11y-list" class="sr-only"></ul>
 <div class="hud" id="title"><h1>麦门宇宙</h1><p><span class="t-en">MCUNIVERSE · </span>你的每一单，都是麦门宇宙里的一颗星</p></div>
 <div class="hud" id="demo-badge">演示数据 · <a href="https://github.com/TianWenzzzh/mcd-universe" target="_blank">用你的真实订单生成 →</a></div>
-<div id="switcher"><span class="lbl">换个麦门看看</span><a href="./">深夜</a><a href="breakfast.html">早餐</a><a href="dessert.html">甜点</a><a href="burger.html">汉堡</a></div>
+<div id="switcher"><span class="lbl">换个麦门看看</span><a href="./">深夜</a><a href="breakfast.html">早餐</a><a href="dessert.html">甜点</a><a href="burger.html">汉堡</a><a href="#" id="import-open" style="border-style:dashed;color:#ffd97a">粘贴我的订单</a></div>
 <div class="hud" id="stats"></div>
 <div class="hud" id="daily"></div>
 <div class="hud" id="legend"></div>
@@ -201,6 +213,19 @@
      role/aria-modal + 焦点进入 + Tab 循环 + Esc 关闭 + 关掉后焦点归位。
      之前只有导出面板做了，另外两层（引导/预览）在键盘下形同虚设 —— Tab 一下就能
      操作到遮罩背后的画布（看不见，但方向键真的会换星点）。 -->
+<div id="import-panel" role="dialog" aria-modal="true" aria-label="粘贴订单生成星图">
+  <div class="im-card">
+    <h3>粘贴订单，生成你的星图</h3>
+    <p class="im-sub">支持麦当劳 MCP 的 order-list 原始返回（含 data.list）、订单数组，或 {"list":[...]}。<br><b>数据只在你的浏览器里解析，不会上传到任何服务器。</b></p>
+    <textarea id="import-text" spellcheck="false" placeholder='[{"orderId":"A1","createTime":"2026-10-01 12:20:00","realTotalAmount":"25.5","storeName":"麦当劳太原柳巷餐厅","orderProductList":[{"productName":"巨无霸套餐","quantity":1}]}]'></textarea>
+    <div class="im-row">
+      <button id="import-sample">填入示例</button>
+      <button id="import-go" class="primary">生成星图</button>
+      <button id="import-cancel">取消</button>
+    </div>
+    <p id="import-err"></p>
+  </div>
+</div>
 <div id="img-preview" role="dialog" aria-modal="true" aria-label="分享卡预览">
   <div class="ip-card">
     <p class="ip-tip">长按图片保存到相册</p>
@@ -276,6 +301,131 @@
   var hovered = -1;
   // 文字阶段延长到 2.6s + 0.7s 定格：粒子收敛本身要 ~2s，太短等于字刚成形就炸开了
   var PHASE_TEXT = 2600, PHASE_HOLD = 1000, FADE_START = 1400, FADE_DUR = 1800;
+
+  // [MODEL-BEGIN] 与 src/star_model.py 逐条对齐；tests/test_model_parity.py 用四套样例交叉校验
+  var MODEL_RULES = [
+    ["早餐", "#BA7517", ["早餐", "麦满分", "猪柳", "烟肉", "火腿扒", "脆薯饼", "滑蛋"]],
+    ["汉堡", "#E24B4A", ["汉堡", "巨无霸", "腿堡", "板烧", "麦香鱼", "安格斯", "培根", "双层"]],
+    ["甜品", "#D4537E", ["新地", "冰淇淋", "圆筒", "甜筒", "派", "蛋挞", "蛋糕", "巧克力", "可可"]],
+    ["小食", "#EF9F27", ["薯条", "麦乐鸡", "鸡翅", "玉米杯", "洋葱圈", "鸡块", "鸡排", "盐酥鸡"]],
+    ["饮品", "#378ADD", ["可乐", "雪碧", "咖啡", "拿铁", "美式", "茶", "果汁", "奶昔", "冰饮", "雪冰"]]
+  ];
+  var MODEL_PERSONAS = {
+    "深夜麦门人": "城市的深夜，总有一盏麦麦的灯为你亮着。你是夜色里最忠实的那颗星。",
+    "早餐先行者": "一日之计在于晨，你的早晨从麦满分开始。整片宇宙都醒得比你晚。",
+    "甜点星住民": "你的宇宙有一股甜味儿。生活再苦，你也要给自己留一颗糖。",
+    "周末麦门人": "工作日属于世界，周末属于麦麦。你的星星总在休息日最闪亮。",
+    "硬核堡星人": "大道至简，堡以载道。你的胃有态度，你的星有分量。",
+    "麦门探索者": "菜单是你的星图，你从不重复同一颗星。探索是你的浪漫。",
+    "麦门旅人": "不困于一种口味，不忠于一家门店。你路过麦门，麦门记住你。"
+  };
+  function modelCategorize(name) {
+    for (var i = 0; i < MODEL_RULES.length; i++) {
+      var kw = MODEL_RULES[i][2];
+      for (var j = 0; j < kw.length; j++) if (name.indexOf(kw[j]) >= 0) return MODEL_RULES[i][0];
+    }
+    return "小食";
+  }
+  function modelColor(cat) {
+    for (var i = 0; i < MODEL_RULES.length; i++) if (MODEL_RULES[i][0] === cat) return MODEL_RULES[i][1];
+    return "#888780";
+  }
+  // 按字面量解析北京时间，返回时间戳与分量（不依赖浏览器时区）
+  function modelParseTime(str) {
+    if (!str || typeof str !== "string") return null;
+    var m = str.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?/);
+    if (!m) return null;
+    var y = +m[1], mo = +m[2], d = +m[3], h = +(m[4] || 0), mi = +(m[5] || 0);
+    if (mo < 1 || mo > 12 || d < 1 || d > 31 || h > 23 || mi > 59) return null;
+    var ts = Date.UTC(y, mo - 1, d, h, mi);
+    return { ts: ts, hour: h, weekday: (new Date(ts).getUTCDay() + 6) % 7 };
+  }
+  function modelMagnitude(amount, qty) {
+    var amt = Number(amount);
+    if (!isFinite(amt)) amt = 0;
+    var base = amt < 20 ? 1 : amt < 40 ? 2 : amt < 70 ? 3 : amt < 120 ? 4 : 5;
+    return Math.min(5, base + (qty >= 4 ? 1 : 0));
+  }
+  function modelBuild(orders) {
+    if (!orders || !orders.length) return { status: "nebula", stars: [], summary: { orderCount: 0, totalAmount: 0 } };
+    var rows = [], total = 0;
+    orders.forEach(function (o, i) {
+      var list = Array.isArray(o.orderProductList) ? o.orderProductList : [];
+      var main = null;
+      if (list.length) {
+        var best = list[0];
+        for (var k = 1; k < list.length; k++) if (Number(list[k].quantity || 0) > Number(best.quantity || 0)) best = list[k];
+        main = best.productName || null;
+      }
+      var qty = 0;
+      list.forEach(function (x) { qty += Number(x.quantity || 0) || 0; });
+      var amt = Number(o.realTotalAmount);
+      if (!isFinite(amt)) amt = 0;
+      total += amt;
+      var t = modelParseTime(o.createTime);
+      rows.push({
+        id: o.orderId || ("star-" + i),
+        category: main ? modelCategorize(main) : "小食",
+        color: modelColor(main ? modelCategorize(main) : "小食"),
+        magnitude: modelMagnitude(o.realTotalAmount, qty),
+        time: o.createTime || null,
+        product: main,
+        store: o.storeName || null,
+        amount: amt,
+        quantity: qty,
+        _ts: t ? t.ts : null,
+        _h: t ? t.hour : null,
+        _w: t ? t.weekday : null
+      });
+    });
+    rows.sort(function (a, b) {
+      var x = a._ts === null ? -Infinity : a._ts;
+      var y = b._ts === null ? -Infinity : b._ts;
+      return x - y;
+    });
+    var persona = modelPersona(rows);
+    var starsOut = rows.map(function (r) {
+      return { id: r.id, category: r.category, color: r.color, magnitude: r.magnitude, time: r.time,
+        product: r.product, store: r.store, amount: r.amount, quantity: r.quantity };
+    });
+    return {
+      status: "galaxy",
+      stars: starsOut,
+      summary: { orderCount: starsOut.length, totalAmount: Math.round(total * 100) / 100 },
+      persona: { name: persona, desc: MODEL_PERSONAS[persona] }
+    };
+  }
+  function modelPersona(rows) {
+    var total = rows.length;
+    if (!total) return "麦门旅人";
+    var counts = {}, order = [], night = 0, morning = 0, weekend = 0;
+    rows.forEach(function (r) {
+      if (!(r.category in counts)) { counts[r.category] = 0; order.push(r.category); }
+      counts[r.category]++;
+      if (r._h !== null) {
+        if (r._h >= 22 || r._h < 3) night++;
+        if (r._h >= 5 && r._h < 10) morning++;
+      }
+      if (r._w !== null && r._w >= 5) weekend++;
+    });
+    var topCat = order[0], topN = counts[topCat];
+    order.forEach(function (c) { if (counts[c] > topN) { topCat = c; topN = counts[c]; } });
+    var distinct = {};
+    rows.forEach(function (r) { if (r.product) distinct[r.product] = 1; });
+    if (night >= 2 && night / total >= 0.3) return "深夜麦门人";
+    if (morning >= 2 && morning / total >= 0.4) return "早餐先行者";
+    if (weekend >= 2 && weekend / total >= 0.5) return "周末麦门人";
+    if (topCat === "甜品" && topN / total >= 0.4) return "甜点星住民";
+    if (topCat === "汉堡") return "硬核堡星人";
+    if (Object.keys(distinct).length >= Math.max(5, total * 0.6)) return "麦门探索者";
+    return "麦门旅人";
+  }
+  function modelPersonasList(mine) {
+    return Object.keys(MODEL_PERSONAS).map(function (n) {
+      return { name: n, desc: MODEL_PERSONAS[n], mine: n === mine };
+    });
+  }
+  // [MODEL-END]
 
   // ---------- 布局：时间序 → 星系旋臂 ----------
   // 构图原则：星群要填满「没被 HUD 占住」的那块区域，而不是永远缩在屏幕正中。
@@ -1693,6 +1843,95 @@
     buildParticles(); raf = requestAnimationFrame(frame);
   });
 
+  // ---------- 在线生成：粘贴订单 JSON → 星图（纯前端，数据不出浏览器） ----------
+  function extractOrders(obj) {
+    if (Array.isArray(obj)) return obj;
+    if (obj && Array.isArray(obj.list)) return obj.list;
+    if (obj && obj.data && Array.isArray(obj.data.list)) return obj.data.list;
+    if (obj && obj.data && Array.isArray(obj.data)) return obj.data;
+    if (obj && Array.isArray(obj.orders)) return obj.orders;
+    if (obj && obj.data && Array.isArray(obj.data.orders)) return obj.data.orders;
+    return null;
+  }
+  function applyPayload(payload) {
+    DATA = payload;
+    stars = payload.stars || [];
+    isNebula = !stars.length;
+    selected = -1; hovered = -1;
+    document.getElementById("detail").classList.remove("show");
+    document.getElementById("persona").classList.remove("show");
+    var nh = document.getElementById("nebula-hint");
+    if (nh) nh.style.display = isNebula ? "block" : "none";
+    var badge = document.getElementById("demo-badge");
+    if (badge) {
+      badge.innerHTML = isNebula ? "这份数据里没有订单 · 换个文件试试" : "自定义数据 · 仅存于你的浏览器";
+      badge.style.display = "block";
+    }
+    resize();
+    if (!isNebula) layoutStars();
+    // 导入是用户主动操作，人格卡不必等入场动画播完
+    if (!isNebula) document.getElementById("persona").classList.add("show");
+    buildParticles();
+    renderHUD();
+    renderA11yList();
+    cancelAnimationFrame(raf);
+    // 导入是"我已经有数据了"，直接跳到终态；想再看得按「重播入场」
+    startT = performance.now() - (PHASE_TEXT + PHASE_HOLD + FADE_START + FADE_DUR + 300);
+    raf = requestAnimationFrame(frame);
+  }
+
+  var importPanel = document.getElementById("import-panel");
+  var importErr = document.getElementById("import-err");
+  var SAMPLE_ORDERS = [
+    { orderId: "S1", createTime: "2026-10-24 20:26:00", realTotalAmount: "27.4", storeName: "麦当劳太原中北大学餐厅",
+      orderProductList: [{ productName: "龙焰鸡腿堡三件套", quantity: 1 }] },
+    { orderId: "S2", createTime: "2026-10-21 08:12:00", realTotalAmount: "16", storeName: "麦当劳太原柳巷餐厅",
+      orderProductList: [{ productName: "猪柳蛋麦满分套餐", quantity: 1 }] },
+    { orderId: "S3", createTime: "2026-10-18 23:40:00", realTotalAmount: "42.5", storeName: "麦当劳太原中北大学餐厅",
+      orderProductList: [{ productName: "巨无霸", quantity: 2 }, { productName: "中薯条", quantity: 2 }] }
+  ];
+  function importOpen() {
+    importErr.textContent = "";
+    openDialog(importPanel, importPanel.querySelector(".im-card"));
+  }
+  document.getElementById("import-open").addEventListener("click", function (e) {
+    e.preventDefault();
+    importOpen();
+  });
+  document.getElementById("import-sample").addEventListener("click", function () {
+    document.getElementById("import-text").value = JSON.stringify(SAMPLE_ORDERS, null, 2);
+    importErr.textContent = "";
+  });
+  document.getElementById("import-cancel").addEventListener("click", function () {
+    closeDialog(importPanel);
+  });
+  importPanel.addEventListener("click", function (e) { if (e.target === importPanel) closeDialog(importPanel); });
+  document.getElementById("import-go").addEventListener("click", function () {
+    var raw = (document.getElementById("import-text").value || "").trim();
+    if (!raw) { importErr.textContent = "先粘贴订单 JSON，或点「填入示例」看看格式"; return; }
+    var parsed;
+    try { parsed = JSON.parse(raw); } catch (err) {
+      importErr.textContent = "不是合法 JSON：" + String(err.message || err).slice(0, 80);
+      return;
+    }
+    var orders = extractOrders(parsed);
+    if (!orders) {
+      importErr.textContent = "没找到订单数组。支持：[订单...] / {list:[...]} / {data:{list:[...]}}";
+      return;
+    }
+    if (!orders.length) { importErr.textContent = "订单数组是空的"; return; }
+    var clipped = orders.length > 400;
+    var use = clipped ? orders.slice(0, 400) : orders;
+    var payload = modelBuild(use);
+    payload.demo = false;
+    payload.personas = modelPersonasList(payload.persona ? payload.persona.name : null);
+    applyPayload(payload);
+    closeDialog(importPanel);
+    toast("已生成 · " + payload.summary.orderCount + " 颗星" +
+      (payload.persona ? " · " + payload.persona.name : "") + (clipped ? "（超过 400 单已截断）" : ""));
+    chime(783.99, 0.4);
+  });
+
   // ---------- 启动 ----------
   function resize() {
     W = window.innerWidth; H = window.innerHeight;
@@ -1777,8 +2016,14 @@
   onboard.addEventListener("click", function (e) { if (e.target === onboard) obDismiss(); });
   document.getElementById("btn-help").addEventListener("click", function () { obShow(false); });
   window.__mcuniverse = {
-    stars: stars, data: DATA, isNebula: isNebula, reduced: REDUCED, coarse: COARSE,
+    // getter：导入新数据后 stars/DATA 会整体替换，普通属性会读到旧数组
+    get stars() { return stars; },
+    get data() { return DATA; },
+    get isNebula() { return isNebula; },
+    get reduced() { return REDUCED; },
+    coarse: COARSE,
     composeCard: composeCard,
+    buildStarmap: modelBuild,
     // 版式规格与裁切窗口都给测试：卡片的几何断言不靠"再抄一遍常数"
     cardLayout: cardLayout,
     cardClip: cardClip,

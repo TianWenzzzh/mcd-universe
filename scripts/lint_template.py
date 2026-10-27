@@ -21,6 +21,16 @@ BUILTINS = {
     "Object",
     "Array",
     "isNaN",
+    "isFinite",
+    "Infinity",
+    "NaN",
+    "encodeURIComponent",
+    "decodeURIComponent",
+    "RegExp",
+    "Map",
+    "Set",
+    "Blob",
+    "FileReader",
     "parseInt",
     "parseFloat",
     "document",
@@ -68,6 +78,8 @@ def scan(html: str) -> dict:
     # 1. 收集定义：函数声明 + var/let 函数表达式 + 方法调用不算
     funcs = set(re.findall(r"function\s+([A-Za-z_$][\w$]*)\s*\(", js_code))
     funcs |= set(re.findall(r"(?:var|let|const)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:function|\()", js_code))
+    # getter / setter 声明也属于"定义"，否则 `get stars() {` 会被误判成未定义函数调用
+    funcs |= set(re.findall(r"\b(?:get|set)\s+([A-Za-z_$][\w$]*)\s*\(", js_code))
     defined = funcs | BUILTINS
 
     called = set(re.findall(r"(?<![.\w$])([A-Za-z_$][\w$]*)\s*\(", js_code))

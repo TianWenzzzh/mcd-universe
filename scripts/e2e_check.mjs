@@ -370,6 +370,8 @@ async function checkPage(browser, url, opts) {
       const tipShown = await page.evaluate(() => getComputedStyle(document.getElementById("tip")).display !== "none");
       if (!tipShown) problems.push("悬停未出现餐品气泡");
     }
+
+
   }
   if (opts.touch) {
     // 触屏专项：文案、布局、手势三件事都必须按"没有鼠标"的现实来
@@ -540,6 +542,29 @@ async function checkPage(browser, url, opts) {
     problems.push(...hits);
     state.hudBoxes = hits.length;
   }
+  if (opts.ui) {
+    // 在线生成：打开面板 → 填示例 → 生成 → 断言星图被整体替换
+    await page.click("#import-open");
+    await page.waitForTimeout(400);
+    const importOpen = await page.evaluate(() => document.getElementById("import-panel").classList.contains("show"));
+    if (!importOpen) problems.push("粘贴订单面板未打开");
+    await page.click("#import-sample");
+    await page.waitForTimeout(200);
+    await page.click("#import-go");
+    await page.waitForTimeout(1500);
+    const imported = await page.evaluate(() => ({
+      stars: window.__mcuniverse.stars.length,
+      persona: window.__mcuniverse.data.persona ? window.__mcuniverse.data.persona.name : null,
+      badge: (document.getElementById("demo-badge").textContent || "").trim(),
+      panel: document.getElementById("import-panel").classList.contains("show")
+    }));
+    if (imported.stars !== 3) problems.push(`导入后应有 3 颗星，实际 ${imported.stars}`);
+    if (!imported.badge.includes("自定义")) problems.push(`导入后徽章未切换为自定义：${imported.badge}`);
+    if (imported.panel) problems.push("导入后面板未关闭");
+    state.imported = imported;
+  }
+
+
   await page.close();
   return { url, state, problems };
 }
@@ -663,6 +688,7 @@ async function main() {
     if (r.state.onboardAt) console.log(`     onboard=${r.state.onboardAt}ms`);
     if (r.state.saveMode) console.log(`     saveMode=${r.state.saveMode}`);
     if (r.state.download) console.log(`     download=${r.state.download}`);
+    if (r.state.imported) console.log(`     import: ${r.state.imported.stars} 星 / ${r.state.imported.persona}`);
     if (r.state.pinch) console.log(`     pinch=${r.state.pinch}`);
     r.problems.forEach((p) => console.log("     - " + p));
   }
