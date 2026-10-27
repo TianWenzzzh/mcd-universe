@@ -11,7 +11,6 @@
 from __future__ import annotations
 
 import argparse
-import base64
 import json
 import os
 import sys
@@ -22,9 +21,7 @@ from mcp_client import MCDClient, MCPError, parse_orders
 from star_model import PERSONAS, build_starmap, detect_personality
 
 TEMPLATE = os.path.join(os.path.dirname(__file__), "..", "templates", "starmap.html")
-BOOT_POSTER = os.path.join(os.path.dirname(__file__), "..", "docs", "assets", "boot-poster.jpg")
 PLACEHOLDER = "__STARMAP_DATA__"
-BOOT_PLACEHOLDER = "__BOOT_POSTER__"
 
 
 def load_orders_demo(path: str) -> list:
@@ -95,12 +92,6 @@ def render(
     if PLACEHOLDER not in html:
         raise SystemExit("模板中未找到数据占位符")
     html = html.replace(PLACEHOLDER, json.dumps(payload, ensure_ascii=False))
-    if BOOT_PLACEHOLDER in html:
-        if not os.path.isfile(BOOT_POSTER):
-            raise SystemExit("缺少首屏封面 docs/assets/boot-poster.jpg，请先运行 node scripts/make_shots.mjs")
-        with open(BOOT_POSTER, "rb") as f:
-            poster_uri = "data:image/jpeg;base64," + base64.b64encode(f.read()).decode("ascii")
-        html = html.replace(BOOT_PLACEHOLDER, poster_uri)
 
     os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:

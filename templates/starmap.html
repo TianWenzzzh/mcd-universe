@@ -24,11 +24,6 @@
   html, body { width: 100%; height: 100%; overflow: hidden; background: #04030b; color-scheme: dark; }
   body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; color: #ece9f7; }
   #sky { position: absolute; inset: 0; display: block; touch-action: none; }
-  /* 首屏关键帧：真实星图的轻量 JPEG 在构建时内联，Canvas 首帧就绪前也不是黑屏。 */
-  #boot-cover { position: absolute; inset: 0; z-index: 5; pointer-events: none; background: #04030b; opacity: 1; transition: opacity .28s linear; }
-  #boot-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  #boot-cover.ready { opacity: 0; }
-  @media (prefers-reduced-motion: reduce) { #boot-cover { transition: none; } }
   .hud { position: absolute; z-index: 10; pointer-events: none; }
   .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
   #sky:focus-visible { outline: 2px solid rgba(255,217,122,.6); outline-offset: -4px; }
@@ -190,9 +185,8 @@
 </style>
 </head>
 <body>
-<noscript><style>#boot-cover{display:none}</style><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#ffe9a8;font-size:15px;letter-spacing:1px">麦门宇宙需要 JavaScript 才能渲染星图，请在浏览器设置中开启后重试。</div></noscript>
+<noscript><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#ffe9a8;font-size:15px;letter-spacing:1px">麦门宇宙需要 JavaScript 才能渲染星图，请在浏览器设置中开启后重试。</div></noscript>
 <canvas id="sky" tabindex="0" role="img" aria-label="麦门星图"></canvas>
-<div id="boot-cover" aria-hidden="true"><img src="__BOOT_POSTER__" alt=""></div>
 <div id="a11y-live" class="sr-only" aria-live="polite"></div>
 <ul id="a11y-list" class="sr-only"></ul>
 <div class="hud" id="title"><h1>麦门宇宙</h1><p><span class="t-en">MCUNIVERSE · </span>你的每一单，都是麦门宇宙里的一颗星</p></div>
@@ -901,25 +895,16 @@
     ctx.globalCompositeOperation = "source-over";
   }
 
-  // 首屏封面（把终态星图内联成 JPEG 盖在画布上）试过，量完否决了，别再往上加：
-  // 4× 降频下 Canvas 首帧只要 ~150ms，而入场动画前 600ms 本来就是暗的 ——
-  // 封面只补上"本来就暗"的那段窗口，代价是每页 +15KB，还要多一次"成品闪一下再重播"
-  // 的观感（帧证据：363ms 屏幕上是建好的星图，910ms 变成汇聚中的粒子）。
-
-  var bootCover = document.getElementById("boot-cover"), bootCleared = false;
-  function clearBootCover() {
-    if (bootCleared) return;
-    bootCleared = true;
-    if (!bootCover) return;
-    if (REDUCED) { bootCover.remove(); return; }
-    bootCover.classList.add("ready");
-    setTimeout(function () { if (bootCover) bootCover.remove(); }, 320);
-  }
+  // 首屏封面（把终态星图内联成 JPEG 盖在画布上）做过一版，量完撤掉了，别再往上加：
+  // 4× 降频下 Canvas 首帧只要 ~150ms，入场动画前 600ms 本来就是暗的 —— 封面补的是
+  // "本来就暗"的窗口，代价是每页 +15KB；代价之二更难看：逐帧看 363ms 屏幕上是建好的星图、
+  // 910ms 变成汇聚中的粒子（成品闪一下再重播）；手机竖屏尤其糟，960×600 的桌面构图
+  // 被 object-fit:cover 裁成一条竖条，与真实竖屏布局完全不同，换过去等于画面跳一次。
+  // 要继续压首屏，方向是 JS 体积，不是再加一张图。
 
   function frame(t) {
     if (!startT) startT = t;
     drawScene(t - startT);
-    clearBootCover();
     raf = requestAnimationFrame(frame);
   }
 

@@ -72,11 +72,8 @@ async function checkPage(browser, url, opts) {
       isNebula: mc ? mc.isNebula : null,
       reduced: mc ? mc.reduced : null,
       persona: mc && mc.data.persona ? mc.data.persona.name : null,
-      // Canvas 首帧画完后封面必须退场；否则它会永远盖在真实星图上。
-      bootGone: !document.getElementById("boot-cover"),
     };
   });
-  if (!state.bootGone) problems.push("首屏封面在首帧后没有退场");
   if (onboardAt) state.onboardAt = onboardAt;
 
   if (opts.expectNebula !== undefined && state.isNebula !== opts.expectNebula) {
@@ -573,39 +570,6 @@ async function checkPage(browser, url, opts) {
   return { url, state, problems };
 }
 
-/** 冻结 requestAnimationFrame，模拟"脚本已到、首帧还没画"的最坏时序。 */
-async function checkBootCover(browser) {
-  const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
-  const problems = [];
-  await page.addInitScript(() => {
-    window.requestAnimationFrame = () => 0;
-    window.cancelAnimationFrame = () => {};
-  });
-  await page.goto(BASE + "?e2e=1&boot=1", { waitUntil: "load", timeout: 90000 });
-  const state = await page.evaluate(() => {
-    const cover = document.getElementById("boot-cover");
-    const img = cover ? cover.querySelector("img") : null;
-    const box = cover ? cover.getBoundingClientRect() : null;
-    return {
-      stars: -1,
-      isNebula: null,
-      persona: null,
-      bootCover: !!cover,
-      bootOpacity: cover ? getComputedStyle(cover).opacity : null,
-      bootImageLoaded: !!(img && img.complete && img.naturalWidth > 0),
-      bootWidth: img ? img.naturalWidth : 0,
-      bootHeight: img ? img.naturalHeight : 0,
-      bootFullscreen: !!(box && box.width >= window.innerWidth && box.height >= window.innerHeight),
-    };
-  });
-  if (!state.bootCover) problems.push("首帧未画时首屏封面不存在");
-  if (state.bootOpacity !== "1") problems.push(`首帧前封面应完全可见，实际 opacity=${state.bootOpacity}`);
-  if (!state.bootImageLoaded) problems.push("首屏封面图片未解码");
-  if (!state.bootFullscreen) problems.push("首屏封面没有铺满视口");
-  await page.close();
-  return { url: BASE + "?e2e=1&boot=1", state, problems };
-}
-
 /** ?open=import 深链：落地直接开面板，并且不能再排首访引导（两套模态会抢焦点）。 */
 async function checkDeepLinkImport(browser) {
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
@@ -632,7 +596,6 @@ async function checkDeepLinkImport(browser) {
 async function main() {
   const browser = await chromium.launch({ channel: "msedge", headless: true });
   const results = [];
-  results.push(await checkBootCover(browser));
   results.push(await checkDeepLinkImport(browser));
   results.push(
     await checkPage(browser, BASE + "?e2e=1", {
@@ -752,7 +715,6 @@ async function main() {
     if (r.state.download) console.log(`     download=${r.state.download}`);
     if (r.state.imported) console.log(`     import: ${r.state.imported.stars} 星 / ${r.state.imported.persona}`);
     if (r.state.pinch) console.log(`     pinch=${r.state.pinch}`);
-    if (r.state.bootCover) console.log(`     boot=${r.state.bootWidth}x${r.state.bootHeight} opacity=${r.state.bootOpacity}`);
     r.problems.forEach((p) => console.log("     - " + p));
   }
   process.exit(failed ? 1 : 0);

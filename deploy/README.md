@@ -47,7 +47,7 @@ python deploy/sync_mirror.py           # 打包上传 + HTTP 自检
 python deploy/sync_mirror.py --check   # 只自检
 ```
 
-- 只上传 `demo/` 与 `docs/`；`docs/assets` 走白名单（`*-web.jpg`、`*-web.gif`、`.mp4`、`demo-poster.jpg`），原图不进镜像
+- 只上传 `demo/` 与 `docs/`；`docs/assets` 走白名单（`*-web.jpg`、`*-web.gif`、`.mp4`、`demo-poster.jpg`、`og-card.jpg`），原图不进镜像
 - 上传前保留上一版到 `mcd-site.prev` 便于回滚
 - 结束会自检 `/mcd/demo/` 与 `/mcd/docs/about.html`，非 200 即失败退出
 

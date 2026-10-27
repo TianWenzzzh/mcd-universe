@@ -31,14 +31,20 @@ REMOTE_DIR = os.environ.get("MCD_MIRROR_PATH", "/opt/caddy/config/mcd-site")
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
+# docs/assets 里"页面真的会去取"的单列文件：体积小、少一张就少一块功能。
+# og-card.jpg 是说明页与演示页的 og:image —— 漏了它，镜像链接转进微信就是一张灰卡
+# （线上实测 404，白名单只认 *-web.jpg 的那一版一直在悄悄漏传）。
+REFERENCED_ASSETS = ("demo-poster.jpg", "og-card.jpg")
+
+
 def _filter(tarinfo: tarfile.TarInfo) -> tarfile.TarInfo | None:
-    """docs/assets 只上传 Web 优化版（*-web.jpg / *-web.gif）。
+    """docs/assets 只上传 Web 优化版（*-web.jpg / *-web.gif）与页面引用的小图。
 
     原图（2 倍 PNG、未压缩 GIF）只用于投稿材料上传，不必占用镜像带宽。
     """
     path = tarinfo.name.replace("\\", "/")
     if "/assets/" in path and not path.endswith(("/",)):
-        allowed = path.endswith(("-web.jpg", "-web.gif", ".mp4", "demo-poster.jpg"))
+        allowed = path.endswith(("-web.jpg", "-web.gif", ".mp4", *REFERENCED_ASSETS))
         if not allowed:
             return None
     return tarinfo
