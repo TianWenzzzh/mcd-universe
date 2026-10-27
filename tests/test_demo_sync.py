@@ -44,7 +44,8 @@ def test_committed_demo_pages_match_template(tmp_path):
         with open(os.path.join(ROOT, page), encoding="utf-8") as f:
             current = f.read()
         fresh_path = tmp_path / os.path.basename(page)
-        build_demo.build_one(sample, fresh_path)
+        # 第三参是这一页的最终位置：产物写到临时目录比对，og:url 仍按最终位置算。
+        build_demo.build_one(sample, fresh_path, os.path.join(ROOT, page))
         with open(fresh_path, encoding="utf-8") as f:
             fresh = f.read()
         if build_demo.differs(fresh, current):

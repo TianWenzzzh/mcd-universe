@@ -22,6 +22,33 @@ from star_model import PERSONAS, build_starmap, detect_personality
 
 TEMPLATE = os.path.join(os.path.dirname(__file__), "..", "templates", "starmap.html")
 PLACEHOLDER = "__STARMAP_DATA__"
+OG_PLACEHOLDER = "__OG_URL__"
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+SITE = "https://tianwenzzzh.github.io/mcd-universe/"
+
+
+def og_url_for(out_path: str) -> str:
+    """这一页对外声明的地址（og:url）。
+
+    按输出文件在仓库里的位置算：demo/index.html 收成 demo/，其余保留文件名。
+    输出在仓库外（用户自己跑的 report.html）时退回站点根 —— 声明一个不存在的地址
+    比不声明更糟。
+    """
+    rel = os.path.relpath(os.path.abspath(out_path), ROOT).replace(os.sep, "/")
+    if not (rel.startswith("demo/") or rel.startswith("docs/")):
+        return SITE
+    if rel.endswith("index.html"):
+        rel = rel[: -len("index.html")]
+    return SITE + rel
+
+
+def resolve_og_url(value: str | None, out_path: str) -> str:
+    """--og-url 可以给绝对地址，也可以给"这一页最终会落在仓库里的路径"。"""
+    if not value:
+        return og_url_for(out_path)
+    if value.startswith(("http://", "https://")):
+        return value
+    return og_url_for(value)
 
 
 def load_orders_demo(path: str) -> list:
@@ -69,7 +96,12 @@ def load_orders_live() -> tuple:
 
 
 def render(
-    starmap: dict, out_path: str, demo: bool = False, account: dict | None = None, daily: dict | None = None
+    starmap: dict,
+    out_path: str,
+    demo: bool = False,
+    account: dict | None = None,
+    daily: dict | None = None,
+    og_url: str | None = None,
 ) -> None:
     payload = {
         "status": starmap["status"],
@@ -91,7 +123,10 @@ def render(
         html = f.read()
     if PLACEHOLDER not in html:
         raise SystemExit("模板中未找到数据占位符")
+    if OG_PLACEHOLDER not in html:
+        raise SystemExit("模板中未找到 og:url 占位符")
     html = html.replace(PLACEHOLDER, json.dumps(payload, ensure_ascii=False))
+    html = html.replace(OG_PLACEHOLDER, resolve_og_url(og_url, out_path))
 
     os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
@@ -107,16 +142,18 @@ def main():
     ap.add_argument("--demo", help="演示订单 JSON 路径")
     ap.add_argument("--live", action="store_true", help="通过 MCP 拉取本人真实订单")
     ap.add_argument("-o", "--out", default="report.html")
+    # 校验模式会把页面写到临时目录比对，但 og:url 必须按"最终位置"算，否则每次比对都假红。
+    ap.add_argument("--og-url", help="覆盖 og:url（--check 比对时用）")
     args = ap.parse_args()
 
     account = None
     daily = None
     if args.live:
         orders, account, daily = load_orders_live()
-        render(build_starmap(orders), args.out, demo=False, account=account, daily=daily)
+        render(build_starmap(orders), args.out, demo=False, account=account, daily=daily, og_url=args.og_url)
     elif args.demo:
         orders = load_orders_demo(args.demo)
-        render(build_starmap(orders), args.out, demo=True)
+        render(build_starmap(orders), args.out, demo=True, og_url=args.og_url)
     else:
         ap.error("必须指定 --demo 或 --live")
 

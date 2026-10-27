@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import io
 import os
+import subprocess
 import sys
 import tarfile
 
@@ -30,6 +31,12 @@ KEY = os.path.expanduser(os.environ.get("MCD_MIRROR_KEY", "~/.ssh/mcuniverse_dep
 REMOTE_DIR = os.environ.get("MCD_MIRROR_PATH", "/opt/caddy/config/mcd-site")
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# 镜像的对外前缀。页面在这个前缀下被打开，页面里所有"绝对地址"就应该说这个前缀。
+MIRROR_BASE = os.environ.get("MCD_MIRROR_BASE", f"http://{HOST}/mcd/")
+
+# 源文件里的绝对站址（GitHub Pages）。与 check_meta.SITE 同一份定义，别在这里再抄一遍。
+sys.path.insert(0, os.path.join(ROOT, "scripts"))
+from check_meta import SITE  # noqa: E402
 
 # docs/assets 里"页面真的会去取"的单列文件：体积小、少一张就少一块功能。
 # og-card.jpg 是说明页与演示页的 og:image —— 漏了它，镜像链接转进微信就是一张灰卡
@@ -37,25 +44,60 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REFERENCED_ASSETS = ("demo-poster.jpg", "og-card.jpg")
 
 
-def _filter(tarinfo: tarfile.TarInfo) -> tarfile.TarInfo | None:
-    """docs/assets 只上传 Web 优化版（*-web.jpg / *-web.gif）与页面引用的小图。
+def rewrite_hosts(text: str, base: str = MIRROR_BASE) -> str:
+    """把页面里的绝对站址换成本站前缀。
+
+    og:image / og:url 必须是绝对地址（抓取器不认相对路径），而同一份 HTML 要同时服务
+    Pages 与镜像两套域名。源文件里只能写一个，于是按目标站点在同步这一步重写。
+
+    不重写的后果实测过：镜像页声明 og:image 在 github.io，抓取器为了取一张 72KB 的图
+    要多跨一站；那台主机在国内时好时坏，卡片就时有时无。（图本身镜像上一直有，
+    0.23s 就能取到。）
+    """
+    return text.replace(SITE, base)
+
+
+def _keep(arc: str) -> bool:
+    """镜像只收 Web 优化版（*-web.jpg / *-web.gif / .mp4）与页面引用的小图。
 
     原图（2 倍 PNG、未压缩 GIF）只用于投稿材料上传，不必占用镜像带宽。
     """
-    path = tarinfo.name.replace("\\", "/")
-    if "/assets/" in path and not path.endswith(("/",)):
-        allowed = path.endswith(("-web.jpg", "-web.gif", ".mp4", *REFERENCED_ASSETS))
-        if not allowed:
-            return None
-    return tarinfo
+    if arc.endswith("/"):
+        return True
+    if "/assets/" in arc:
+        return arc.endswith(("-web.jpg", "-web.gif", ".mp4", *REFERENCED_ASSETS))
+    return True
+
+
+def _filter(tarinfo: tarfile.TarInfo) -> tarfile.TarInfo | None:
+    """tarfile 的 filter 回调（保留旧签名，tests 里直接调它验白名单）。"""
+    return tarinfo if _keep(tarinfo.name.replace("\\", "/")) else None
 
 
 def build_tar() -> bytes:
-    """把 demo/ 与 docs/ 打成 tar.gz（内存中完成，不落临时文件）。"""
+    """把 demo/ 与 docs/ 打成 tar.gz（内存中完成，不落临时文件）。
+
+    HTML 在这里重写站址：源文件里写 Pages，上传的那份写镜像。
+    """
     buf = io.BytesIO()
     with tarfile.open(fileobj=buf, mode="w:gz") as tar:
         for name in ("demo", "docs"):
-            tar.add(os.path.join(ROOT, name), arcname=name, filter=_filter)
+            for dirpath, dirnames, filenames in os.walk(os.path.join(ROOT, name)):
+                dirnames.sort()
+                for fn in sorted(filenames):
+                    full = os.path.join(dirpath, fn)
+                    arc = os.path.relpath(full, ROOT).replace(os.sep, "/")
+                    if not _keep(arc):
+                        continue
+                    info = tar.gettarinfo(full, arc)
+                    if fn.endswith(".html"):
+                        with open(full, encoding="utf-8") as fh:
+                            data = rewrite_hosts(fh.read()).encode("utf-8")
+                        info.size = len(data)
+                        tar.addfile(info, io.BytesIO(data))
+                    else:
+                        with open(full, "rb") as fh:
+                            tar.addfile(info, fh)
     return buf.getvalue()
 
 
@@ -79,9 +121,23 @@ def check(client: paramiko.SSHClient) -> bool:
     return ok
 
 
+def social_check() -> bool:
+    """抓取器视角自检：页面取得到 → og 说自己是镜像 → 缩略图同源且取得到。
+
+    这一步放在同步末尾，是因为"上传成功"和"转发出去有图"是两件事：
+    上一轮的 og-card.jpg 就是文件传上去了、页面却指着另一台主机。
+    """
+    script = os.path.join(ROOT, "scripts", "check_social.py")
+    if not os.path.isfile(script):
+        print("跳过抓取自检（找不到 scripts/check_social.py）")
+        return True
+    return subprocess.run([sys.executable, script, "--base", MIRROR_BASE], check=False).returncode == 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--check", action="store_true", help="只做 HTTP 自检")
+    ap.add_argument("--no-social", action="store_true", help="跳过抓取器视角自检")
     args = ap.parse_args()
 
     client = connect()
@@ -113,6 +169,8 @@ def main() -> int:
         print("HTTP 自检：")
         ok = check(client)
         print(f"镜像地址: http://{HOST}/mcd/demo/")
+        if ok and not args.no_social:
+            social_check()
         return 0 if ok else 1
     finally:
         client.close()

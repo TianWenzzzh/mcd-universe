@@ -54,6 +54,10 @@ REQUIRED_META = (
     "og:description",
     "og:image",
     "og:type",
+    # og:url 不是装饰：镜像上的页面必须声明镜像自己的地址，否则分享链接点在镜像、
+    # 声明却说自己是 Pages（两套域名，抓取器按声明回抓，卡片就指到了另一台主机）。
+    "og:url",
+    "og:site_name",
     "twitter:card",
 )
 
@@ -70,7 +74,7 @@ def _pages(root: str) -> list[str]:
     return out
 
 
-def _metas(html: str) -> dict[str, str]:
+def metas(html: str) -> dict[str, str]:
     """把 <meta> 读成 {name: content}。两种属性顺序都要认。"""
     out: dict[str, str] = {}
     for key, val in META_RE.findall(html):
@@ -86,16 +90,16 @@ def check(root: str = ROOT) -> list[tuple[str, str]]:
     for rel in _pages(root):
         with open(os.path.join(root, rel), encoding="utf-8", errors="replace") as fh:
             html = fh.read()
-        metas = _metas(html)
+        found = metas(html)
 
         for key in REQUIRED_META:
-            if not metas.get(key):
+            if not found.get(key):
                 problems.append((rel, f"缺少 <meta {key}>"))
 
         if not ICON_RE.search(html):
             problems.append((rel, "缺少 favicon（<link rel=icon>）"))
 
-        og = metas.get("og:image", "")
+        og = found.get("og:image", "")
         if not og:
             continue
         # 相对路径抓取器不认；外站的图更要拦（这个项目的承诺是零外部主机）
@@ -111,6 +115,17 @@ def check(root: str = ROOT) -> list[tuple[str, str]]:
         kb = os.path.getsize(target) / 1024
         if kb > OG_MAX_KB:
             problems.append((rel, f"og:image 体积 {kb:.0f}KB 超过 {OG_MAX_KB}KB，抓取器可能丢弃"))
+
+        # og:url 指错的页面不会让任何东西变红，但分享出去的卡片会"回到另一页"。
+        url = found.get("og:url", "")
+        if url and not url.startswith(SITE):
+            problems.append((rel, f"og:url 不是本站绝对地址：{url[:60]}"))
+        elif url:
+            target_page = url[len(SITE) :] or "index.html"
+            if target_page.endswith("/"):
+                target_page += "index.html"
+            if not os.path.isfile(os.path.join(root, target_page.replace("/", os.sep))):
+                problems.append((rel, f"og:url 指向的页面不存在：{target_page}"))
     return problems
 
 

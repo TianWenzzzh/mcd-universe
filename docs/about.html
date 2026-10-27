@@ -16,6 +16,8 @@
 <meta property="og:image:height" content="630">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tianwenzzzh.github.io/mcd-universe/docs/about.html">
+<meta property="og:site_name" content="麦门宇宙 McUniverse">
+<meta property="og:locale" content="zh_CN">
 <meta name="twitter:card" content="summary_large_image">
 <title>麦门宇宙 McUniverse · 作品说明</title>
 <style>
@@ -168,7 +170,7 @@
     <tr><td>渲染</td><td>单文件 HTML + Canvas：加色混合发光、460 颗背景星三层纵深、星云雾带、粒子入场、拖拽/缩放/视差</td></tr>
     <tr><td>性能</td><td>每帧有预算：手机 4× 降速下开场每帧 1.0ms、稳态 0.4ms（60fps 的总预算 16.7ms）· 稳态每帧新建渐变 0（曾因星轨逐段建渐变达到 10 个）· 首屏 98ms（手机 4× 降速 451ms）· 整页 118KB · 外部请求 0</td></tr>
     <tr><td>在线生成</td><td>浏览器内跑同一套星图规则（品类/星等/人格），与 Python 管线由 <b>test_model_parity</b> 逐字段交叉校验；订单只在本地解析</td></tr>
-    <tr><td>工程</td><td>零运行依赖 · 78 条测试 · ruff 全绿 · CI 四版本矩阵 · 真实浏览器 E2E 十态冒烟（含深链导入、触屏手势与微信/iOS/安卓三种交付容器） · 分享卡版式规格化 + 几何断言 · 页面版式体检（卡片空洞 / 行高对齐 / 横向溢出）· 社交预览元信息检查 · 键盘与读屏可用</td></tr>
+    <tr><td>工程</td><td>零运行依赖 · 95 条测试 · ruff 全绿 · CI 四版本矩阵 · 真实浏览器 E2E 十态冒烟（含深链导入、触屏手势与微信/iOS/安卓三种交付容器） · 分享卡版式规格化 + 几何断言 · 页面版式体检（卡片空洞 / 行高对齐 / 横向溢出）· 社交预览元信息检查 · 抓取器视角自检（og 同源 / 尺寸属实 / 3 秒内）· 键盘与读屏可用</td></tr>
   </table>
   <p class="note">演示页使用匿名化模拟数据，打开即玩；真实使用需在自己的电脑上配置 MCD_MCP_TOKEN（仅存环境变量），订单数据全程本地处理、不上传、不留存。</p>
 

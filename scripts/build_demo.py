@@ -37,16 +37,18 @@ def differs(fresh: str, current: str) -> bool:
     return fresh.replace("\r\n", "\n") != current.replace("\r\n", "\n")
 
 
-def build_one(sample: str, out: Path) -> None:
-    """调用主管线生成单页（保持单一数据源，不在本脚本里重复注入逻辑）。"""
+def build_one(sample: str, out: Path, page_path: Path | None = None) -> None:
+    """调用主管线生成单页（保持单一数据源，不在本脚本里重复注入逻辑）。
+
+    `page_path` 是这一页的**最终位置**：--check 时写到临时目录比对，但 og:url 必须按最终
+    位置算，否则每页都声明站点根、比对永远假红。
+    """
     import subprocess
 
-    subprocess.run(
-        [sys.executable, str(GENERATOR), "--demo", str(ROOT / sample), "-o", str(out)],
-        check=True,
-        cwd=str(ROOT),
-        stdout=subprocess.DEVNULL,
-    )
+    cmd = [sys.executable, str(GENERATOR), "--demo", str(ROOT / sample), "-o", str(out)]
+    if page_path is not None:
+        cmd += ["--og-url", str(page_path)]
+    subprocess.run(cmd, check=True, cwd=str(ROOT), stdout=subprocess.DEVNULL)
 
 
 def main() -> int:
@@ -60,7 +62,7 @@ def main() -> int:
             target = ROOT / page
             if args.check:
                 tmp_out = Path(tmp) / Path(page).name
-                build_one(sample, tmp_out)
+                build_one(sample, tmp_out, target)
                 # 统一按 UTF-8 文本比较，避免 Windows CRLF 误报
                 fresh = tmp_out.read_text(encoding="utf-8")
                 current = target.read_text(encoding="utf-8")

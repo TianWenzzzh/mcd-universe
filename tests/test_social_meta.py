@@ -42,6 +42,8 @@ PAGE_OK = f"""<!DOCTYPE html><html lang="zh-CN"><head>
 <meta property="og:description" content="订单星图">
 <meta property="og:type" content="website">
 <meta property="og:image" content="{SITE}docs/assets/og-card.jpg">
+<meta property="og:url" content="{SITE}docs/about.html">
+<meta property="og:site_name" content="麦门宇宙">
 <meta name="twitter:card" content="summary_large_image">
 <title>麦门宇宙</title></head><body></body></html>"""
 
@@ -93,6 +95,20 @@ def test_missing_favicon_is_reported(tmp_path):
     html = PAGE_OK.replace('<link rel="icon" href="data:image/svg+xml,<svg/>">', "")
     problems = check(build(tmp_path, html))
     assert any("favicon" in why for _, why in problems), problems
+
+
+def test_og_url_to_missing_page_is_reported(tmp_path):
+    """证伪：og:url 指向一个不存在的页面（分享卡点回去是 404），必须报。"""
+    html = PAGE_OK.replace(f"{SITE}docs/about.html", f"{SITE}docs/nope.html")
+    problems = check(build(tmp_path, html))
+    assert any("og:url" in why for _, why in problems), problems
+
+
+def test_missing_og_url_is_reported(tmp_path):
+    """证伪：演示页此前没有 og:url —— 少了它，镜像与 Pages 两套域名会互相指错。"""
+    html = PAGE_OK.replace(f'<meta property="og:url" content="{SITE}docs/about.html">', "")
+    problems = check(build(tmp_path, html))
+    assert any("og:url" in why for _, why in problems), problems
 
 
 def test_meta_attribute_order_does_not_matter(tmp_path):

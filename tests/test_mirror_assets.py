@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import importlib.util
+import io
 import os
 import re
 import sys
@@ -19,16 +20,18 @@ ASSET_RE = re.compile(r"assets/([A-Za-z0-9._-]+)")
 PAGES = ["demo/index.html", "demo/breakfast.html", "demo/dessert.html", "demo/burger.html", "docs/about.html"]
 
 
-def _load_sync():
-    path = os.path.join(ROOT, "deploy", "sync_mirror.py")
-    spec = importlib.util.spec_from_file_location("sync_mirror", path)
+def _load(name: str, rel: str):
+    path = os.path.join(ROOT, rel)
+    spec = importlib.util.spec_from_file_location(name, path)
     module = importlib.util.module_from_spec(spec)
-    sys.modules["sync_mirror"] = module
+    sys.modules[name] = module
     spec.loader.exec_module(module)
     return module
 
 
-sync = _load_sync()
+sync = _load("sync_mirror", os.path.join("deploy", "sync_mirror.py"))
+check_meta = _load("check_meta", os.path.join("scripts", "check_meta.py"))
+social = _load("check_social", os.path.join("scripts", "check_social.py"))
 
 
 def kept(rel: str) -> bool:
@@ -71,3 +74,36 @@ def test_html_and_demo_pages_are_not_filtered() -> None:
     """白名单只作用于 assets，页面本身一个都不能少。"""
     for page in PAGES:
         assert kept(page) is True
+
+
+def test_mirror_html_declares_mirror_origin() -> None:
+    """镜像页的 og:image / og:url 必须说镜像自己的地址（源文件写 Pages，上传的这份重写）。
+
+    不重写的后果：抓取器为了取一张 72KB 的图要跨到 github.io，那台主机在国内时好时坏。
+    """
+    for page in PAGES:
+        with open(os.path.join(ROOT, page), encoding="utf-8") as fh:
+            src = fh.read()
+        mirror = sync.rewrite_hosts(src)
+        assert check_meta.SITE not in mirror, f"{page} 重写后仍残留 Pages 地址"
+        assert sync.MIRROR_BASE in mirror, f"{page} 重写后没有镜像地址"
+        page_url = sync.MIRROR_BASE + (page[: -len("index.html")] if page.endswith("index.html") else page)
+        assert social.audit_page(mirror, page_url) == [], (page, social.audit_page(mirror, page_url))
+
+
+def test_unrewritten_page_is_caught() -> None:
+    """证伪：不重写的页面必须被判定抓出问题，否则上一条只是"永远 PASS"。"""
+    with open(os.path.join(ROOT, "demo/index.html"), encoding="utf-8") as fh:
+        src = fh.read()
+    problems = social.audit_page(src, sync.MIRROR_BASE + "demo/")
+    assert any("跨主机" in p for p in problems), problems
+
+
+def test_tar_contains_rewritten_html_and_og_card() -> None:
+    """真产物：打包出来的 HTML 已经是镜像口径，og-card 在包里。"""
+    data = sync.build_tar()
+    with tarfile.open(fileobj=io.BytesIO(data), mode="r:gz") as tar:
+        assert "docs/assets/og-card.jpg" in tar.getnames()
+        html = tar.extractfile("demo/index.html").read().decode("utf-8")
+    assert sync.MIRROR_BASE in html
+    assert check_meta.SITE not in html
