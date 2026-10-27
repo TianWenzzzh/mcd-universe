@@ -40,6 +40,9 @@ jobs:
       - name: Link integrity check
         run: python scripts/check_links.py
 
+      - name: Social preview meta check
+        run: python scripts/check_meta.py
+
       - name: Page weight & no external deps
         run: python scripts/check_weight.py
 

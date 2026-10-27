@@ -3,6 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- 说明页会被当成「作品简介」直接转进群里/微信里。缺了下面这几行，
+     转发出去就是一张只有灰底的空白卡片 —— 演示页有 meta，说明页一直没有。 -->
+<meta name="theme-color" content="#05040e">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⭐</text></svg>">
+<meta name="description" content="麦门宇宙：把麦当劳历史订单变成个人星图与七种麦门人格，基于麦当劳中国官方 MCP，数据全程本地处理。">
+<meta property="og:title" content="麦门宇宙 McUniverse · 作品说明">
+<meta property="og:description" content="你的每一单，都是麦门宇宙里的一颗星。订单星图 + 麦门人格 + 四种风格分享卡，打开即玩、无需登录。">
+<meta property="og:image" content="https://tianwenzzzh.github.io/mcd-universe/docs/assets/og-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://tianwenzzzh.github.io/mcd-universe/docs/about.html">
+<meta name="twitter:card" content="summary_large_image">
 <title>麦门宇宙 McUniverse · 作品说明</title>
 <style>
   :root { --gold: #ffe9a8; --txt: #ece9f7; --dim: #9d97bd; --line: rgba(255,255,255,.1); }
@@ -32,9 +46,24 @@
   .persona i { font-style: normal; font-size: 13px; color: var(--gold); letter-spacing: 1px; }
   .persona span { display: block; font-size: 12px; color: var(--dim); margin-top: 4px; }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; }
-  .grid2 figure { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #08061a; }
-  .grid2 img { display: block; width: 100%; }
-  .grid2 figcaption { font-size: 11px; color: var(--dim); padding: 8px 12px; }
+  /* 四张截图的宽高比差得很远（桌面 16:10、手机 9:19.5、分享卡 3:4）。
+     grid 两列 + 默认 stretch 会把一行拉到最高的那张，矮图就成了一张 600px 高的空卡片。
+     改成：一行一个 flex 行，每格 flex-grow 取自己的宽高比 —— 宽度按比例分，
+     图片高度自然就相等，卡片里不再留空洞。 */
+  .shots { display: flex; flex-direction: column; gap: 14px; margin-top: 16px; }
+  .shot-row { display: flex; gap: 14px; align-items: stretch; }
+  .shot-row figure { display: flex; flex-direction: column; min-width: 0;
+    border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #08061a; }
+  .shot-row .ar-16 { flex: 1.6 1 0; }
+  .shot-row .ar-046 { flex: 0.462 1 0; }
+  .shot-row .ar-075 { flex: 0.75 1 0; }
+  .shot-row img { display: block; width: 100%; height: auto; }
+  /* 导出面板那张是「弹窗浮在模糊背景上」，缩到 550px 宽后弹窗只占 250px，四种风格看成一团糊。
+     用一层 overflow:hidden 的框把它放大取中：框高仍按原图算，所以不影响行高对齐。 */
+  .shot-frame { overflow: hidden; }
+  .shot-frame.z15 img { transform: scale(1.5); transform-origin: 50% 50%; }
+  .shot-row figcaption { font-size: 11px; color: var(--dim); padding: 8px 12px; min-height: 34px; margin-top: auto;
+    display: flex; align-items: center; }
   table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 13px; }
   th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid rgba(255,255,255,.06); }
   th { color: var(--dim); font-weight: 500; font-size: 12px; letter-spacing: 1px; }
@@ -46,7 +75,13 @@
     header { padding: 40px 0 24px; }
     header h1 { font-size: 28px; letter-spacing: 6px; }
     .steps { grid-template-columns: 1fr; }
-    .grid2 { grid-template-columns: 1fr; }
+    .shot-row { flex-direction: column; }
+    /* 这里的优先级必须跟上面 .shot-row .ar-16（两个类）打平：
+       写成 .shot-row figure 只有 (0,1,1)，被 (0,2,0) 压住，flex-basis:0 在纵向容器里
+       等于 height:0 —— 卡片会被压成 2px 的边框，图直接溢出（本地实测过）。 */
+    .shot-row .ar-16, .shot-row .ar-046, .shot-row .ar-075 { flex: none; width: 100%; }
+    /* 手机截图是 1:2.2 的长条，铺满 342px 宽就是 740px 高，几乎占满一屏 —— 收窄居中 */
+    .shot-row .ar-046 { width: 62%; margin: 0 auto; }
     h2 { margin-top: 40px; }
   }
 </style>
@@ -100,11 +135,15 @@
   </div>
 
   <h2>作品截图</h2>
-  <div class="grid2">
-    <figure><img loading="lazy" src="./assets/submit-1-web.jpg" alt="桌面版星图"><figcaption>桌面版：人设切换、悬停看餐品、人格卡与 10 项成就</figcaption></figure>
-    <figure><img loading="lazy" src="./assets/submit-3-web.jpg" alt="移动版星图"><figcaption>移动版：竖屏自适应、按钮两行</figcaption></figure>
-    <figure><img loading="lazy" src="./assets/share-card-minimal-web.jpg" alt="极简海报风格分享卡"><figcaption>分享卡 · 极简海报风格（共四种），带扫码入口</figcaption></figure>
-    <figure><img loading="lazy" src="./assets/submit-2-web.jpg" alt="分享卡风格选择"><figcaption>导出面板：四种风格实时预览</figcaption></figure>
+  <div class="shots">
+    <div class="shot-row">
+      <figure class="ar-16"><div class="shot-frame"><img loading="lazy" width="1600" height="1000" src="./assets/submit-1-web.jpg" alt="桌面版星图"></div><figcaption>桌面版：人设切换、悬停看餐品、人格卡与 10 项成就</figcaption></figure>
+      <figure class="ar-046"><div class="shot-frame"><img loading="lazy" width="780" height="1688" src="./assets/submit-3-web.jpg" alt="移动版星图"></div><figcaption>移动版：竖屏自适应、按钮两行</figcaption></figure>
+    </div>
+    <div class="shot-row">
+      <figure class="ar-075"><div class="shot-frame"><img loading="lazy" width="1080" height="1440" src="./assets/share-card-minimal-web.jpg" alt="极简海报风格分享卡"></div><figcaption>分享卡 · 极简海报风格（共四种），带扫码入口</figcaption></figure>
+      <figure class="ar-16"><div class="shot-frame z15"><img loading="lazy" width="1600" height="1000" src="./assets/submit-2-web.jpg" alt="分享卡风格选择"></div><figcaption>导出面板：四种风格实时预览</figcaption></figure>
+    </div>
   </div>
 
   <h2>怎么做的</h2>
@@ -113,8 +152,8 @@
     <tr><td>取数</td><td>麦当劳中国官方 MCP：<b>order-list</b> 拉历史订单、<b>query-my-account</b> 取积分、<b>campaign-calendar</b> 取今日活动（共 35 个工具）</td></tr>
     <tr><td>归类</td><td>Python 星图引擎：餐品名→品类规则、金额/频次→星等 1~5、时间段→人格判定</td></tr>
     <tr><td>渲染</td><td>单文件 HTML + Canvas：加色混合发光、460 颗背景星三层纵深、星云雾带、粒子入场、拖拽/缩放/视差</td></tr>
-    <tr><td>性能</td><td>每帧有预算：手机 4× 降速下开场每帧 0.8ms、稳态 0.6ms（60fps 的总预算 16.7ms）· 稳态每帧新建渐变 0.1 个（曾因星轨逐段建渐变达到 10 个）· 首屏 113ms（手机 4× 降速 723ms）· 整页 99KB · 外部请求 0</td></tr>
-    <tr><td>工程</td><td>零运行依赖 · 48 条测试 · ruff 全绿 · CI 四版本矩阵 · 真实浏览器 E2E 九态冒烟（含触屏手势与微信/iOS/安卓三种交付容器） · 分享卡版式规格化 + 几何断言 · 键盘与读屏可用</td></tr>
+    <tr><td>性能</td><td>每帧有预算：手机 4× 降速下开场每帧 1.0ms、稳态 0.4ms（60fps 的总预算 16.7ms）· 稳态每帧新建渐变 0（曾因星轨逐段建渐变达到 10 个）· 首屏 98ms（手机 4× 降速 451ms）· 整页 100KB · 外部请求 0</td></tr>
+    <tr><td>工程</td><td>零运行依赖 · 57 条测试 · ruff 全绿 · CI 四版本矩阵 · 真实浏览器 E2E 九态冒烟（含触屏手势与微信/iOS/安卓三种交付容器） · 分享卡版式规格化 + 几何断言 · 页面版式体检（卡片空洞 / 行高对齐 / 横向溢出）· 社交预览元信息检查 · 键盘与读屏可用</td></tr>
   </table>
   <p class="note">演示页使用匿名化模拟数据，打开即玩；真实使用需在自己的电脑上配置 MCD_MCP_TOKEN（仅存环境变量），订单数据全程本地处理、不上传、不留存。</p>
 
@@ -123,5 +162,19 @@
     <p style="margin-top:6px"><a href="../demo/">体验</a> · <a href="https://github.com/TianWenzzzh/mcd-universe">源码</a> · <a href="https://github.com/TianWenzzzh/mcd-universe/blob/main/MCP_INTEGRATION.md">MCP 集成说明</a></p>
   </footer>
 </div>
+<script>
+  // 减少动效的用户不该被一段无限循环的视频按住：autoplay 会绕过系统的「减少动态效果」设置，
+  // 而这一页的 hero 恰好是一段 10 秒循环。演示页早就按 reduced-motion 分档了，说明页漏了。
+  (function () {
+    if (!window.matchMedia || !matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    var v = document.querySelector(".hero video");
+    if (!v) return;
+    v.autoplay = false;
+    v.removeAttribute("autoplay");
+    // 停下来了就得留个口子：给原生控件，想看的用户自己点播放
+    v.controls = true;
+    try { v.pause(); } catch (e) {}
+  })();
+</script>
 </body>
 </html>

@@ -9,7 +9,7 @@
 [![CI](https://github.com/TianWenzzzh/mcd-universe/actions/workflows/ci.yml/badge.svg)](https://github.com/TianWenzzzh/mcd-universe/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.8%2B-blue)
 ![零依赖](https://img.shields.io/badge/dependencies-0-brightgreen)
-![测试](https://img.shields.io/badge/selftest-48%20passed-success)
+![测试](https://img.shields.io/badge/selftest-57%20passed-success)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 ## 在线演示
@@ -57,7 +57,7 @@ python scripts/generate_report.py --demo samples/demo_orders.json -o report.html
 
 ## 技术栈
 
-Python（MCP 客户端 + 订单解析 + 星图模型 + 人格鉴定，48 条测试全绿）+ 单文件 HTML/Canvas（星图渲染，零依赖零外链，离线可用）。
+Python（MCP 客户端 + 订单解析 + 星图模型 + 人格鉴定，57 条测试全绿）+ 单文件 HTML/Canvas（星图渲染，零依赖零外链，离线可用）。
 
 ## 工程细节
 
@@ -75,7 +75,7 @@ flowchart TD
     R --> C[分享卡 PNG<br/>1080×1440 竖版]
 ```
 
-`src/mcp_client.py` 处理了麦当劳 MCP 实测的四种返回形态：干净 JSON、文本包装内嵌 JSON、`[N]{列名}:` 文本表格、「JSON 里再套文本表格」的二层包装——错误响应还会在标记后先输出人话再跟 JSON，且业务错误 `isError=false` 但 `success=false`（如 query-order 非本人订单 610301），均已归一化并有测试覆盖。`scripts/lint_template.py` 对渲染模板做静态检查（未定义函数调用 / 缺失 DOM 引用），防住只在罕见路径暴露的崩溃。`scripts/check_links.py` 校验页面间的本地引用是否真的可达（`./` 与 `../` 写错会让评委点进 404）。`scripts/check_weight.py` 守住「单文件零依赖」这个承诺：每页字节预算 + 禁止任何指向外部主机的 script/link/img，加一个 CDN 字体就会红。`scripts/e2e_check.mjs` 用真实浏览器跑九态冒烟（银河 / 星云 / 甜点 / 减少动效 / 触屏 390×844 / 小屏 360×640 / 微信内置浏览器 / iOS Safari / 安卓系统浏览器）并校验分享卡导出产物、移动端 HUD 不重叠、触屏文案不含鼠标动作、双指捏合真的会缩放、以及星点在任何旋转角度下都不钻到 HUD 底下；交付路径单独验——同一台安卓手机上，微信里必须弹「长按保存」、系统浏览器里必须真的触发下载，面板提示不许承诺一个不会发生的下载；三层浮层（首访引导 / 分享卡预览 / 导出面板）都必须是真模态（role、焦点进入、Tab 循环、Esc 关闭）；分享卡版式另有一组几何断言（安全边距、二维码与文案不重叠、文案断行不超版心且不挂行首标点）读的是 `cardLayout()` 规格本身，不靠像素；详情卡落点也在三档屏幕 × 全部星点上真点一遍（30 次）——盖住刚点的那颗星、压住按钮或任何 HUD、越出屏幕都算失败（`tests/test_detail_placement.py` 是同一条约定在无浏览器 CI 里的静态守卫）。`scripts/card_audit.mjs` 是分享卡的像素体检：按行统计"墨量"，找出缩略图里才显形的空洞带与贴边。`scripts/perf_check.mjs` 是性能体检：手机 4× CPU 降速与桌面两档，量每帧主线程耗时、每帧 canvas 绘制调用数（arc / fill / stroke / 新建渐变）、每帧 DOM 几何读取、堆增长、分享卡导出耗时与页面重量。CI 覆盖 Python 3.10–3.13 四个版本 + ruff + pytest + 模板检查 + 链接检查 + 页面重量检查。详见 [MCP_INTEGRATION.md](MCP_INTEGRATION.md) 与 [CONTRIBUTING.md](CONTRIBUTING.md)。
+`src/mcp_client.py` 处理了麦当劳 MCP 实测的四种返回形态：干净 JSON、文本包装内嵌 JSON、`[N]{列名}:` 文本表格、「JSON 里再套文本表格」的二层包装——错误响应还会在标记后先输出人话再跟 JSON，且业务错误 `isError=false` 但 `success=false`（如 query-order 非本人订单 610301），均已归一化并有测试覆盖。`scripts/lint_template.py` 对渲染模板做静态检查（未定义函数调用 / 缺失 DOM 引用），防住只在罕见路径暴露的崩溃。`scripts/check_links.py` 校验页面间的本地引用是否真的可达（`./` 与 `../` 写错会让评委点进 404）。`scripts/check_meta.py` 查的是链接被转发出去的那一刻：每个页面必须有 og/twitter/theme-color/favicon，og:image 必须是指向本仓库、JPG/WebP、≤200KB 的真实文件（说明页此前一份 og:meta 都没有，转进群里就是一张灰卡；演示页则指向过 1.45MB 的 PNG，抓取器经常直接丢掉）。`scripts/layout_audit.mjs` 量说明页的截图版式：卡片内部空洞、同行卡片高度差、横向溢出，三档宽度各量一遍（旧版式在桌面上有两张卡片各空了 626px 和 288px）。`scripts/check_weight.py` 守住「单文件零依赖」这个承诺：每页字节预算 + 禁止任何指向外部主机的 script/link/img，加一个 CDN 字体就会红。`scripts/e2e_check.mjs` 用真实浏览器跑九态冒烟（银河 / 星云 / 甜点 / 减少动效 / 触屏 390×844 / 小屏 360×640 / 微信内置浏览器 / iOS Safari / 安卓系统浏览器）并校验分享卡导出产物、移动端 HUD 不重叠、触屏文案不含鼠标动作、双指捏合真的会缩放、以及星点在任何旋转角度下都不钻到 HUD 底下；交付路径单独验——同一台安卓手机上，微信里必须弹「长按保存」、系统浏览器里必须真的触发下载，面板提示不许承诺一个不会发生的下载；三层浮层（首访引导 / 分享卡预览 / 导出面板）都必须是真模态（role、焦点进入、Tab 循环、Esc 关闭）；分享卡版式另有一组几何断言（安全边距、二维码与文案不重叠、文案断行不超版心且不挂行首标点）读的是 `cardLayout()` 规格本身，不靠像素；详情卡落点也在三档屏幕 × 全部星点上真点一遍（30 次）——盖住刚点的那颗星、压住按钮或任何 HUD、越出屏幕都算失败（`tests/test_detail_placement.py` 是同一条约定在无浏览器 CI 里的静态守卫）。`scripts/card_audit.mjs` 是分享卡的像素体检：按行统计"墨量"，找出缩略图里才显形的空洞带与贴边。`scripts/perf_check.mjs` 是性能体检：手机 4× CPU 降速与桌面两档，量每帧主线程耗时、每帧 canvas 绘制调用数（arc / fill / stroke / 新建渐变）、每帧 DOM 几何读取、堆增长、分享卡导出耗时与页面重量。CI 覆盖 Python 3.10–3.13 四个版本 + ruff + pytest + 模板检查 + 链接检查 + 社交元信息检查 + 页面重量检查。详见 [MCP_INTEGRATION.md](MCP_INTEGRATION.md) 与 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ## 性能
 
@@ -83,11 +83,11 @@ flowchart TD
 
 | 指标 | 开场（上千颗粒子拼字） | 稳态（星图 + 星轨 + 流星） |
 |---|---|---|
-| 每帧主线程耗时 | 1.5ms（p95 2.0） | 1.2ms（p95 3.2） |
-| 每帧 arc / 新建渐变 | 721 / 0.2 | 21 / 0.1 |
+| 每帧主线程耗时 | 1.0ms（p95 1.8） | 0.4ms（p95 1.0） |
+| 每帧 arc / 新建渐变 | 721 / 0.2 | 21 / 0 |
 | 每帧 DOM 几何读取 | 0 | 0 |
 
-首屏 113ms（桌面）/ 723ms（手机 4× 降速），页面 99KB，外部请求 0，8 秒稳态堆增长 0MB。帧耗时这类数字会随机器负载浮动（同一份代码在本机 0.6~1.5ms 之间），所以真正的判据是 `perf_check.mjs` 的预算线，而不是某一次的绝对值。曾经的两个真实开销：星轨连线每段新建一个线性渐变（10 颗星 = 每帧 10 个渐变 + 10 次描边，渐变亮端还正好被星点盖住），以及每颗粒子每帧 new 一个 `{x,y}` 临时对象——都改成一条路径一次描边 / 标量运算后，稳态每帧渐变 10 → 0.1。改动前后用固定随机种子做过像素比对（全图平均差 0.032/255），视觉上没有损失。
+首屏 98ms（桌面）/ 451ms（手机 4× 降速），页面 100KB，外部请求 0，8 秒稳态堆增长 0MB。帧耗时这类数字会随机器负载浮动（同一份代码在本机 0.4~1.5ms 之间），所以真正的判据是 `perf_check.mjs` 的预算线，而不是某一次的绝对值。曾经的两个真实开销：星轨连线每段新建一个线性渐变（10 颗星 = 每帧 10 个渐变 + 10 次描边，渐变亮端还正好被星点盖住），以及每颗粒子每帧 new 一个 `{x,y}` 临时对象——都改成一条路径一次描边 / 标量运算后，稳态每帧渐变 10 → 0（只有流星偶尔新建一个）。改动前后用固定随机种子做过像素比对（全图平均差 0.032/255），视觉上没有损失。
 
 ## 目录结构
 
@@ -95,12 +95,12 @@ flowchart TD
 ├── SKILL.md                  # Skill 定义
 ├── src/                      # MCP 客户端、星图数据模型、人格鉴定
 ├── templates/                # 星图 HTML 报告模板（Canvas 渲染）
-├── scripts/                  # 数据拉取、报告生成、演示页重建、模板/链接/重量检查、E2E、性能体检、截图与 GIF
+├── scripts/                  # 数据拉取、报告生成、演示页重建、模板/链接/元信息/重量检查、版式与卡片体检、E2E、性能体检、截图与 GIF
 ├── samples/                  # 演示数据（匿名化）与官方营养数据
 ├── tests/                    # 测试（先证伪再交付）
 ├── demo/                     # 在线演示页
 ├── docs/assets/              # GIF 与截图资产
-├── .github/workflows/        # CI（测试 + 模板静态检查）
+├── .github/workflows/        # CI（测试 + 模板/链接/元信息/重量检查）
 ├── CONTEST_DECLARATION.md    # 参赛声明
 ├── CONTRIBUTING.md           # 贡献指南
 ├── CHANGELOG.md              # 变更日志

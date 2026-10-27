@@ -5,3 +5,5 @@ __pycache__/
 mcd_*_raw.json
 *.local.html
 templates/*.bak.html
+# E2E / 体检脚本的产物（每次跑都会重写，别进仓库也别进镜像）
+docs/assets/share-card-*.png
