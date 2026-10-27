@@ -24,6 +24,11 @@
   html, body { width: 100%; height: 100%; overflow: hidden; background: #04030b; color-scheme: dark; }
   body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; color: #ece9f7; }
   #sky { position: absolute; inset: 0; display: block; touch-action: none; }
+  /* 首屏关键帧：真实星图的轻量 JPEG 在构建时内联，Canvas 首帧就绪前也不是黑屏。 */
+  #boot-cover { position: absolute; inset: 0; z-index: 5; pointer-events: none; background: #04030b; opacity: 1; transition: opacity .28s linear; }
+  #boot-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  #boot-cover.ready { opacity: 0; }
+  @media (prefers-reduced-motion: reduce) { #boot-cover { transition: none; } }
   .hud { position: absolute; z-index: 10; pointer-events: none; }
   .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
   #sky:focus-visible { outline: 2px solid rgba(255,217,122,.6); outline-offset: -4px; }
@@ -185,8 +190,9 @@
 </style>
 </head>
 <body>
-<noscript><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#ffe9a8;font-size:15px;letter-spacing:1px">麦门宇宙需要 JavaScript 才能渲染星图，请在浏览器设置中开启后重试。</div></noscript>
+<noscript><style>#boot-cover{display:none}</style><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#ffe9a8;font-size:15px;letter-spacing:1px">麦门宇宙需要 JavaScript 才能渲染星图，请在浏览器设置中开启后重试。</div></noscript>
 <canvas id="sky" tabindex="0" role="img" aria-label="麦门星图"></canvas>
+<div id="boot-cover" aria-hidden="true"><img src="__BOOT_POSTER__" alt=""></div>
 <div id="a11y-live" class="sr-only" aria-live="polite"></div>
 <ul id="a11y-list" class="sr-only"></ul>
 <div class="hud" id="title"><h1>麦门宇宙</h1><p><span class="t-en">MCUNIVERSE · </span>你的每一单，都是麦门宇宙里的一颗星</p></div>
@@ -269,9 +275,15 @@
 (function () {
   "use strict";
   var DATA = JSON.parse(document.getElementById("starmap-data").textContent);
-  if (new URLSearchParams(location.search).get("nebula") === "1") {
+  var PARAMS = new URLSearchParams(location.search);
+  if (PARAMS.get("nebula") === "1") {
     DATA = { status: "nebula", stars: [], summary: { orderCount: 0, totalAmount: 0 } };
   }
+  // 深链：?open=import 直接把「粘贴我的订单」打开。
+  // 说明页与 README 用它给没有 Token 的人一条三步到位的入口 —— 落地就在面板里，
+  // 不必先等入场动画、也不必自己在界面上找入口。带这个参数时首访引导必须让位：
+  // 否则 5.2 秒后它会盖在导入面板上，键盘用户会被两套模态抢焦点。
+  var OPEN_IMPORT = PARAMS.get("open") === "import";
   var CATS = {
     "汉堡": "#FF5B5B", "早餐": "#FFB347", "甜品": "#FF6FA8",
     "小食": "#FFD166", "饮品": "#59B2FF"
@@ -889,9 +901,25 @@
     ctx.globalCompositeOperation = "source-over";
   }
 
+  // 首屏封面（把终态星图内联成 JPEG 盖在画布上）试过，量完否决了，别再往上加：
+  // 4× 降频下 Canvas 首帧只要 ~150ms，而入场动画前 600ms 本来就是暗的 ——
+  // 封面只补上"本来就暗"的那段窗口，代价是每页 +15KB，还要多一次"成品闪一下再重播"
+  // 的观感（帧证据：363ms 屏幕上是建好的星图，910ms 变成汇聚中的粒子）。
+
+  var bootCover = document.getElementById("boot-cover"), bootCleared = false;
+  function clearBootCover() {
+    if (bootCleared) return;
+    bootCleared = true;
+    if (!bootCover) return;
+    if (REDUCED) { bootCover.remove(); return; }
+    bootCover.classList.add("ready");
+    setTimeout(function () { if (bootCover) bootCover.remove(); }, 320);
+  }
+
   function frame(t) {
     if (!startT) startT = t;
     drawScene(t - startT);
+    clearBootCover();
     raf = requestAnimationFrame(frame);
   }
 
@@ -1890,9 +1918,12 @@
     { orderId: "S3", createTime: "2026-10-18 23:40:00", realTotalAmount: "42.5", storeName: "麦当劳太原中北大学餐厅",
       orderProductList: [{ productName: "巨无霸", quantity: 2 }, { productName: "中薯条", quantity: 2 }] }
   ];
-  function importOpen() {
+  function importOpen(focusText) {
     importErr.textContent = "";
     openDialog(importPanel, importPanel.querySelector(".im-card"));
+    // 从深链进来的人，下一步动作一定是粘贴，光标直接给到输入框；
+    // 手动点开的人保留默认焦点（第一个 Tab 停靠点）。
+    if (focusText) document.getElementById("import-text").focus();
   }
   document.getElementById("import-open").addEventListener("click", function (e) {
     e.preventDefault();
@@ -1927,6 +1958,11 @@
     payload.personas = modelPersonasList(payload.persona ? payload.persona.name : null);
     applyPayload(payload);
     closeDialog(importPanel);
+    // 生成成功就把深链参数摘掉：刷新不该又弹面板，复制出去的链接也不该带着它
+    if (OPEN_IMPORT) {
+      OPEN_IMPORT = false;
+      try { history.replaceState(null, "", location.pathname + location.hash); } catch (e) {}
+    }
     toast("已生成 · " + payload.summary.orderCount + " 颗星" +
       (payload.persona ? " · " + payload.persona.name : "") + (clipped ? "（超过 400 单已截断）" : ""));
     chime(783.99, 0.4);
@@ -2005,7 +2041,8 @@
     if (e.key === "Escape") { e.preventDefault(); obDismiss(); return; }
     if (e.key === "Tab") trapFocus(obCard, e);
   });
-  if (!obSeen()) {
+  var onboardTimer = !obSeen() && !OPEN_IMPORT;
+  if (onboardTimer) {
     // 5.2s 是为了让"麦门宇宙"四字的粒子入场先放完。但减少动效的用户第一帧
     // 就是静态星图，没有动画可等 —— 让他们对着空屏等 5 秒是白白罚站。
     setTimeout(function () {
@@ -2033,9 +2070,18 @@
     saveMode: function () { return SAVE_MODE; },
     isWeChat: function () { return IS_WECHAT; },
     zoom: function () { return view.zoom; },
-    phase: function () { return performance.now() - startT; }
+    phase: function () { return performance.now() - startT; },
+    // 首访引导是否被排进了定时器：深链模式下必须为 false，否则会在面板上再叠一层
+    get onboardScheduled() { return onboardTimer; },
+    get importOpen() { return importPanel.classList.contains("show"); }
   };
   raf = requestAnimationFrame(frame);
+  // ?open=import：等画布画出第一帧再弹面板 —— 面板底下得有星图，
+  // 否则用户不知道自己落在哪儿。
+  if (OPEN_IMPORT) {
+    if (REDUCED) importOpen(true);
+    else requestAnimationFrame(function () { requestAnimationFrame(function () { importOpen(true); }); });
+  }
 })();
 </script>
 </body>

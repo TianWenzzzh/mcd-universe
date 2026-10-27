@@ -7,3 +7,5 @@ mcd_*_raw.json
 templates/*.bak.html
 # E2E / 体检脚本的产物（每次跑都会重写，别进仓库也别进镜像）
 docs/assets/share-card-*.png
+# 本机视觉/性能探针与临时截图，仅用于取证
+.audit/

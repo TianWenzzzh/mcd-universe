@@ -23,16 +23,17 @@ import sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
-# 预算：演示页 86KB 上下（单文件，含全部演示数据与渲染器），留 40% 余量。
-# 说明页更轻；超过就说明有人把图片或库直接塞进去了。
+# 预算：演示页约 134KB（渲染器与数据 + 15KB 首屏星图封面），留约 20% 余量。
+# 封面本身另有 30KB 硬上限，防止用"优化首屏"之名把整页变成超大 base64。
 BUDGET_KB = {
-    "demo/index.html": 120,
-    "demo/breakfast.html": 120,
-    "demo/dessert.html": 120,
-    "demo/burger.html": 120,
+    "demo/index.html": 160,
+    "demo/breakfast.html": 160,
+    "demo/dessert.html": 160,
+    "demo/burger.html": 160,
     "docs/about.html": 60,
 }
-DEFAULT_BUDGET_KB = 120
+DEFAULT_BUDGET_KB = 160
+BOOT_POSTER_MAX_KB = 30
 
 # 会发起网络请求的属性。srcset / poster 一并算上，不然换个属性名就漏了。
 RES_RE = re.compile(
@@ -57,6 +58,7 @@ def _pages(root: str) -> list[str]:
 def check(root: str = ROOT) -> list[tuple[str, str]]:
     """返回 [(页面, 问题)]。空列表 = 全部达标。"""
     problems: list[tuple[str, str]] = []
+    uses_boot_poster = False
     for rel in _pages(root):
         path = os.path.join(root, rel)
         size_kb = os.path.getsize(path) / 1024
@@ -66,12 +68,20 @@ def check(root: str = ROOT) -> list[tuple[str, str]]:
 
         with open(path, encoding="utf-8", errors="replace") as fh:
             html = fh.read()
+        if 'id="boot-cover"' in html:
+            uses_boot_poster = True
         for tag, attr, url in RES_RE.findall(html):
             u = url.strip()
             if not u or u.startswith("data:") or u.startswith("#"):
                 continue
             if REMOTE_RE.match(u):
                 problems.append((rel, f"<{tag} {attr}> 指向外部主机：{u[:60]}"))
+    if uses_boot_poster:
+        poster = os.path.join(root, "docs", "assets", "boot-poster.jpg")
+        if not os.path.isfile(poster):
+            problems.append(("docs/assets/boot-poster.jpg", "首屏封面缺失，请先运行 make_shots.mjs"))
+        elif os.path.getsize(poster) / 1024 > BOOT_POSTER_MAX_KB:
+            problems.append(("docs/assets/boot-poster.jpg", f"首屏封面超过 {BOOT_POSTER_MAX_KB}KB"))
     return problems
 
 
