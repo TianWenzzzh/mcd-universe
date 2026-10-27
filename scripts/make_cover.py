@@ -1,6 +1,6 @@
 """生成参赛作品墙封面（1200x630）与同款社交预览图。
 
-素材只用当前产品的真实 Canvas 星图（boot-poster.jpg），文案只写已实现能力：
+素材只用当前产品的真实 Canvas 星图（cover-source.jpg），文案只写已实现能力：
 7 种人格、4 款分享卡、在线生成。所有文字在 300px 宽缩略图下仍保留层级。
 
 用法：
@@ -15,7 +15,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 ROOT = Path(__file__).resolve().parent.parent
-POSTER = ROOT / "docs" / "assets" / "boot-poster.jpg"
+POSTER = ROOT / "docs" / "assets" / "cover-source.jpg"
 COVER = ROOT / "docs" / "assets" / "contest-cover.jpg"
 OG = ROOT / "docs" / "assets" / "og-card.jpg"
 

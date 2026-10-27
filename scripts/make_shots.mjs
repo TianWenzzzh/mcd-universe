@@ -58,9 +58,9 @@ async function main() {
   await desk.screenshot({ path: `${OUT}/submit-1.png` });
   console.log("shot submit-1.png");
 
-  // 1b. 首屏关键帧：只取 Canvas，不带 HUD。构建时内联到 HTML，慢网也不黑屏。
-  // 960x600 与当前桌面画布同比例，JPEG 控制在几十 KB，不产生额外网络请求。
-  const bootPoster = await desk.evaluate(() => {
+  // 1b. 作品墙封面源图：只取 Canvas，不带 HUD。make_cover.py 用它合成 1200×630 海报。
+  // 不做"内联首屏封面"：实测只存在 150–300ms、手机还会把桌面构图裁成竖条，收益为负。
+  const coverSource = await desk.evaluate(() => {
     const src = document.getElementById("sky");
     const out = document.createElement("canvas");
     out.width = 960;
@@ -68,8 +68,8 @@ async function main() {
     out.getContext("2d").drawImage(src, 0, 0, out.width, out.height);
     return out.toDataURL("image/jpeg", 0.74).split(",")[1];
   });
-  writeFileSync(`${OUT}/boot-poster.jpg`, Buffer.from(bootPoster, "base64"));
-  console.log("shot boot-poster.jpg");
+  writeFileSync(`${OUT}/cover-source.jpg`, Buffer.from(coverSource, "base64"));
+  console.log("shot cover-source.jpg");
 
   // 2. 导出面板
   await desk.click("#btn-save");
