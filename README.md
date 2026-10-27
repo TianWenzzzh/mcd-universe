@@ -14,6 +14,8 @@
 
 ## 在线演示
 
+> 国内访问优先用镜像（杭州 ECS，实测 0.3s）：<http://47.114.38.125/mcd/demo/>；下面的 GitHub Pages 链接在国内可能等 30–90 秒。
+
 [打开演示星图（无需登录）](https://tianwenzzzh.github.io/mcd-universe/demo/) —— 页面左上角可切换四种人格样例；也可直接打开
 [早餐先行者](https://tianwenzzzh.github.io/mcd-universe/demo/breakfast.html) ·
 [甜点星住民](https://tianwenzzzh.github.io/mcd-universe/demo/dessert.html) ·
