@@ -49,16 +49,26 @@ for (const vp of WIDTHS) {
     hasTouch: vp.mobile,
   });
   await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
-  // 图片是 lazy 的：全页滚一遍逼它们全部 layout，否则量到的是 0 高度的占位
+  // 图片是 lazy 的：全页滚一遍逼它们进入视口，再等 network idle + 全部 decode 完。
+  // 只等固定毫秒数在线上（Pages 首字节不慢但图片是逐个拉的）会读到 naturalHeight=0，
+  // 于是本机 PASS、线上全报"未加载" —— 量具的等待必须等"条件"，不是等"时间"。
   await page.evaluate(async () => {
     const step = window.innerHeight;
     for (let y = 0; y < document.body.scrollHeight; y += step) {
       window.scrollTo(0, y);
-      await new Promise((r) => setTimeout(r, 60));
+      await new Promise((r) => setTimeout(r, 120));
     }
     window.scrollTo(0, 0);
   });
-  await page.waitForTimeout(500);
+  await page.waitForLoadState("networkidle").catch(() => {});
+  await page
+    .waitForFunction(
+      () => [...document.querySelectorAll(".shots img, .grid2 img")].every((i) => i.complete && i.naturalHeight > 0),
+      null,
+      { timeout: 15000 },
+    )
+    .catch(() => {});
+  await page.waitForTimeout(200);
 
   const m = await page.evaluate(() => {
     const figs = [...document.querySelectorAll(".shots figure, .grid2 figure")];
