@@ -86,9 +86,15 @@
   #demo-badge a { color: #ffd97a; pointer-events: auto; text-decoration: none; }
   #switcher { position: absolute; z-index: 10; top: 132px; left: 28px; display: none; align-items: center; gap: 6px; font-size: 10.5px; color: #8f89ad; pointer-events: auto; }
   #switcher .lbl { letter-spacing: 1px; }
-  #switcher a { color: #b9b3d6; text-decoration: none; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); border-radius: 999px; padding: 2px 9px; letter-spacing: .5px; }
+  /* 点按目标：原来高 20px，低于 WCAG 2.5.8 的 24px 下限。min-height 24px（触屏 32px）；
+     字号一律 inherit —— 这行在 390 屏已挤到 343px，放大就顶破右边界。 */
+  #switcher a, #switcher button { display: inline-flex; align-items: center; justify-content: center; min-height: 24px; color: #b9b3d6; text-decoration: none; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); border-radius: 999px; padding: 2px 9px; letter-spacing: .5px; font: inherit; cursor: pointer; }
+  #switcher button { color: #ffd97a; }
   #switcher a.cur { color: #ffe9a8; border-color: rgba(255,217,122,.45); background: rgba(255,217,122,.1); }
-  #switcher a:hover { border-color: rgba(255,255,255,.3); }
+  #switcher a:hover, #switcher button:hover { border-color: rgba(255,255,255,.3); }
+  @media (pointer: coarse) {
+    #switcher a, #switcher button { min-height: 32px; }
+  }
   #onboard { position: absolute; inset: 0; z-index: 30; display: none; align-items: center; justify-content: center; background: rgba(4,3,11,.72); backdrop-filter: blur(6px); }
   #onboard.show { display: flex; }
   .ob-card { width: min(460px, calc(100% - 40px)); padding: 26px 26px 20px; background: linear-gradient(170deg, rgba(26,22,48,.98), rgba(10,8,22,.98)); border: 1px solid rgba(255,217,122,.28); border-radius: 18px; box-shadow: 0 24px 80px rgba(0,0,0,.7); }
@@ -127,6 +133,8 @@
   .im-card .im-sub { font-size: 11.5px; color: #9189b5; margin: 8px 0 12px; line-height: 1.8; }
   #import-text { width: 100%; height: 132px; resize: vertical; background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.14); border-radius: 10px; color: #dcd8ee; font: 12px/1.6 ui-monospace, Consolas, monospace; padding: 10px 12px; outline: none; }
   #import-text:focus { border-color: rgba(255,217,122,.5); }
+  /* aria-invalid 不能只是给读屏的暗号：眼睛也得看见同一件事，否则两个用户看到的是两种状态 */
+  #import-text[aria-invalid="true"] { border-color: rgba(255,120,120,.62); box-shadow: 0 0 0 3px rgba(255,90,90,.1); }
   .im-row { display: flex; gap: 9px; margin-top: 12px; }
   .im-row button { flex: 1; padding: 10px; border-radius: 10px; font-size: 12.5px; cursor: pointer; border: 1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.05); color: #e8e4f6; letter-spacing: 1px; }
   .im-row button.primary { background: linear-gradient(160deg, #ef7f4a, #d85a30); border-color: rgba(255,160,110,.5); color: #fff; }
@@ -166,7 +174,8 @@
     /* 竖排图例在手机上要吃掉 140px 纵向空间，把星群压成一条扁带 —— 改横排换行，只占两行 */
     /* 换行版会排成"5 个品类 + 星等提示独自一行"，最后一行只有一个胶囊，白白多吃 22px。
        三列网格正好 3+3 排满两行，高度不变但不再有孤悬。 */
-    #legend { top: 132px; left: 20px; width: calc(100% - 40px); display: grid; grid-template-columns: repeat(3, auto); justify-content: start; align-items: center; gap: 4px 6px; font-size: 9px; }
+    /* top 132 → 140：切换器长到 32px 后底边 136，原值会把图例压进去 4px。 */
+    #legend { top: 140px; left: 20px; width: calc(100% - 40px); display: grid; grid-template-columns: repeat(3, auto); justify-content: start; align-items: center; gap: 4px 6px; font-size: 9px; }
     #legend span { justify-self: start; padding: 2px 8px 2px 6px; }
     #legend .size-hint { padding: 2px 8px 2px 7px; }
     #stats { top: 22px; right: 22px; }
@@ -191,18 +200,25 @@
 </head>
 <body>
 <noscript><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#ffe9a8;font-size:15px;letter-spacing:1px">麦门宇宙需要 JavaScript 才能渲染星图，请在浏览器设置中开启后重试。</div></noscript>
-<canvas id="sky" tabindex="0" role="img" aria-label="麦门星图"></canvas>
+<!-- 画布要收方向键/回车/加减号，不是静态图：role="img" 会让读屏进图片模式、方向键被虚拟光标吃掉。
+     改 application 把按键交回页面，键位说明走 aria-describedby（不塞 aria-label，免得每次聚焦听一遍手册）。 -->
+<main id="main">
+<canvas id="sky" tabindex="0" role="application" aria-label="麦门星图" aria-describedby="sky-help"></canvas>
+<p id="sky-help" class="sr-only">星图可用键盘操作：左右方向键逐颗切换星点，回车打开该星详情，加号减号缩放，Esc 关闭。下方有同样内容的纯文本清单。</p>
 <div id="a11y-live" class="sr-only" aria-live="polite"></div>
 <ul id="a11y-list" class="sr-only"></ul>
+</main>
 <div class="hud" id="title"><h1>麦门宇宙</h1><p><span class="t-en">MCUNIVERSE · </span>你的每一单，都是麦门宇宙里的一颗星</p></div>
 <div class="hud" id="demo-badge">演示数据 · <a href="https://github.com/TianWenzzzh/mcd-universe" target="_blank">用你的真实订单生成 →</a></div>
-<div id="switcher"><span class="lbl">换个麦门看看</span><a href="./">深夜</a><a href="breakfast.html">早餐</a><a href="dessert.html">甜点</a><a href="burger.html">汉堡</a><a href="#" id="import-open" style="border-style:dashed;color:#ffd97a">粘贴我的订单</a></div>
+<div id="switcher"><span class="lbl" id="switcher-lbl">换个麦门看看</span><a href="./">深夜</a><a href="breakfast.html">早餐</a><a href="dessert.html">甜点</a><a href="burger.html">汉堡</a><button type="button" id="import-open" style="border-style:dashed;color:#ffd97a">粘贴我的订单</button></div>
 <div class="hud" id="stats"></div>
 <div class="hud" id="daily"></div>
 <div class="hud" id="legend"></div>
 <div class="hud" id="persona"><h2 id="persona-name"></h2><p id="persona-desc"></p><div id="achievements"></div></div>
 <div id="tip"></div>
-<div id="toast"></div>
+<!-- toast 是唯一的操作回执，只在屏幕上出现 2.6 秒；挂 role="status" 读屏才念得出来，
+     否则读屏用户点完「保存分享卡」得不到任何反馈。 -->
+<div id="toast" role="status" aria-live="polite"></div>
 <div class="hud" id="nebula-hint">
   <h2>宇宙初开</h2>
   <p class="nb-sub">你的第一颗星还没点亮<br>下一单麦当劳，这里就会亮起你的第一颗星</p>
@@ -218,17 +234,18 @@
      role/aria-modal + 焦点进入 + Tab 循环 + Esc 关闭 + 关掉后焦点归位。
      之前只有导出面板做了，另外两层（引导/预览）在键盘下形同虚设 —— Tab 一下就能
      操作到遮罩背后的画布（看不见，但方向键真的会换星点）。 -->
-<div id="import-panel" role="dialog" aria-modal="true" aria-label="粘贴订单生成星图">
+<div id="import-panel" role="dialog" aria-modal="true" aria-labelledby="import-title">
   <div class="im-card">
-    <h3>粘贴订单，生成你的星图</h3>
-    <p class="im-sub">支持麦当劳 MCP 的 order-list 原始返回（含 data.list）、订单数组，或 {"list":[...]}。<br><b>数据只在你的浏览器里解析，不会上传到任何服务器。</b></p>
-    <textarea id="import-text" spellcheck="false" placeholder='[{"orderId":"A1","createTime":"2026-10-01 12:20:00","realTotalAmount":"25.5","storeName":"麦当劳太原柳巷餐厅","orderProductList":[{"productName":"巨无霸套餐","quantity":1}]}]'></textarea>
+    <h3 id="import-title">粘贴订单，生成你的星图</h3>
+    <p class="im-sub" id="import-hint">支持麦当劳 MCP 的 order-list 原始返回（含 data.list）、订单数组，或 {"list":[...]}。<br><b>数据只在你的浏览器里解析，不会上传到任何服务器。</b></p>
+    <label class="sr-only" for="import-text">订单 JSON 文本</label>
+    <textarea id="import-text" spellcheck="false" aria-describedby="import-hint" placeholder='[{"orderId":"A1","createTime":"2026-10-01 12:20:00","realTotalAmount":"25.5","storeName":"麦当劳太原柳巷餐厅","orderProductList":[{"productName":"巨无霸套餐","quantity":1}]}]'></textarea>
     <div class="im-row">
       <button id="import-sample">填入示例</button>
       <button id="import-go" class="primary">生成星图</button>
       <button id="import-cancel">取消</button>
     </div>
-    <p id="import-err"></p>
+    <p id="import-err" role="alert"></p>
   </div>
 </div>
 <div id="img-preview" role="dialog" aria-modal="true" aria-label="分享卡预览">
@@ -239,9 +256,9 @@
     <button id="ip-close">完成</button>
   </div>
 </div>
-<div id="onboard" role="dialog" aria-modal="true" aria-label="玩法说明">
+<div id="onboard" role="dialog" aria-modal="true" aria-labelledby="onboard-title">
   <div class="ob-card">
-    <h2>欢迎来到麦门宇宙</h2>
+    <h2 id="onboard-title">欢迎来到麦门宇宙</h2>
     <p class="ob-sub">你的每一单，都是麦门宇宙里的一颗星</p>
     <div class="ob-step"><b>1</b><div><i>看看你的星</i><span>颜色是餐品品类，大小是你的常点，位置是下单时间，连线按时间先后串起你的麦门轨迹</span></div></div>
     <div class="ob-step"><b>2</b><div><i>玩一玩</i><span id="ob-step2">悬停看餐品、拖拽转动星系、滚轮拉近拉远、点击看详情；键盘 ←/→ 也能逐颗浏览</span></div></div>
@@ -250,9 +267,9 @@
     <p class="ob-tip">订单数据本地处理 · Token 不出本机 · <a href="https://tianwenzzzh.github.io/mcd-universe/docs/about.html" target="_blank" rel="noopener">关于这个作品</a></p>
   </div>
 </div>
-<div id="export-panel" role="dialog" aria-modal="true" aria-label="选择分享卡风格">
+<div id="export-panel" role="dialog" aria-modal="true" aria-labelledby="export-title">
   <div class="ep-card">
-    <h3>选一个风格导出</h3>
+    <h3 id="export-title">选一个风格导出</h3>
     <div class="ep-styles">
       <button class="ep-style" data-style="deep" aria-label="导出深空金风格分享卡"><canvas width="392" height="522"></canvas><span>深空金</span></button>
       <button class="ep-style" data-style="nebula" aria-label="导出星云紫风格分享卡"><canvas width="392" height="522"></canvas><span>星云紫</span></button>
@@ -265,7 +282,7 @@
 <div id="actions">
   <button class="btn" id="btn-help">玩法</button>
   <button class="btn" id="btn-dex">人格图鉴</button>
-  <button class="btn" id="btn-sound">音效</button>
+  <button class="btn" id="btn-sound" aria-pressed="false" aria-label="星语音效">音效</button>
   <button class="btn" id="btn-replay">重播入场</button>
   <button class="btn primary" id="btn-save">保存分享卡</button>
 </div>
@@ -1302,7 +1319,9 @@
         " · " + s.magnitude + " 等 · ¥" + (s.amount || 0).toFixed(1) + " · " + esc(s.time || "") + "</li>";
     }).join("");
     if (cv) {
-      cv.setAttribute("aria-label", "麦门星图：共 " + stars.length + " 颗星。方向键逐颗查看，回车查看详情，加减号缩放。");
+      // 只报"是什么"，不报"怎么操作"——键位在 aria-describedby 指向的 #sky-help 里，
+      // 两边都写会让读屏每次聚焦都念两遍。
+      cv.setAttribute("aria-label", "麦门星图：共 " + stars.length + " 颗星");
     }
   }
 
@@ -1344,6 +1363,8 @@
     audio.on = !audio.on;
     if (audio.ctx.state === "suspended") audio.ctx.resume();
     audio.master.gain.linearRampToValueAtTime(audio.on ? 0.13 : 0, audio.ctx.currentTime + 0.5);
+    // 文字在「音效/静音」间换是给眼睛看的状态；读屏认 aria-pressed，名字固定为 aria-label。
+    this.setAttribute("aria-pressed", audio.on ? "true" : "false");
     this.textContent = audio.on ? "静音" : "音效";
     toast(audio.on ? "星语已开启 · 悬停星星听它们说话" : "星语已关闭");
   });
@@ -1361,7 +1382,9 @@
   // 三层都是全屏遮罩。只有导出面板做过 role + 焦点 + Esc，另外两层曾经是纯装饰：
   // 屏幕阅读器不知道弹出了什么，键盘 Tab 一下就能操作到遮罩背后的画布 —— 眼睛看不见，
   // 但方向键真的会换星点。统一成一套之后，"新加一层浮层忘了做无障碍" 不会再复发。
-  var FOCUSABLE = "button, a[href], [tabindex]:not([tabindex='-1'])";
+  // 表单控件也要算在焦点环里：导入面板里有 textarea，漏掉它会让 Tab 从输入框直接跳到按钮，
+  // 而且再也回不去（i < 0 时无条件把焦点塞给第一个按钮）。
+  var FOCUSABLE = "button, a[href], input, textarea, select, [tabindex]:not([tabindex='-1'])";
   function focusables(root) {
     return [].slice.call(root.querySelectorAll(FOCUSABLE)).filter(function (el) {
       return el.offsetWidth > 0 || el.offsetHeight > 0;
@@ -1909,7 +1932,7 @@
       orderProductList: [{ productName: "巨无霸", quantity: 2 }, { productName: "中薯条", quantity: 2 }] }
   ];
   function importOpen(focusText) {
-    importErr.textContent = "";
+    importClear();
     openDialog(importPanel, importPanel.querySelector(".im-card"));
     // 从深链进来的人，下一步动作一定是粘贴，光标直接给到输入框；
     // 手动点开的人保留默认焦点（第一个 Tab 停靠点）。
@@ -1919,34 +1942,53 @@
     e.preventDefault();
     importOpen();
   });
+  // 报错统一出口：文本进 role="alert" 的 #import-err，同时给输入框打 aria-invalid。
+  // 现查元素而非闭包捕获：深链 ?open=import 会在启动早期就调用 importOpen()。
+  function importFail(msg) {
+    importErr.textContent = msg;
+    var t = document.getElementById("import-text");
+    if (t) t.setAttribute("aria-invalid", "true");
+  }
+  function importClear() {
+    importErr.textContent = "";
+    var t = document.getElementById("import-text");
+    if (t) t.removeAttribute("aria-invalid");
+  }
   document.getElementById("import-sample").addEventListener("click", function () {
     document.getElementById("import-text").value = JSON.stringify(SAMPLE_ORDERS, null, 2);
-    importErr.textContent = "";
+    importClear();
   });
   document.getElementById("import-cancel").addEventListener("click", function () {
     closeDialog(importPanel);
   });
   importPanel.addEventListener("click", function (e) { if (e.target === importPanel) closeDialog(importPanel); });
+  // 导入面板是第 9 轮才加的第四层浮层，Esc 与焦点循环当时漏了：键盘用户按 Esc 没反应，
+  // Tab 还会跑到底下的画布（看不见，但方向键真会换星）。这里补齐，与另外三层一致。
+  importPanel.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") { e.preventDefault(); closeDialog(importPanel); return; }
+    if (e.key === "Tab") trapFocus(importPanel, e);
+  });
   document.getElementById("import-go").addEventListener("click", function () {
     var raw = (document.getElementById("import-text").value || "").trim();
-    if (!raw) { importErr.textContent = "先粘贴订单 JSON，或点「填入示例」看看格式"; return; }
+    if (!raw) { importFail("先粘贴订单 JSON，或点「填入示例」看看格式"); return; }
     var parsed;
     try { parsed = JSON.parse(raw); } catch (err) {
-      importErr.textContent = "不是合法 JSON：" + String(err.message || err).slice(0, 80);
+      importFail("不是合法 JSON：" + String(err.message || err).slice(0, 80));
       return;
     }
     var orders = extractOrders(parsed);
     if (!orders) {
-      importErr.textContent = "没找到订单数组。支持：[订单...] / {list:[...]} / {data:{list:[...]}}";
+      importFail("没找到订单数组。支持：[订单...] / {list:[...]} / {data:{list:[...]}}");
       return;
     }
-    if (!orders.length) { importErr.textContent = "订单数组是空的"; return; }
+    if (!orders.length) { importFail("订单数组是空的"); return; }
     var clipped = orders.length > 400;
     var use = clipped ? orders.slice(0, 400) : orders;
     var payload = modelBuild(use);
     payload.demo = false;
     payload.personas = modelPersonasList(payload.persona ? payload.persona.name : null);
     applyPayload(payload);
+    importClear();
     closeDialog(importPanel);
     // 生成成功就把深链参数摘掉：刷新不该又弹面板，复制出去的链接也不该带着它
     if (OPEN_IMPORT) {

@@ -372,6 +372,58 @@ async function checkPage(browser, url, opts) {
       if (!tipShown) problems.push("悬停未出现餐品气泡");
     }
 
+    // ---- 无障碍语义（浏览器里算出来的，不是读源码猜的）----
+    // 静态标记由 tests/test_a11y_markup.py 兜底；这里只验"真的生效"的三件事：
+    // 画布不是静态图语义、开关按钮的状态会变、导入报错能被读屏拿到。
+    const sem = await page.evaluate(() => {
+      const sky = document.getElementById("sky");
+      const sound = document.getElementById("btn-sound");
+      return {
+        skyRole: sky.getAttribute("role"),
+        skyDescribedBy: sky.getAttribute("aria-describedby"),
+        hasMain: !!document.querySelector("main#main"),
+        soundPressed: sound.getAttribute("aria-pressed"),
+        toastRole: document.getElementById("toast").getAttribute("role"),
+        errRole: document.getElementById("import-err").getAttribute("role"),
+      };
+    });
+    if (sem.skyRole !== "application") problems.push(`画布 role 是 ${sem.skyRole}，读屏会把方向键吃掉`);
+    if (!sem.skyDescribedBy) problems.push("画布没有 aria-describedby，键位说明无处可放");
+    if (!sem.hasMain) problems.push("缺 main 地标");
+    if (sem.toastRole !== "status") problems.push("#toast 不是 role=status，操作回执读屏听不到");
+    if (sem.errRole !== "alert") problems.push("#import-err 不是 role=alert，导入报错读屏听不到");
+
+    await page.click("#btn-sound");
+    await page.waitForTimeout(250);
+    const pressedAfter = await page.evaluate(() => document.getElementById("btn-sound").getAttribute("aria-pressed"));
+    if (pressedAfter !== "true") problems.push(`音效开关点击后 aria-pressed=${pressedAfter}，读屏不知道现在是开还是关`);
+    await page.click("#btn-sound");
+    await page.waitForTimeout(150);
+
+    // 导入错误路径：贴一段非法 JSON，输入框要被打上 aria-invalid
+    await page.click("#import-open");
+    await page.waitForTimeout(300);
+    await page.fill("#import-text", "{not json");
+    await page.click("#import-go");
+    await page.waitForTimeout(300);
+    const bad = await page.evaluate(() => ({
+      invalid: document.getElementById("import-text").getAttribute("aria-invalid"),
+      msg: document.getElementById("import-err").textContent || "",
+      dialogName: (() => {
+        const d = document.getElementById("import-panel");
+        const id = d.getAttribute("aria-labelledby");
+        const el = id ? document.getElementById(id) : null;
+        return el ? (el.textContent || "").trim() : "";
+      })(),
+    }));
+    if (bad.invalid !== "true") problems.push("非法 JSON 没有给输入框打 aria-invalid");
+    if (!bad.msg) problems.push("非法 JSON 没有给出错误文案");
+    if (!bad.dialogName) problems.push("导入面板的 aria-labelledby 指不到可见标题");
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(250);
+    // 第四层浮层（导入面板）曾经漏掉 Esc 与焦点环，键盘用户按 Esc 没反应、Tab 还能跑到底下的画布
+    const closed = await page.evaluate(() => !document.getElementById("import-panel").classList.contains("show"));
+    if (!closed) problems.push("导入面板没有响应 Esc（另外三层都有，这层是后加的漏了）");
 
   }
   if (opts.touch) {

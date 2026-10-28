@@ -9,7 +9,7 @@
 [![CI](https://github.com/TianWenzzzh/mcd-universe/actions/workflows/ci.yml/badge.svg)](https://github.com/TianWenzzzh/mcd-universe/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.8%2B-blue)
 ![零依赖](https://img.shields.io/badge/dependencies-0-brightgreen)
-![测试](https://img.shields.io/badge/selftest-78%20passed-success)
+![测试](https://img.shields.io/badge/selftest-106%20passed-success)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 ## 在线演示
@@ -65,7 +65,7 @@ python scripts/generate_report.py --demo samples/demo_orders.json -o report.html
 
 ## 技术栈
 
-Python（MCP 客户端 + 订单解析 + 星图模型 + 人格鉴定，95 条测试全绿）+ 单文件 HTML/Canvas（星图渲染，零依赖零外链，离线可用）。
+Python（MCP 客户端 + 订单解析 + 星图模型 + 人格鉴定，106 条测试全绿）+ 单文件 HTML/Canvas（星图渲染，零依赖零外链，离线可用）。
 
 ## 工程细节
 
@@ -83,7 +83,7 @@ flowchart TD
     R --> C[分享卡 PNG<br/>1080×1440 竖版]
 ```
 
-`src/mcp_client.py` 处理了麦当劳 MCP 实测的四种返回形态：干净 JSON、文本包装内嵌 JSON、`[N]{列名}:` 文本表格、「JSON 里再套文本表格」的二层包装——错误响应还会在标记后先输出人话再跟 JSON，且业务错误 `isError=false` 但 `success=false`（如 query-order 非本人订单 610301），均已归一化并有测试覆盖。`scripts/lint_template.py` 对渲染模板做静态检查（未定义函数调用 / 缺失 DOM 引用），防住只在罕见路径暴露的崩溃。`scripts/check_links.py` 校验页面间的本地引用是否真的可达（`./` 与 `../` 写错会让评委点进 404）。`scripts/check_meta.py` 查的是链接被转发出去的那一刻：每个页面必须有 og/twitter/theme-color/favicon，og:image 必须是指向本仓库、JPG/WebP、≤200KB 的真实文件（说明页此前一份 og:meta 都没有，转进群里就是一张灰卡；演示页则指向过 1.45MB 的 PNG，抓取器经常直接丢掉）。`scripts/check_social.py` 站在抓取器那一侧量同一件事：用微信 UA 取页面 → 读 og → 再取缩略图，三跳都要通；`og:image` 必须和页面同主机（镜像页曾声明 github.io 的图，而图在镜像上本来就有）、声明尺寸必须等于真实像素、耗时要在 3 秒内。`tests/test_mirror_assets.py` 反过来查镜像那头：页面引用的每一张图都必须在同步白名单里（`og-card.jpg` 曾漏在白名单外，镜像上一直 404 —— 五个页面的 `og:image` 全指向它，镜像链接转进微信就是灰卡），同时保证投稿用的大原图不会顺手被传上去；打包时还会把 HTML 里的绝对站址重写成镜像口径 —— 同一份页面要服务两套域名（Pages 与镜像），源文件里只能写一个，重写放在同步这一步，`--check` 时连 og:url 也按"最终位置"算。`scripts/layout_audit.mjs` 量说明页的截图版式：卡片内部空洞、同行卡片高度差、横向溢出，三档宽度各量一遍（旧版式在桌面上有两张卡片各空了 626px 和 288px）。`scripts/check_weight.py` 守住「单文件零依赖」这个承诺：每页字节预算 + 禁止任何指向外部主机的 script/link/img，加一个 CDN 字体就会红。`scripts/e2e_check.mjs` 用真实浏览器跑十态冒烟（深链导入 / 银河 / 星云 / 甜点 / 减少动效 / 触屏 390×844 / 小屏 360×640 / 微信内置浏览器 / iOS Safari / 安卓系统浏览器）并校验分享卡导出产物、移动端 HUD 不重叠、触屏文案不含鼠标动作、双指捏合真的会缩放、以及星点在任何旋转角度下都不钻到 HUD 底下；交付路径单独验——同一台安卓手机上，微信里必须弹「长按保存」、系统浏览器里必须真的触发下载，面板提示不许承诺一个不会发生的下载；三层浮层（首访引导 / 分享卡预览 / 导出面板）都必须是真模态（role、焦点进入、Tab 循环、Esc 关闭）；分享卡版式另有一组几何断言（安全边距、二维码与文案不重叠、文案断行不超版心且不挂行首标点）读的是 `cardLayout()` 规格本身，不靠像素；详情卡落点也在三档屏幕 × 全部星点上真点一遍（30 次）——盖住刚点的那颗星、压住按钮或任何 HUD、越出屏幕都算失败（`tests/test_detail_placement.py` 是同一条约定在无浏览器 CI 里的静态守卫）。`scripts/card_audit.mjs` 是分享卡的像素体检：按行统计"墨量"，找出缩略图里才显形的空洞带与贴边。`scripts/perf_check.mjs` 是性能体检：手机 4× CPU 降速与桌面两档，量每帧主线程耗时、每帧 canvas 绘制调用数（arc / fill / stroke / 新建渐变）、每帧 DOM 几何读取、堆增长、分享卡导出耗时与页面重量。CI 覆盖 Python 3.10–3.13 四个版本 + ruff + pytest + 模板检查 + 链接检查 + 社交元信息检查 + 页面重量检查。详见 [MCP_INTEGRATION.md](MCP_INTEGRATION.md) 与 [CONTRIBUTING.md](CONTRIBUTING.md)。
+`src/mcp_client.py` 处理了麦当劳 MCP 实测的四种返回形态：干净 JSON、文本包装内嵌 JSON、`[N]{列名}:` 文本表格、「JSON 里再套文本表格」的二层包装——错误响应还会在标记后先输出人话再跟 JSON，且业务错误 `isError=false` 但 `success=false`（如 query-order 非本人订单 610301），均已归一化并有测试覆盖。`scripts/lint_template.py` 对渲染模板做静态检查（未定义函数调用 / 缺失 DOM 引用），防住只在罕见路径暴露的崩溃。`scripts/check_links.py` 校验页面间的本地引用是否真的可达（`./` 与 `../` 写错会让评委点进 404）。`scripts/check_meta.py` 查的是链接被转发出去的那一刻：每个页面必须有 og/twitter/theme-color/favicon，og:image 必须是指向本仓库、JPG/WebP、≤200KB 的真实文件（说明页此前一份 og:meta 都没有，转进群里就是一张灰卡；演示页则指向过 1.45MB 的 PNG，抓取器经常直接丢掉）。`scripts/check_social.py` 站在抓取器那一侧量同一件事：用微信 UA 取页面 → 读 og → 再取缩略图，三跳都要通；`og:image` 必须和页面同主机（镜像页曾声明 github.io 的图，而图在镜像上本来就有）、声明尺寸必须等于真实像素、耗时要在 3 秒内。`tests/test_mirror_assets.py` 反过来查镜像那头：页面引用的每一张图都必须在同步白名单里（`og-card.jpg` 曾漏在白名单外，镜像上一直 404 —— 五个页面的 `og:image` 全指向它，镜像链接转进微信就是灰卡），同时保证投稿用的大原图不会顺手被传上去；打包时还会把 HTML 里的绝对站址重写成镜像口径 —— 同一份页面要服务两套域名（Pages 与镜像），源文件里只能写一个，重写放在同步这一步，`--check` 时连 og:url 也按"最终位置"算。`scripts/layout_audit.mjs` 量说明页的截图版式：卡片内部空洞、同行卡片高度差、横向溢出，三档宽度各量一遍（旧版式在桌面上有两张卡片各空了 626px 和 288px）。`scripts/check_weight.py` 守住「单文件零依赖」这个承诺：每页字节预算 + 禁止任何指向外部主机的 script/link/img，加一个 CDN 字体就会红。`scripts/e2e_check.mjs` 用真实浏览器跑十态冒烟（深链导入 / 银河 / 星云 / 甜点 / 减少动效 / 触屏 390×844 / 小屏 360×640 / 微信内置浏览器 / iOS Safari / 安卓系统浏览器）并校验分享卡导出产物、移动端 HUD 不重叠、触屏文案不含鼠标动作、双指捏合真的会缩放、以及星点在任何旋转角度下都不钻到 HUD 底下；交付路径单独验——同一台安卓手机上，微信里必须弹「长按保存」、系统浏览器里必须真的触发下载，面板提示不许承诺一个不会发生的下载；三层浮层（首访引导 / 分享卡预览 / 导出面板）都必须是真模态（role、焦点进入、Tab 循环、Esc 关闭）；分享卡版式另有一组几何断言（安全边距、二维码与文案不重叠、文案断行不超版心且不挂行首标点）读的是 `cardLayout()` 规格本身，不靠像素；详情卡落点也在三档屏幕 × 全部星点上真点一遍（30 次）——盖住刚点的那颗星、压住按钮或任何 HUD、越出屏幕都算失败（`tests/test_detail_placement.py` 是同一条约定在无浏览器 CI 里的静态守卫）。`scripts/a11y_audit.mjs` 是无障碍审计：在真实浏览器里算可访问名、量点按目标、逐个 Tab 验焦点指示，桌面 1440×900 与触屏 390×844 各跑一遍 —— 它查出四层浮层里的第四层（导入面板）漏了 Esc 与焦点环，键盘用户按 Esc 没反应、Tab 还能跑到底下的画布上；同一条约定在无浏览器 CI 里由 `tests/test_a11y_markup.py` 的 11 条静态守卫兜底（缺标签、`href="#"` 伪链接、模态没有名字、操作回执不在 live region、aria 引用悬空），每条守卫都配一条证伪用例。`scripts/card_audit.mjs` 是分享卡的像素体检：按行统计"墨量"，找出缩略图里才显形的空洞带与贴边。`scripts/perf_check.mjs` 是性能体检：手机 4× CPU 降速与桌面两档，量每帧主线程耗时、每帧 canvas 绘制调用数（arc / fill / stroke / 新建渐变）、每帧 DOM 几何读取、堆增长、分享卡导出耗时与页面重量。CI 覆盖 Python 3.10–3.13 四个版本 + ruff + pytest + 模板检查 + 链接检查 + 社交元信息检查 + 页面重量检查。详见 [MCP_INTEGRATION.md](MCP_INTEGRATION.md) 与 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ## 性能
 
@@ -103,7 +103,7 @@ flowchart TD
 ├── SKILL.md                  # Skill 定义
 ├── src/                      # MCP 客户端、星图数据模型、人格鉴定
 ├── templates/                # 星图 HTML 报告模板（Canvas 渲染）
-├── scripts/                  # 数据拉取、报告生成、演示页重建、模板/链接/元信息/重量检查、版式与卡片体检、E2E、性能体检、截图与 GIF
+├── scripts/                  # 数据拉取、报告生成、演示页重建、模板/链接/元信息/重量检查、版式与卡片体检、无障碍审计、E2E、性能体检、截图与 GIF
 ├── samples/                  # 演示数据（匿名化）与官方营养数据
 ├── tests/                    # 测试（先证伪再交付）
 ├── demo/                     # 在线演示页

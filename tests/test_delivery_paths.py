@@ -37,8 +37,17 @@ def audit_dialog_roles(html: str) -> list[str]:
             problems.append(f"{label} 缺 role=dialog")
         if 'aria-modal="true"' not in tag:
             problems.append(f"{label} 缺 aria-modal=true")
-        if "aria-label" not in tag:
-            problems.append(f"{label} 缺 aria-label（读屏只会念出内部文字）")
+        # 名字可以来自 aria-label，也可以来自可见标题的 aria-labelledby（后者更好：
+        # 读屏念的和眼睛看到的必须是同一句话）。用了 labelledby 就得真的指得到。
+        if "aria-label" in tag:
+            pass
+        elif "aria-labelledby" in tag:
+            ref = re.search(r'aria-labelledby="([^"]+)"', tag)
+            for rid in ref.group(1).split() if ref else []:
+                if f'id="{rid}"' not in html:
+                    problems.append(f"{label} 的 aria-labelledby 指向不存在的 id：{rid}")
+        else:
+            problems.append(f"{label} 缺可访问名（aria-label 或 aria-labelledby）")
     return problems
 
 
@@ -82,7 +91,7 @@ def test_audit_catches_missing_dialog_role():
     """证伪：把引导层的 role/aria-modal 拿掉，审计必须报出来。"""
     html = read_template()
     mutated = html.replace(
-        '<div id="onboard" role="dialog" aria-modal="true" aria-label="玩法说明">', '<div id="onboard">'
+        '<div id="onboard" role="dialog" aria-modal="true" aria-labelledby="onboard-title">', '<div id="onboard">'
     )
     assert mutated != html, "证伪用例没生效：模板里找不到引导层的 role 声明"
     problems = audit_dialog_roles(mutated)
