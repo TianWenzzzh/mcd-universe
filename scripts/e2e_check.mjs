@@ -8,7 +8,7 @@
  * 6. 移动端 HUD 布局矩形两两不重叠
  * 7. 分享卡交付路径：微信内必须走"预览 + 长按保存"（微信不实现 a[download]），
  *    普通浏览器必须走下载；两种路径的提示文案不许混用
- * 8. 三层浮层（引导 / 预览 / 导出面板）都是真模态：role、焦点进入、Tab 循环、Esc 关闭
+ * 8. 六层浮层（引导 / 预览 / 导出 / 导入 / 成就 / 更多）都是真模态：role、焦点进入、Tab 循环、Esc 关闭
  * 9. 引导层弹出时机：普通模式等粒子入场放完，减少动效模式不等
  * 10. 深链 ?open=import：落地直接开面板，且不得再排首访引导
  *
@@ -72,8 +72,14 @@ async function checkPage(browser, url, opts) {
       isNebula: mc ? mc.isNebula : null,
       reduced: mc ? mc.reduced : null,
       persona: mc && mc.data.persona ? mc.data.persona.name : null,
+      textTargets: mc && mc.textTargets ? mc.textTargets : null,
     };
   });
+  // 文字目标必须覆盖完整字形。手机 390 屏上字号约 85px，正常 y 跨度 ~55px；
+  // 旧实现只取采样点前缀，y 跨度只有十几像素，肉眼就是四条横带。
+  if (!state.isNebula && state.textTargets && (state.textTargets.y < 30 || state.textTargets.x < 100)) {
+    problems.push(`粒子文字目标覆盖不足: ${Math.round(state.textTargets.x)}×${Math.round(state.textTargets.y)}`);
+  }
   if (onboardAt) state.onboardAt = onboardAt;
 
   if (opts.expectNebula !== undefined && state.isNebula !== opts.expectNebula) {
@@ -158,9 +164,7 @@ async function checkPage(browser, url, opts) {
     }
   }
   // 孤悬行检测：换行排布最容易留下"最后一行只剩一颗"，看上去像没做完。
-  // 图例（6 项）在手机上曾排成 5+1、成就墙（10 项）曾排成 3+3+3+1，都吃过这个亏。
-  // 判定按几何位置分组而不看 CSS 实现：是不是网格、三列还是两列都不重要，
-  // 只要最后一行不是"1 项 + 前面多行都多于 1 项"就算过。
+  // 图例曾在手机上排成 5+1；判定按几何位置分组而不看 CSS 实现。
   const rows = await page.evaluate(() => {
     const rowsOf = (sel) => {
       const m = {};
@@ -174,7 +178,7 @@ async function checkPage(browser, url, opts) {
         .sort((a, b) => a - b)
         .map((k) => m[k]);
     };
-    return { legend: rowsOf("#legend > span"), ach: rowsOf("#achievements .chip") };
+    return { legend: rowsOf("#legend > span") };
   });
   state.rows = rows;
   for (const [name, list] of Object.entries(rows)) {
@@ -185,7 +189,7 @@ async function checkPage(browser, url, opts) {
   }
 
   if (opts.dialogs) {
-    // 浮层必须是真模态。这个项目吃过"看不见的控件在响应"的亏（#actions 三个按钮曾是死的、
+    // 浮层必须是真模态。这个项目吃过"看不见的控件在响应"的亏（#actions 按钮曾是死的、
     // 引导层背后 Tab 能落到画布上）—— 遮罩挡住鼠标，键盘却照样穿过去，是最难被发现的一类。
     await page.waitForSelector("#onboard.show", { timeout: 15000 }).catch(() => null);
     const dlg = await page.evaluate(() => {
@@ -297,15 +301,56 @@ async function checkPage(browser, url, opts) {
       return a ? a.getAttribute("href") : null;
     });
     if (!obLink || !obLink.includes("docs/about.html")) problems.push("首访引导缺少作品说明入口");
-    // 当前人格页要在切换器里被标出来：视觉 .cur 之外还要有语义 aria-current
-    const ariaCur = await page.evaluate(() => {
-      const a = document.querySelector('#switcher a[aria-current="page"]');
-      return a ? a.getAttribute("href") : null;
+    // 首屏主 CTA 必须真的是「粘贴订单」，样例切换收在一个 select 里。
+    const hero = await page.evaluate(() => {
+      const cta = document.getElementById("import-open");
+      const sample = document.getElementById("sample-select");
+      const box = cta ? cta.getBoundingClientRect() : null;
+      return {
+        text: cta ? cta.textContent.trim() : null,
+        visible: !!(box && box.width > 160 && box.height >= 40),
+        sample: sample ? sample.value : null,
+        sampleVisible: sample ? getComputedStyle(document.getElementById("sample-row")).display !== "none" : false,
+      };
     });
-    if (ariaCur !== "./") problems.push(`切换器 aria-current 缺失或错位: ${ariaCur}`);
+    if (!hero.text || !hero.text.includes("粘贴订单")) problems.push(`首屏主 CTA 文案错误: ${hero.text}`);
+    if (!hero.visible) problems.push("首屏主 CTA 不可见或尺寸过小");
+    if (hero.sample !== "./") problems.push(`样例选择器值错误: ${hero.sample}`);
+    if (!hero.sampleVisible) problems.push("演示页没有显示样例选择器");
     // 首访引导会拦截点击：先关掉（同时验证引导层可关闭）
     await page.evaluate(() => window.__mcuniverse.dismissOnboard());
     await page.waitForTimeout(200);
+
+    // 成就列表：必须真是列表、有进度、且包含用户点名的「汉堡王」。
+    await page.click("#btn-ach");
+    await page.waitForTimeout(350);
+    const ach = await page.evaluate(() => {
+      const panel = document.getElementById("ach-panel");
+      const items = [...document.querySelectorAll("#ach-list .ach-item")];
+      return {
+        open: panel.classList.contains("show"),
+        count: items.length,
+        unlocked: items.filter((el) => el.classList.contains("unlocked")).length,
+        hasBurgerKing: items.some((el) => el.textContent.includes("汉堡王")),
+        hasProgress: items.some((el) => el.querySelector(".bar i") !== null),
+        focusInside: panel.contains(document.activeElement),
+      };
+    });
+    if (!ach.open) problems.push("成就面板未打开");
+    if (ach.count !== 10) problems.push(`成就列表应为 10 项，实际 ${ach.count}`);
+    if (!ach.unlocked) problems.push("成就列表没有任何已解锁项");
+    if (!ach.hasBurgerKing) problems.push("成就列表缺少「汉堡王」");
+    if (!ach.hasProgress) problems.push("成就列表缺少进度条");
+    if (!ach.focusInside) problems.push("成就面板打开后焦点未进入");
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(200);
+    const achClosed = await page.evaluate(() => ({
+      closed: !document.getElementById("ach-panel").classList.contains("show"),
+      focusBack: document.activeElement && document.activeElement.id === "btn-ach",
+    }));
+    if (!achClosed.closed) problems.push("Esc 未关闭成就面板");
+    if (!achClosed.focusBack) problems.push("成就面板关闭后焦点没有回到「成就」按钮");
+
     // 真实点击：保存分享卡 → 面板展开 → 点「极简海报」→ 触发下载
     await page.click("#btn-save");
     await page.waitForTimeout(600);
@@ -393,12 +438,20 @@ async function checkPage(browser, url, opts) {
     if (sem.toastRole !== "status") problems.push("#toast 不是 role=status，操作回执读屏听不到");
     if (sem.errRole !== "alert") problems.push("#import-err 不是 role=alert，导入报错读屏听不到");
 
+    await page.click("#btn-more");
+    await page.waitForTimeout(300);
+    const moreOpen = await page.evaluate(() => document.getElementById("more-panel").classList.contains("show"));
+    if (!moreOpen) problems.push("更多面板未打开");
     await page.click("#btn-sound");
     await page.waitForTimeout(250);
     const pressedAfter = await page.evaluate(() => document.getElementById("btn-sound").getAttribute("aria-pressed"));
     if (pressedAfter !== "true") problems.push(`音效开关点击后 aria-pressed=${pressedAfter}，读屏不知道现在是开还是关`);
     await page.click("#btn-sound");
     await page.waitForTimeout(150);
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(150);
+    const moreClosed = await page.evaluate(() => !document.getElementById("more-panel").classList.contains("show"));
+    if (!moreClosed) problems.push("Esc 未关闭更多面板");
 
     // 导入错误路径：贴一段非法 JSON，输入框要被打上 aria-invalid
     await page.click("#import-open");
@@ -454,7 +507,7 @@ async function checkPage(browser, url, opts) {
     // 星点不许钻进 HUD 底下：把整圈旋转角扫一遍，任何角度下星心落在 HUD 矩形内都算失败
     // （卡片不透明，钻进去=那颗星凭空消失）。这比截一张图可信，因为它覆盖所有角度。
     const hidden = await page.evaluate(() => {
-      const ids = ["title", "legend", "persona", "actions", "stats", "demo-badge", "switcher"];
+      const ids = ["title", "hero", "persona", "actions", "stats"];
       const rects = ids.map((id) => {
         const el = document.getElementById(id);
         if (!el) return null;
@@ -522,7 +575,7 @@ async function checkPage(browser, url, opts) {
         const b = d.getBoundingClientRect();
         // footer 是贴右缘的竖排装饰字（低对比度责任声明），卡片靠右时允许压它 10 来像素，
         // 不列入硬断言；其余每一块都是用户要看/要点的东西。
-        const HUD = ["title", "demo-badge", "switcher", "stats", "daily", "legend", "persona", "actions"];
+        const HUD = ["title", "hero", "stats", "daily", "persona", "actions"];
         const hits = [];
         for (const id of HUD) {
           const el = document.getElementById(id);
@@ -571,7 +624,7 @@ async function checkPage(browser, url, opts) {
     // 这里量真实布局矩形，任何两块可见 HUD 有 >2px 交集都算失败。
     const hits = await page.evaluate(() => {
       // detail / tip / toast 是按需弹出的浮层，允许盖住别的 HUD，不参与判定
-      const ids = ["title", "demo-badge", "switcher", "stats", "daily", "legend", "persona", "actions"];
+      const ids = ["title", "hero", "stats", "daily", "persona", "actions"];
       const boxes = [];
       for (const id of ids) {
         const el = document.getElementById(id);
@@ -655,7 +708,7 @@ async function main() {
       expectNebula: false,
       expectStars: 10,
       exportCard: true,
-      // 桌面档同时验两件事：引导等入场放完才弹（不能提前打断），三层浮层是真模态
+      // 桌面档同时验两件事：引导等入场放完才弹（不能提前打断），六层浮层是真模态
       dialogs: true,
       onboardDeadline: 9000,
       onboardMin: 4000,

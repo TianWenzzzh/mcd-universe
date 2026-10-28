@@ -21,6 +21,7 @@ JOBS = {
     "submit-1.png": (1600, 82),
     "submit-2.png": (1600, 82),
     "submit-3.png": (1600, 82),
+    "submit-ach.png": (1600, 82),
     "demo-detail.png": (1200, 84),
     "share-card-minimal.png": (1080, 86),
 }

@@ -2,9 +2,10 @@
  * 投稿截图生成器：一张命令重拍全部投稿图，避免"改了界面、截图还是旧的"。
  *
  * 产出（docs/assets/）：
- *   submit-1.png  桌面主界面（悬停气泡 + 人格卡与成就，投稿第一张）
+ *   submit-1.png  桌面主界面（主 CTA + 悬停气泡 + 人格卡与成就进度，投稿第一张）
+ *   submit-ach.png 成就列表（自动解锁 + 进度 + 汉堡王）
  *   submit-2.png  分享卡四种风格导出面板
- *   submit-3.png  移动端竖屏
+ *   submit-3.png  移动端竖屏（主 CTA 置顶 + 底部三按钮）
  *   demo-detail.png  单颗星的详情面板（README / 说明页用）
  *
  * 用法（需要 playwright-core）：
@@ -70,6 +71,14 @@ async function main() {
   });
   writeFileSync(`${OUT}/cover-source.jpg`, Buffer.from(coverSource, "base64"));
   console.log("shot cover-source.jpg");
+
+  // 1c. 成就列表（新功能：自动解锁 + 进度）。用 Esc 关闭，顺手验证面板可键盘退出。
+  await desk.click("#btn-ach");
+  await desk.waitForTimeout(500);
+  await desk.screenshot({ path: `${OUT}/submit-ach.png` });
+  console.log("shot submit-ach.png");
+  await desk.keyboard.press("Escape");
+  await desk.waitForTimeout(300);
 
   // 2. 导出面板
   await desk.click("#btn-save");

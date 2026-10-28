@@ -23,16 +23,16 @@ import sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
-# 预算：演示页 86KB 上下（单文件，含全部演示数据与渲染器），留 40% 余量。
-# 说明页更轻；超过就说明有人把图片或库直接塞进去了。
+# 预算：演示页约 127KB（单文件，含渲染器、首屏 CTA、成就面板与演示数据）。
+# 说明页更轻；超过就说明有人把图片或库直接塞进去了。零外部请求这条仍然不变。
 BUDGET_KB = {
-    "demo/index.html": 120,
-    "demo/breakfast.html": 120,
-    "demo/dessert.html": 120,
-    "demo/burger.html": 120,
+    "demo/index.html": 132,
+    "demo/breakfast.html": 132,
+    "demo/dessert.html": 132,
+    "demo/burger.html": 132,
     "docs/about.html": 60,
 }
-DEFAULT_BUDGET_KB = 120
+DEFAULT_BUDGET_KB = 132
 
 # 会发起网络请求的属性。srcset / poster 一并算上，不然换个属性名就漏了。
 RES_RE = re.compile(

@@ -9,7 +9,7 @@
 <meta name="color-scheme" content="dark">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⭐</text></svg>">
 <meta property="og:title" content="麦门宇宙 McUniverse">
-<meta property="og:description" content="你的每一单，都是麦门宇宙里的一颗星。基于麦当劳MCP的个人订单星图与麦门人格鉴定。">
+<meta property="og:description" content="你的每一单，都是麦门宇宙里的一颗星。打开即玩，粘贴订单生成星图，自动解锁十项麦门成就。">
 <meta property="og:image" content="https://tianwenzzzh.github.io/mcd-universe/docs/assets/og-card.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -22,7 +22,7 @@
 <!-- 早先这里指向 submit-1.png（1.45MB）。社交平台的抓取器对缩略图有体积/超时限制，
      1.45MB 的 PNG 在微信里经常抓不到图，只剩标题。换成 1200×630 的 48KB JPG。 -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="description" content="麦门宇宙：基于麦当劳中国官方MCP的订单星图与麦门人格鉴定Skill，数据本地处理。">
+<meta name="description" content="麦门宇宙：基于麦当劳中国官方MCP的订单星图、麦门人格与十项自动解锁成就，数据本地处理。">
 <title>麦门宇宙 McUniverse</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -41,6 +41,16 @@
   #title p { font-size: 11px; color: #9d97bd; margin-top: 7px; letter-spacing: 2.5px; }
   #stats { top: 26px; right: 28px; text-align: right; font-size: 11px; color: #9d97bd; line-height: 2; letter-spacing: 1px; text-shadow: 0 1px 10px rgba(4,3,11,.95); }
   #stats b { color: #ffe9a8; font-size: 19px; font-weight: 700; text-shadow: 0 0 16px rgba(255,217,122,.4); }
+  /* 首屏主动作：把「粘贴订单」从一排小胶囊里提出来，做成唯一的高对比按钮。
+     其它次要信息（样例、图例、数据说明）全部降为一行小字，不再和主 CTA 抢注意力。 */
+  #hero { position: absolute; z-index: 12; top: 84px; left: 28px; width: min(390px, calc(100% - 56px)); display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+  .hero-cta { pointer-events: auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 44px; padding: 11px 16px; border: 1px solid rgba(255,160,110,.55); border-radius: 12px; background: linear-gradient(160deg, #ef7f4a, #d85a30); color: #fff; font: inherit; font-size: 14px; font-weight: 650; letter-spacing: .6px; box-shadow: 0 8px 28px rgba(216,90,48,.34); cursor: pointer; transition: background .2s, transform .15s; }
+  .hero-cta:hover { background: linear-gradient(160deg, #f78f5c, #e06a3c); transform: translateY(-1px); }
+  .hero-cta .cta-arrow { font-size: 17px; opacity: .9; }
+  #hero-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; min-height: 26px; pointer-events: auto; }
+  #sample-row { display: none; align-items: center; gap: 5px; font-size: 10px; color: #8f89ad; letter-spacing: .5px; }
+  #sample-row select { min-height: 26px; padding: 2px 7px; border: 1px solid rgba(255,255,255,.16); border-radius: 999px; background: rgba(255,255,255,.06); color: #e8e4f6; font: inherit; }
+  #demo-badge { display: none; font-size: 9.5px; color: rgba(185,179,214,.82); letter-spacing: .4px; line-height: 1.5; }
   #daily { top: 86px; right: 28px; display: none; max-width: 250px; text-align: right; font-size: 11px; color: #ffd97a; line-height: 1.7; }
   #daily .tag { display: inline-block; background: rgba(255,217,122,.1); border: 1px solid rgba(255,217,122,.28); border-radius: 999px; padding: 1px 8px; margin-bottom: 4px; font-size: 10px; letter-spacing: 1.5px; }
   #persona { left: 28px; bottom: 82px; max-width: 330px; padding: 16px 20px; background: linear-gradient(165deg, rgba(28,24,52,.92), rgba(12,10,26,.92)); border: 1px solid rgba(255,217,122,.26); border-radius: 14px; box-shadow: 0 10px 40px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.06); backdrop-filter: blur(10px); opacity: 0; transform: translateY(14px); transition: opacity .9s, transform .9s; }
@@ -49,11 +59,13 @@
   #persona.yield { opacity: 0; pointer-events: none; transition: opacity .2s; }
   #persona h2 { font-size: 16px; font-weight: 700; color: #ffe9a8; letter-spacing: 2px; text-shadow: 0 0 18px rgba(255,217,122,.35); }
   #persona p { font-size: 12px; color: #b9b3d6; margin-top: 7px; line-height: 1.8; }
-  #actions { position: absolute; right: 28px; bottom: 28px; display: flex; gap: 10px; z-index: 11; }
-  .btn { pointer-events: auto; cursor: pointer; white-space: nowrap; font-size: 13px; color: #e8e4f6; background: rgba(255,255,255,.055); border: 1px solid rgba(255,255,255,.16); border-radius: 10px; padding: 9px 17px; letter-spacing: 1px; transition: background .2s, border-color .2s, transform .15s; }
+  #actions { position: absolute; right: 28px; bottom: 28px; display: flex; align-items: stretch; gap: 8px; z-index: 11; }
+  .btn { pointer-events: auto; cursor: pointer; white-space: nowrap; min-height: 42px; font-size: 13px; color: #e8e4f6; background: rgba(255,255,255,.055); border: 1px solid rgba(255,255,255,.16); border-radius: 10px; padding: 9px 17px; letter-spacing: .6px; transition: background .2s, border-color .2s, transform .15s; }
   .btn:hover { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.3); transform: translateY(-1px); }
-  .btn.primary { background: linear-gradient(160deg, #ef7f4a, #d85a30); border-color: rgba(255,160,110,.5); box-shadow: 0 6px 24px rgba(216,90,48,.35); }
+  .btn.primary { flex: 1.5; background: linear-gradient(160deg, #ef7f4a, #d85a30); border-color: rgba(255,160,110,.5); box-shadow: 0 6px 24px rgba(216,90,48,.35); }
   .btn.primary:hover { background: linear-gradient(160deg, #f78f5c, #e06a3c); }
+  #btn-ach { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+  #btn-ach b { font-size: 10px; font-weight: 600; color: #ffd97a; letter-spacing: 0; }
   /* 详情卡的落点由 placeDetail() 算（贴着自己那颗星，不压星、不压按钮），
      所以这里只管"从哪儿出发"：left/top 归零，位移全交给 transform，过渡才是合成层的。 */
   #detail { left: 0; top: 0; --dx: 0px; --dy: 0px; transform: translate3d(var(--dx), calc(var(--dy) + 14px), 0); min-width: 270px; max-width: 430px; padding: 16px 20px; background: linear-gradient(165deg, rgba(24,20,46,.96), rgba(10,8,22,.96)); border: 1px solid rgba(255,255,255,.14); border-radius: 14px; box-shadow: 0 14px 44px rgba(0,0,0,.55); opacity: 0; transition: opacity .3s, transform .3s; pointer-events: none; }
@@ -64,10 +76,10 @@
   #detail .row { display: flex; justify-content: space-between; gap: 24px; font-size: 13px; line-height: 2.1; }
   #detail .row .k { color: #918ab3; }
   #detail .row .v { color: #fff; text-align: right; }
-  #legend { left: 28px; top: 172px; display: flex; flex-direction: column; flex-wrap: wrap; gap: 7px; font-size: 10.5px; color: #a39dc2; letter-spacing: 1px; }
-  #legend span { display: flex; align-items: center; gap: 7px; background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.07); border-radius: 999px; padding: 3px 10px 3px 7px; width: fit-content; }
-  #legend i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; box-shadow: 0 0 8px currentColor; }
-  #legend .size-hint { gap: 3px; padding: 3px 10px 3px 8px; }
+  #legend { position: static; left: auto; top: auto; display: flex; flex-wrap: wrap; gap: 4px 9px; font-size: 9.5px; color: #a39dc2; letter-spacing: .3px; }
+  #legend span { display: inline-flex; align-items: center; gap: 4px; background: none; border: 0; border-radius: 0; padding: 0; width: auto; }
+  #legend i { width: 6px; height: 6px; border-radius: 50%; display: inline-block; box-shadow: 0 0 6px currentColor; }
+  #legend .size-hint { gap: 3px; padding: 0; }
   #legend .size-hint i { box-shadow: none; background: #ece9f7; }
   #detail .dhead { border-bottom: 1px solid rgba(255,255,255,.1); padding-bottom: 7px; margin-bottom: 5px; }
   #detail .dhead .k { color: #ffd97a; letter-spacing: 1px; }
@@ -75,25 +87,15 @@
   #tip { position: absolute; z-index: 12; pointer-events: none; display: none; font-size: 11px; color: #ffe9a8; background: rgba(12,10,26,.9); border: 1px solid rgba(255,217,122,.3); border-radius: 999px; padding: 4px 11px; letter-spacing: 1px; white-space: nowrap; box-shadow: 0 4px 18px rgba(0,0,0,.5); }
   #toast { position: absolute; left: 50%; bottom: 150px; transform: translateX(-50%) translateY(8px); z-index: 20; font-size: 12.5px; color: #ffe9a8; background: rgba(16,12,32,.94); border: 1px solid rgba(255,217,122,.32); border-radius: 999px; padding: 10px 22px; letter-spacing: 1px; opacity: 0; transition: opacity .3s, transform .3s; pointer-events: none; }
   #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-  /* 成就墙用两列网格，不用 flex-wrap：10 项在 flex 下会排成 3+3+3+1，
-     最后一行孤零零一颗，看着像没做完。两列正好 5 行排满，也和成就分享卡的
-     2×5 成就墙是同一套语言。 */
-  #achievements { margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
-  #achievements .chip { justify-self: start; pointer-events: auto; cursor: pointer; font-size: 10px; color: #ffd97a; background: rgba(255,217,122,.08); border: 1px solid rgba(255,217,122,.26); border-radius: 999px; padding: 2px 8px; letter-spacing: .5px; }
-  #achievements .chip.locked { color: rgba(206,200,230,.8); background: rgba(255,255,255,.035); border-color: rgba(255,255,255,.14); }
-  #achievements .count { grid-column: 1 / -1; font-size: 10px; color: #948eb5; margin-top: 3px; letter-spacing: 1px; }
-  #demo-badge { top: 96px; left: 28px; display: none; font-size: 10.5px; color: #ffd97a; background: rgba(255,217,122,.07); border: 1px solid rgba(255,217,122,.3); border-radius: 999px; padding: 5px 12px; letter-spacing: 1px; }
-  #demo-badge a { color: #ffd97a; pointer-events: auto; text-decoration: none; }
-  #switcher { position: absolute; z-index: 10; top: 132px; left: 28px; display: none; align-items: center; gap: 6px; font-size: 10.5px; color: #8f89ad; pointer-events: auto; }
-  #switcher .lbl { letter-spacing: 1px; }
-  /* 点按目标：原来高 20px，低于 WCAG 2.5.8 的 24px 下限。min-height 24px（触屏 32px）；
-     字号一律 inherit —— 这行在 390 屏已挤到 343px，放大就顶破右边界。 */
-  #switcher a, #switcher button { display: inline-flex; align-items: center; justify-content: center; min-height: 24px; color: #b9b3d6; text-decoration: none; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); border-radius: 999px; padding: 2px 9px; letter-spacing: .5px; font: inherit; cursor: pointer; }
-  #switcher button { color: #ffd97a; }
-  #switcher a.cur { color: #ffe9a8; border-color: rgba(255,217,122,.45); background: rgba(255,217,122,.1); }
-  #switcher a:hover, #switcher button:hover { border-color: rgba(255,255,255,.3); }
+  /* 人格卡里的成就只保留进度条 + 最接近的一项，完整列表放到「成就」面板。
+     之前 10 枚徽章长在卡里，手机上把星图挤到只剩一条缝。 */
+  #achievements { margin-top: 10px; display: block; }
+  #achievements .ach-meter { height: 4px; border-radius: 99px; background: rgba(255,255,255,.08); overflow: hidden; }
+  #achievements .ach-meter i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #ef7f4a, #ffd97a); }
+  #achievements .ach-line { margin-top: 6px; font-size: 10.5px; color: #948eb5; line-height: 1.55; letter-spacing: 0; }
+  #achievements .ach-line b { color: #ffe9a8; font-weight: 600; }
   @media (pointer: coarse) {
-    #switcher a, #switcher button { min-height: 32px; }
+    #sample-row select { min-height: 32px; }
   }
   #onboard { position: absolute; inset: 0; z-index: 30; display: none; align-items: center; justify-content: center; background: rgba(4,3,11,.72); backdrop-filter: blur(6px); }
   #onboard.show { display: flex; }
@@ -155,46 +157,74 @@
     .ep-style span { font-size: 10px; }
   }
   .ep-tip { text-align: center; font-size: 11px; color: rgba(190,185,214,.85); margin-top: 14px; letter-spacing: 1px; }
-  #dex-panel { left: 50%; bottom: 92px; transform: translateX(-50%) translateY(18px); width: min(560px, calc(100% - 48px)); max-height: 48vh; overflow-y: auto; padding: 18px 20px; background: linear-gradient(170deg, rgba(22,18,42,.97), rgba(9,7,20,.97)); border: 1px solid rgba(255,217,122,.2); border-radius: 16px; box-shadow: 0 18px 56px rgba(0,0,0,.6); opacity: 0; transition: opacity .3s, transform .3s; pointer-events: none; }
-  #dex-panel.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
-  #dex-panel h3 { font-size: 12px; font-weight: 700; color: #ffe9a8; letter-spacing: 3px; margin-bottom: 12px; }
-  .dex-item { padding: 10px 13px; border-radius: 10px; margin-bottom: 7px; border: 1px solid rgba(255,255,255,.05); background: rgba(255,255,255,.02); }
-  .dex-item .n { font-size: 13px; font-weight: 600; color: #e6e2f4; letter-spacing: .5px; }
-  .dex-item .d { font-size: 11px; color: #948eb5; margin-top: 4px; line-height: 1.7; }
-  .dex-item.mine { border-color: rgba(255,217,122,.45); background: linear-gradient(120deg, rgba(255,217,122,.09), rgba(255,217,122,.02)); }
-  .dex-item.mine .n { color: #ffe9a8; }
-  .dex-item.mine .n::after { content: " · 你"; font-size: 10px; color: #ffd97a; }
+  /* 成就面板：和导出面板同一套全屏遮罩 + 焦点陷阱，内容改成自动解锁列表。 */
+  #ach-panel { position: absolute; inset: 0; z-index: 29; display: none; align-items: center; justify-content: center; background: rgba(4,3,11,.8); backdrop-filter: blur(8px); }
+  #ach-panel.show { display: flex; }
+  .ach-card { width: min(680px, calc(100% - 32px)); max-height: 82vh; overflow-y: auto; padding: 22px; background: linear-gradient(170deg, rgba(22,18,42,.98), rgba(9,7,20,.98)); border: 1px solid rgba(255,217,122,.24); border-radius: 18px; box-shadow: 0 24px 80px rgba(0,0,0,.7); }
+  .ach-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+  .ach-head h3 { font-size: 16px; color: #ffe9a8; letter-spacing: 3px; }
+  .ach-head p { margin-top: 5px; font-size: 10.5px; color: #948eb5; line-height: 1.6; }
+  .ach-close { flex: 0 0 auto; width: 32px; height: 32px; border: 1px solid rgba(255,255,255,.16); border-radius: 50%; background: rgba(255,255,255,.05); color: #dcd8ee; font-size: 18px; line-height: 1; cursor: pointer; }
+  .ach-close:hover { border-color: rgba(255,217,122,.5); color: #ffe9a8; }
+  .ach-progress { display: flex; align-items: center; gap: 12px; margin: 14px 0 16px; }
+  .ach-progress b { font-size: 19px; color: #ffe9a8; white-space: nowrap; }
+  .ach-progress .bar { flex: 1; height: 5px; border-radius: 99px; background: rgba(255,255,255,.08); overflow: hidden; }
+  .ach-progress .bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #ef7f4a, #ffd97a); transition: width .3s; }
+  #ach-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .ach-item { padding: 10px 12px; border-radius: 11px; border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.025); }
+  .ach-item.unlocked { border-color: rgba(255,217,122,.34); background: linear-gradient(120deg, rgba(255,217,122,.08), rgba(255,217,122,.015)); }
+  .ach-item.locked { opacity: .68; }
+  .ach-item .top { display: flex; align-items: center; gap: 8px; }
+  .ach-item .icon { flex: 0 0 26px; width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(255,217,122,.09); font-size: 15px; }
+  .ach-item.locked .icon { background: rgba(255,255,255,.05); filter: grayscale(1); }
+  .ach-item .name { font-size: 12.5px; font-weight: 600; color: #ece9f7; letter-spacing: .3px; }
+  .ach-item .state { margin-left: auto; font-size: 9px; color: #ffd97a; letter-spacing: .5px; }
+  .ach-item.locked .state { color: #8f89ad; }
+  .ach-item .desc { margin-top: 5px; font-size: 10px; color: #948eb5; line-height: 1.55; }
+  .ach-item .bar { height: 3px; margin-top: 6px; border-radius: 99px; background: rgba(255,255,255,.07); overflow: hidden; }
+  .ach-item .bar i { display: block; height: 100%; border-radius: inherit; background: #ffd97a; }
+  .ach-tip { margin-top: 14px; font-size: 9.5px; color: #7f789e; line-height: 1.6; }
+  /* 更多：只收「玩法 / 音效 / 重播」这类低频动作，底部主栏只留成就与导出。 */
+  #more-panel { position: absolute; inset: 0; z-index: 29; display: none; align-items: flex-end; justify-content: center; background: rgba(4,3,11,.72); backdrop-filter: blur(6px); }
+  #more-panel.show { display: flex; }
+  .more-card { width: min(420px, calc(100% - 24px)); margin-bottom: 16px; padding: 18px; background: linear-gradient(170deg, rgba(26,22,48,.98), rgba(10,8,22,.98)); border: 1px solid rgba(255,217,122,.24); border-radius: 18px; box-shadow: 0 24px 80px rgba(0,0,0,.7); }
+  .more-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .more-head h3 { font-size: 14px; color: #ffe9a8; letter-spacing: 3px; }
+  .more-list { display: grid; gap: 8px; margin-top: 14px; }
+  .more-list button { min-height: 44px; padding: 10px 14px; border: 1px solid rgba(255,255,255,.14); border-radius: 10px; background: rgba(255,255,255,.05); color: #e8e4f6; font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+  .more-list button:hover { border-color: rgba(255,217,122,.45); background: rgba(255,255,255,.09); }
   @media (max-width: 640px) {
     #title h1 { font-size: 18px; letter-spacing: 5px; }
     #title p { font-size: 9.5px; letter-spacing: 1.5px; }
     /* 小屏去掉英文前缀：否则侧标「累计 ¥」会压在副标尾巴上 */
     .t-en { display: none; }
-    #demo-badge { top: 76px; font-size: 9.5px; padding: 4px 9px; }
-    #switcher { top: 104px; left: 20px; font-size: 9.5px; gap: 4px; }
-    /* 竖排图例在手机上要吃掉 140px 纵向空间，把星群压成一条扁带 —— 改横排换行，只占两行 */
-    /* 换行版会排成"5 个品类 + 星等提示独自一行"，最后一行只有一个胶囊，白白多吃 22px。
-       三列网格正好 3+3 排满两行，高度不变但不再有孤悬。 */
-    /* top 132 → 140：切换器长到 32px 后底边 136，原值会把图例压进去 4px。 */
-    #legend { top: 140px; left: 20px; width: calc(100% - 40px); display: grid; grid-template-columns: repeat(3, auto); justify-content: start; align-items: center; gap: 4px 6px; font-size: 9px; }
-    #legend span { justify-self: start; padding: 2px 8px 2px 6px; }
-    #legend .size-hint { padding: 2px 8px 2px 7px; }
-    #stats { top: 22px; right: 22px; }
-    #persona { max-width: calc(100% - 40px); bottom: 114px; padding: 13px 16px; }
+    #title { top: 18px; left: 20px; right: 104px; }
+    #stats { top: 18px; right: 20px; font-size: 9.5px; line-height: 1.8; }
+    #stats b { font-size: 17px; }
+    /* 手机上不再叠今日活动：顶部已经有主 CTA、样例与图例，再加一条只会更挤 */
+    #daily { display: none !important; }
+    #hero { top: 78px; left: 20px; width: calc(100% - 40px); gap: 6px; }
+    .hero-cta { min-height: 46px; padding: 12px 14px; font-size: 13.5px; }
+    #hero-meta { gap: 4px 8px; min-height: 30px; }
+    #sample-row { font-size: 9.5px; }
+    #demo-badge { font-size: 9px; }
+    #legend { font-size: 8.5px; gap: 3px 7px; }
+    #legend i { width: 5px; height: 5px; }
+    #persona { max-width: calc(100% - 40px); bottom: 70px; bottom: calc(70px + env(safe-area-inset-bottom, 0px)); padding: 13px 16px; }
     #detail { max-width: calc(100% - 28px); }
     /* 矮屏专用：把五行压进 135px，才装得进星群与按钮之间那条缝 */
     #detail.compact { padding: 11px 15px; }
     #detail.compact .row { font-size: 11.5px; line-height: 1.75; gap: 14px; }
     #detail.compact .dhead { padding-bottom: 5px; margin-bottom: 3px; }
-    #dex-panel { bottom: 114px; max-height: 46vh; }
     #footer { display: none; }
-    #actions { left: 14px; right: 14px; bottom: 12px; gap: 6px; flex-wrap: wrap; }
-    .btn { flex: 1 1 28%; text-align: center; padding: 8px 4px; font-size: 11px; letter-spacing: 0; }
-  }
-  /* 矮屏（老款小屏手机）：人格卡吃掉太多纵向空间，星群只能挤成一小坨。
-     这里收起成就墙、只留解锁计数 —— 星图留够地方，"6/10"这个信息也没丢。 */
-  @media (max-height: 700px) {
-    #achievements .chip { display: none; }
-    #achievements .count { margin-top: 0; }
+    #ach-panel { align-items: flex-end; }
+    .ach-card { width: calc(100% - 24px); max-height: 78vh; padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px)); border-radius: 18px 18px 0 0; }
+    #ach-list { grid-template-columns: 1fr; }
+    .more-card { margin-bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+    #actions { left: 14px; right: 14px; bottom: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); gap: 7px; flex-wrap: nowrap; }
+    #actions .btn { flex: 1 1 0; justify-content: center; padding: 10px 4px; font-size: 11px; letter-spacing: 0; }
+    #actions .btn.primary { flex: 1.35; }
+    #btn-ach b { font-size: 9.5px; }
   }
 </style>
 </head>
@@ -209,11 +239,26 @@
 <ul id="a11y-list" class="sr-only"></ul>
 </main>
 <div class="hud" id="title"><h1>麦门宇宙</h1><p><span class="t-en">MCUNIVERSE · </span>你的每一单，都是麦门宇宙里的一颗星</p></div>
-<div class="hud" id="demo-badge">演示数据 · <a href="https://github.com/TianWenzzzh/mcd-universe" target="_blank">用你的真实订单生成 →</a></div>
-<div id="switcher"><span class="lbl" id="switcher-lbl">换个麦门看看</span><a href="./">深夜</a><a href="breakfast.html">早餐</a><a href="dessert.html">甜点</a><a href="burger.html">汉堡</a><button type="button" id="import-open" style="border-style:dashed;color:#ffd97a">粘贴我的订单</button></div>
 <div class="hud" id="stats"></div>
+<div id="hero">
+  <button type="button" class="hero-cta" id="import-open">
+    <span>粘贴订单，生成星图</span><span class="cta-arrow" aria-hidden="true">→</span>
+  </button>
+  <div id="hero-meta">
+    <div id="sample-row">
+      <label for="sample-select">看样例</label>
+      <select id="sample-select" aria-label="切换样例人格">
+        <option value="./">深夜</option>
+        <option value="breakfast.html">早餐</option>
+        <option value="dessert.html">甜点</option>
+        <option value="burger.html">汉堡</option>
+      </select>
+    </div>
+    <span id="demo-badge"></span>
+  </div>
+  <div id="legend"></div>
+</div>
 <div class="hud" id="daily"></div>
-<div class="hud" id="legend"></div>
 <div class="hud" id="persona"><h2 id="persona-name"></h2><p id="persona-desc"></p><div id="achievements"></div></div>
 <div id="tip"></div>
 <!-- toast 是唯一的操作回执，只在屏幕上出现 2.6 秒；挂 role="status" 读屏才念得出来，
@@ -228,7 +273,30 @@
   <a href="https://github.com/TianWenzzzh/mcd-universe#快速开始" target="_blank">查看如何接入 →</a>
 </div>
 <div class="hud" id="detail"></div>
-<div class="hud" id="dex-panel"><h3>麦门人格图鉴</h3><div id="dex-list"></div></div>
+<div id="ach-panel" role="dialog" aria-modal="true" aria-labelledby="ach-title">
+  <div class="ach-card">
+    <div class="ach-head">
+      <div>
+        <h3 id="ach-title">麦门成就</h3>
+        <p>按你的真实订单自动解锁 · 数据只在本机计算</p>
+      </div>
+      <button class="ach-close" id="ach-close" aria-label="关闭成就列表">×</button>
+    </div>
+    <div class="ach-progress"><b id="ach-count">0 / 10</b><div class="bar"><i id="ach-fill" style="width:0%"></i></div></div>
+    <div id="ach-list"></div>
+    <p class="ach-tip">成就只取决于你点过什么、什么时候点，不涉及任何预测或评价。</p>
+  </div>
+</div>
+<div id="more-panel" role="dialog" aria-modal="true" aria-labelledby="more-title">
+  <div class="more-card">
+    <div class="more-head"><h3 id="more-title">更多</h3><button class="ach-close" id="more-close" aria-label="关闭更多">×</button></div>
+    <div class="more-list">
+      <button type="button" id="btn-help">玩法说明</button>
+      <button type="button" id="btn-sound" aria-pressed="false" aria-label="星语音效">音效</button>
+      <button type="button" id="btn-replay">重播入场</button>
+    </div>
+  </div>
+</div>
 <div class="hud" id="footer">数据本地处理 · Token 不出本机</div>
 <!-- 首访引导、分享卡预览、导出面板都是"盖住整页"的浮层，三层必须是同一套对话框行为：
      role/aria-modal + 焦点进入 + Tab 循环 + Esc 关闭 + 关掉后焦点归位。
@@ -262,7 +330,7 @@
     <p class="ob-sub">你的每一单，都是麦门宇宙里的一颗星</p>
     <div class="ob-step"><b>1</b><div><i>看看你的星</i><span>颜色是餐品品类，大小是你的常点，位置是下单时间，连线按时间先后串起你的麦门轨迹</span></div></div>
     <div class="ob-step"><b>2</b><div><i>玩一玩</i><span id="ob-step2">悬停看餐品、拖拽转动星系、滚轮拉近拉远、点击看详情；键盘 ←/→ 也能逐颗浏览</span></div></div>
-    <div class="ob-step"><b>3</b><div><i>带走它</i><span>保存 1080×1440 分享卡，或打开人格图鉴，看你是七种麦门人里的哪一种</span></div></div>
+    <div class="ob-step"><b>3</b><div><i>带走它</i><span>保存 1080×1440 分享卡，或打开成就列表，看看你已经点亮了几项麦门成就</span></div></div>
     <button id="ob-go">开始探索</button>
     <p class="ob-tip">订单数据本地处理 · Token 不出本机 · <a href="https://tianwenzzzh.github.io/mcd-universe/docs/about.html" target="_blank" rel="noopener">关于这个作品</a></p>
   </div>
@@ -280,11 +348,9 @@
   </div>
 </div>
 <div id="actions">
-  <button class="btn" id="btn-help">玩法</button>
-  <button class="btn" id="btn-dex">人格图鉴</button>
-  <button class="btn" id="btn-sound" aria-pressed="false" aria-label="星语音效">音效</button>
-  <button class="btn" id="btn-replay">重播入场</button>
+  <button class="btn" id="btn-ach" aria-haspopup="dialog">成就 <b id="ach-badge">0/10</b></button>
   <button class="btn primary" id="btn-save">保存分享卡</button>
+  <button class="btn" id="btn-more" aria-haspopup="dialog">更多</button>
 </div>
 <script type="application/json" id="starmap-data">{"status": "galaxy", "stars": [{"id": "DEMO-010", "category": "小食", "color": "#EF9F27", "magnitude": 1, "time": "2026-09-20 23:05:00", "product": "大薯条", "store": "麦当劳太原中北大学餐厅", "amount": 13.5, "quantity": 1}, {"id": "DEMO-009", "category": "汉堡", "color": "#E24B4A", "magnitude": 2, "time": "2026-09-28 12:10:00", "product": "板烧鸡腿堡套餐", "store": "麦当劳太原柳巷餐厅", "amount": 27.0, "quantity": 1}, {"id": "DEMO-008", "category": "甜品", "color": "#D4537E", "magnitude": 1, "time": "2026-10-02 16:20:00", "product": "圆筒冰淇淋", "store": "麦当劳太原中北大学餐厅", "amount": 6.0, "quantity": 1}, {"id": "DEMO-007", "category": "汉堡", "color": "#E24B4A", "magnitude": 2, "time": "2026-10-05 18:50:00", "product": "麦辣鸡腿堡套餐", "store": "麦当劳太原柳巷餐厅", "amount": 32.0, "quantity": 1}, {"id": "DEMO-006", "category": "早餐", "color": "#BA7517", "magnitude": 1, "time": "2026-10-08 08:15:00", "product": "猪柳蛋麦满分套餐", "store": "麦当劳太原中北大学餐厅", "amount": 16.0, "quantity": 1}, {"id": "DEMO-005", "category": "饮品", "color": "#378ADD", "magnitude": 1, "time": "2026-10-10 12:30:00", "product": "可口可乐（大）", "store": "麦当劳太原柳巷餐厅", "amount": 11.0, "quantity": 1}, {"id": "DEMO-004", "category": "甜品", "color": "#D4537E", "magnitude": 1, "time": "2026-10-12 22:30:00", "product": "朱古力新地", "store": "麦当劳太原中北大学餐厅", "amount": 12.0, "quantity": 1}, {"id": "DEMO-003", "category": "小食", "color": "#EF9F27", "magnitude": 1, "time": "2026-10-15 21:15:00", "product": "中薯条", "store": "麦当劳太原柳巷餐厅", "amount": 13.0, "quantity": 1}, {"id": "DEMO-002", "category": "汉堡", "color": "#E24B4A", "magnitude": 2, "time": "2026-10-18 19:42:00", "product": "巨无霸套餐", "store": "麦当劳太原中北大学餐厅", "amount": 25.5, "quantity": 1}, {"id": "DEMO-001", "category": "早餐", "color": "#BA7517", "magnitude": 1, "time": "2026-10-22 02:39:00", "product": "大脆鸡扒麦满分配豆浆", "store": "麦当劳太原中北大学餐厅", "amount": 0.0, "quantity": 1}], "summary": {"orderCount": 10, "totalAmount": 156.0}, "persona": {"name": "深夜麦门人", "desc": "城市的深夜，总有一盏麦麦的灯为你亮着。你是夜色里最忠实的那颗星。"}, "demo": true, "account": null, "daily": null, "personas": [{"name": "深夜麦门人", "desc": "城市的深夜，总有一盏麦麦的灯为你亮着。你是夜色里最忠实的那颗星。", "mine": true}, {"name": "早餐先行者", "desc": "一日之计在于晨，你的早晨从麦满分开始。整片宇宙都醒得比你晚。", "mine": false}, {"name": "甜点星住民", "desc": "你的宇宙有一股甜味儿。生活再苦，你也要给自己留一颗糖。", "mine": false}, {"name": "周末麦门人", "desc": "工作日属于世界，周末属于麦麦。你的星星总在休息日最闪亮。", "mine": false}, {"name": "硬核堡星人", "desc": "大道至简，堡以载道。你的胃有态度，你的星有分量。", "mine": false}, {"name": "麦门探索者", "desc": "菜单是你的星图，你从不重复同一颗星。探索是你的浪漫。", "mine": false}, {"name": "麦门旅人", "desc": "不困于一种口味，不忠于一家门店。你路过麦门，麦门记住你。", "mine": false}]}</script>
 <script>
@@ -465,7 +531,7 @@
   // 人格卡上或者被图例盖住 —— 每次都得回来重算常数。改成测量之后，谁变都不用管。
   function hudBand() {
     var top = 0, bottom = H;
-    ["title", "stats", "daily", "demo-badge", "switcher", "legend"].forEach(function (id) {
+    ["title", "stats", "daily", "hero"].forEach(function (id) {
       var el = document.getElementById(id);
       if (!el) return;
       if (getComputedStyle(el).display === "none") return;
@@ -787,10 +853,15 @@
     particles = [];
     for (var i = 0; i < n; i++) {
       var star = isNebula ? null : stars[i % stars.length];
+      // 目标点必须等距覆盖整段文字。以前按模取采样点前缀：粒子数少于采样点时
+      // 只会取到 pts 的前 n 个（按扫描顺序就是从文字顶部开始），手机 390 屏上
+      // 720 个粒子只覆盖了字形上半截，四个字永远糊成四条横带。
+      var ti = pts.length ? Math.floor(i * pts.length / Math.max(1, n)) : -1;
+      var tp = ti >= 0 ? pts[Math.min(ti, pts.length - 1)] : null;
       particles.push({
         x: Math.random() * W, y: Math.random() * H, px: 0, py: 0,
-        tx: pts.length ? pts[i % pts.length].x : W / 2 + (Math.random() - 0.5) * W * 0.62,
-        ty: pts.length ? pts[i % pts.length].y : H / 2 + (Math.random() - 0.5) * H * 0.62,
+        tx: tp ? tp.x : W / 2 + (Math.random() - 0.5) * W * 0.62,
+        ty: tp ? tp.y : H / 2 + (Math.random() - 0.5) * H * 0.62,
         star: star, size: star ? star.r * 0.62 : 0.7 + Math.random() * 1.5,
         textSize: 1 + Math.random() * 1.05,  // 文字阶段的小点：太大就糊成一团
         color: star ? hexA(star.color, 0.95) : "rgba(220,225,255," + (0.25 + Math.random() * 0.55) + ")",
@@ -976,7 +1047,7 @@
     });
     var sizeHint = document.createElement("span");
     sizeHint.className = "size-hint";
-    sizeHint.innerHTML = '<i style="width:5px;height:5px"></i><i style="width:8px;height:8px"></i><i style="width:11px;height:11px"></i>常点越多星越大';
+    sizeHint.innerHTML = '<i style="width:5px;height:5px"></i><i style="width:8px;height:8px"></i><i style="width:11px;height:11px"></i>大小=常点';
     legend.appendChild(sizeHint);
     if (DATA.persona) {
       document.getElementById("persona-name").textContent = "麦门人格 · " + DATA.persona.name;
@@ -986,6 +1057,8 @@
   }
 
   // ---------- 麦门成就 ----------
+  // 每项格式：[图标, 名称, 是否解锁, 进度, 完成比例 0~1, 解锁条件]
+  // 比例只用于成就面板的进度条；分享卡的成就墙仍然只读前 3 项，不受影响。
   function computeAchievements() {
     var cats = {}, night = 0, morning = 0, total = 0, maxAmount = 0;
     stars.forEach(function (s) {
@@ -998,41 +1071,62 @@
         if (h >= 5 && h < 10) morning++;
       }
     });
+    var burgers = cats["汉堡"] || 0, desserts = cats["甜品"] || 0, drinks = cats["饮品"] || 0;
+    var catCount = Object.keys(cats).length, totalCapped = Math.min(1, total / 100);
+    function cap(v, max) { return Math.min(1, v / max); }
+    function progress(v, max, suffix) { return v + " / " + max + (suffix || " 单"); }
     var defs = [
-      ["\ud83c\udf1f", "初星觉醒", stars.length >= 1, ""],
-      ["\ud83c\udf0c", "品类大满贯", Object.keys(cats).length >= 5, "五类餐品各来一单（" + Object.keys(cats).length + "/5）"],
-      ["\ud83d\udd1f", "星河十连", stars.length >= 10, "累计 10 单（" + stars.length + "/10）"],
-      ["\ud83c\udf19", "夜航员", night >= 3, "深夜订单 3 单（" + night + "/3）"],
-      ["\ud83c\udf66", "甜品守护者", (cats["甜品"] || 0) >= 3, "甜品 3 单（" + (cats["甜品"] || 0) + "/3）"],
-      ["\ud83c\udf54", "堡门信徒", (cats["汉堡"] || 0) >= 3, "汉堡 3 单（" + (cats["汉堡"] || 0) + "/3）"],
-      ["\ud83c\udf05", "晨光先行者", morning >= 2, "早餐时段 2 单（" + morning + "/2）"],
-      ["\u2615", "咖啡因依赖", (cats["饮品"] || 0) >= 3, "饮品 3 单（" + (cats["饮品"] || 0) + "/3）"],
-      ["\ud83d\udc8e", "麦门投资人", total >= 100, "累计 ¥100（¥" + total.toFixed(0) + "/100）"],
-      ["\ud83d\udc51", "单笔王者", maxAmount >= 50, "单笔 ¥50（最高 ¥" + maxAmount.toFixed(0) + "）"]
+      ["\ud83c\udf1f", "初星觉醒", stars.length >= 1, progress(stars.length, 1), cap(stars.length, 1), "点亮第一颗星"],
+      ["\ud83c\udf0c", "品类大满贯", catCount >= 5, catCount + " / 5 类", cap(catCount, 5), "汉堡、早餐、甜品、小食、饮品各来一单"],
+      ["\ud83d\udd1f", "星河十连", stars.length >= 10, progress(stars.length, 10), cap(stars.length, 10), "累计 10 单"],
+      ["\ud83c\udf19", "夜航员", night >= 3, progress(night, 3), cap(night, 3), "22:00–02:59 下单 3 次"],
+      ["\ud83c\udf66", "甜品守护者", desserts >= 3, progress(desserts, 3), cap(desserts, 3), "甜品累计 3 单"],
+      ["\ud83c\udf54", "汉堡王", burgers >= 3, progress(burgers, 3), cap(burgers, 3), "汉堡累计 3 单"],
+      ["\ud83c\udf05", "晨光先行者", morning >= 2, progress(morning, 2), cap(morning, 2), "05:00–09:59 下单 2 次"],
+      ["\u2615", "咖啡因依赖", drinks >= 3, progress(drinks, 3), cap(drinks, 3), "饮品累计 3 单"],
+      ["\ud83d\udc8e", "麦门投资人", total >= 100, "¥" + total.toFixed(0) + " / 100", totalCapped, "累计消费 ¥100"],
+      ["\ud83d\udc51", "单笔王者", maxAmount >= 50, "¥" + maxAmount.toFixed(0) + " / 50", cap(maxAmount, 50), "单笔实付 ¥50"]
     ];
     return { defs: defs, unlocked: defs.filter(function (d) { return d[2]; }).length };
   }
 
-  function renderAchievements() {
-    var el = document.getElementById("achievements");
-    if (!el) return;
-    if (isNebula || !DATA.persona) { el.innerHTML = ""; return; }
-    var res = computeAchievements();
-    el.innerHTML = res.defs.map(function (d) {
-      return '<span class="chip' + (d[2] ? "" : " locked") + '" title="' + d[3] + '">' + d[0] + " " + d[1] + "</span>";
-    }).join("") + '<span class="count">已解锁 ' + res.unlocked + " / " + res.defs.length + " 项麦门成就" +
-      (COARSE ? "（点按单项看进度）" : "（未解锁项悬停看进度）") + "</span>";
+  function closestAchievement(res) {
+    var best = null;
+    res.defs.forEach(function (d) {
+      if (d[2]) return;
+      if (!best || d[4] > best[4]) best = d;
+    });
+    return best;
   }
 
-  // 进度原本只写在 title 里 —— 触屏没有悬停，手机上永远看不到"还差几单"。
-  // 补一条点击/点按出口：触屏点一下就弹提示，桌面点击同样有效（不依赖悬停）。
-  document.getElementById("achievements").addEventListener("click", function (e) {
-    var chip = e.target && e.target.closest ? e.target.closest(".chip") : null;
-    if (!chip) return;
-    var prog = chip.getAttribute("title") || "";
-    var locked = chip.className.indexOf("locked") >= 0;
-    toast(chip.textContent.replace(/^\S+\s*/, "") + (locked ? " · 还差 " + (prog || "一点") : " · 已解锁"));
-  });
+  // 人格卡里只展示进度与最接近的一项，完整列表由底部「成就」打开。
+  function renderAchievements() {
+    var res = computeAchievements();
+    var badge = document.getElementById("ach-badge");
+    if (badge) badge.textContent = res.unlocked + "/" + res.defs.length;
+    var el = document.getElementById("achievements");
+    if (!el) return;
+    var pct = Math.round(res.unlocked / res.defs.length * 100);
+    var next = closestAchievement(res);
+    var line = next
+      ? "已解锁 <b>" + res.unlocked + "</b> / " + res.defs.length + " · 最接近：<b>" + esc(next[1]) + "</b> " + esc(next[3])
+      : "全部 " + res.defs.length + " 项成就已点亮";
+    el.innerHTML = '<div class="ach-meter"><i style="width:' + pct + '%"></i></div><p class="ach-line">' + line + "</p>";
+  }
+
+  function renderAchievementPanel() {
+    var res = computeAchievements();
+    document.getElementById("ach-count").textContent = res.unlocked + " / " + res.defs.length;
+    document.getElementById("ach-fill").style.width = Math.round(res.unlocked / res.defs.length * 100) + "%";
+    document.getElementById("ach-list").innerHTML = res.defs.map(function (d) {
+      var pct = Math.round(d[4] * 100);
+      return '<div class="ach-item ' + (d[2] ? "unlocked" : "locked") + '">' +
+        '<div class="top"><span class="icon">' + d[0] + '</span><span class="name">' + esc(d[1]) + "</span>" +
+        '<span class="state">' + (d[2] ? "已解锁" : "未解锁") + "</span></div>" +
+        '<div class="desc">' + esc(d[5]) + (d[2] ? "" : " · " + esc(d[3])) + "</div>" +
+        '<div class="bar"><i style="width:' + pct + '%"></i></div></div>';
+    }).join("");
+  }
 
   // ---------- 交互：悬停 / 视差 / 拖拽旋转 / 滚轮缩放 / 点击 ----------
   var detail = document.getElementById("detail");
@@ -1057,7 +1151,7 @@
   // 所以改成"贴着自己那颗星、但不许盖住它"，在四个方向里按代价挑一个位置。
   var DETAIL_GAP = 20;      // 卡片边缘与星心的距离
   var DETAIL_PAD = 12;      // 与屏幕边缘的安全边距
-  var DETAIL_HUD = ["title", "stats", "daily", "demo-badge", "switcher", "legend", "persona", "actions", "footer"];
+  var DETAIL_HUD = ["title", "stats", "daily", "hero", "legend", "persona", "actions", "footer"];
 
   function rectOverlap(a, b) {
     var w = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
@@ -1258,7 +1352,10 @@
     var i = starAt(mx, my);
     showDetail(i);
     if (i >= 0) chime(NOTE[i % NOTE.length] * 2, 0.6);
-    else if (dexPanel.classList.contains("show")) dexPanel.classList.remove("show");
+    else {
+      if (achPanel.classList.contains("show")) closeDialog(achPanel, true);
+      if (morePanel.classList.contains("show")) closeDialog(morePanel, true);
+    }
   });
   canvas.addEventListener("pointerleave", function () {
     mouse.inside = false; hovered = -1;
@@ -1295,9 +1392,10 @@
     else if (k === "-" || k === "_") { e.preventDefault(); view.zoom = Math.max(0.6, view.zoom * 0.9); }
     else if (k === "Escape") {
       hideDetail();
-      dexPanel.classList.remove("show");
       // 浮层走统一的关闭路径：直接 remove("show") 会把焦点留在已隐藏的元素上，
       // 键盘用户下一步按 Tab 就从文档开头重新开始。
+      if (achPanel.classList.contains("show")) closeDialog(achPanel, true);
+      if (morePanel.classList.contains("show")) closeDialog(morePanel, true);
       if (onboard.classList.contains("show")) obDismiss();
       if (exportPanel.classList.contains("show")) closeExport();
       selected = -1;
@@ -1857,29 +1955,43 @@
     });
   });
 
-  // ---------- 图鉴 ----------
-  var dexPanel = document.getElementById("dex-panel");
-  var dexBtn = document.getElementById("btn-dex");
-  function renderDex() {
-    var list = document.getElementById("dex-list");
-    list.innerHTML = "";
-    (DATA.personas || []).forEach(function (p) {
-      var div = document.createElement("div");
-      div.className = "dex-item" + (p.mine ? " mine" : "");
-      div.innerHTML = '<div class="n">' + esc(p.name) + '</div><div class="d">' + esc(p.desc) + "</div>";
-      list.appendChild(div);
-    });
-  }
-  dexBtn.addEventListener("click", function () {
-    renderDex();
-    dexPanel.classList.toggle("show");
+  // ---------- 成就面板 / 更多 ----------
+  var achPanel = document.getElementById("ach-panel");
+  var achCard = achPanel.querySelector(".ach-card");
+  var btnAch = document.getElementById("btn-ach");
+  function openAch() {
+    renderAchievementPanel();
     hideDetail();
+    openDialog(achPanel, achCard, { returnTo: btnAch });
+  }
+  btnAch.addEventListener("click", openAch);
+  document.getElementById("ach-close").addEventListener("click", function () { closeDialog(achPanel); });
+  achPanel.addEventListener("click", function (e) { if (e.target === achPanel) closeDialog(achPanel); });
+  achPanel.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") { e.preventDefault(); closeDialog(achPanel); return; }
+    if (e.key === "Tab") trapFocus(achCard, e);
+  });
+
+  var morePanel = document.getElementById("more-panel");
+  var moreCard = morePanel.querySelector(".more-card");
+  var btnMore = document.getElementById("btn-more");
+  function openMore() {
+    hideDetail();
+    openDialog(morePanel, moreCard, { returnTo: btnMore });
+  }
+  btnMore.addEventListener("click", openMore);
+  document.getElementById("more-close").addEventListener("click", function () { closeDialog(morePanel); });
+  morePanel.addEventListener("click", function (e) { if (e.target === morePanel) closeDialog(morePanel); });
+  morePanel.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") { e.preventDefault(); closeDialog(morePanel); return; }
+    if (e.key === "Tab") trapFocus(moreCard, e);
   });
 
   document.getElementById("btn-replay").addEventListener("click", function () {
     cancelAnimationFrame(raf); startT = 0;
     hideDetail();
-    dexPanel.classList.remove("show");
+    closeDialog(morePanel, true);
+    closeDialog(achPanel, true);
     personaEl.classList.remove("show");
     buildParticles(); raf = requestAnimationFrame(frame);
   });
@@ -1905,9 +2017,11 @@
     if (nh) nh.style.display = isNebula ? "block" : "none";
     var badge = document.getElementById("demo-badge");
     if (badge) {
-      badge.innerHTML = isNebula ? "这份数据里没有订单 · 换个文件试试" : "自定义数据 · 仅存于你的浏览器";
+      badge.textContent = isNebula ? "这份数据里没有订单 · 换个文件试试" : "自定义数据 · 仅存于你的浏览器";
       badge.style.display = "block";
     }
+    var sr = document.getElementById("sample-row");
+    if (sr) sr.style.display = "none";
     resize();
     if (!isNebula) layoutStars();
     // 导入是用户主动操作，人格卡不必等入场动画播完
@@ -2040,18 +2154,28 @@
     var nh = document.getElementById("nebula-hint");
     if (nh) nh.style.display = "block";
   }
+  var demoBadge = document.getElementById("demo-badge");
+  var sampleRow = document.getElementById("sample-row");
+  var sampleSelect = document.getElementById("sample-select");
   if (DATA.demo) {
-    var badge = document.getElementById("demo-badge");
-    if (badge) badge.style.display = "block";
-    var sw = document.getElementById("switcher");
-    if (sw) {
-      sw.style.display = "flex";
+    if (demoBadge) {
+      demoBadge.textContent = "演示样例 · 点上方按钮换成你的订单";
+      demoBadge.style.display = "block";
+    }
+    if (sampleRow) {
+      sampleRow.style.display = "flex";
       var cur = location.pathname.split("/").pop() || "index.html";
       if (cur === "" || cur === "index.html") cur = "./";
-      sw.querySelectorAll("a").forEach(function (a) {
-        if (a.getAttribute("href") === cur) { a.className = "cur"; a.setAttribute("aria-current", "page"); }
-      });
+      if (sampleSelect) sampleSelect.value = cur;
     }
+  } else if (!isNebula && demoBadge) {
+    demoBadge.textContent = "本地数据 · 只在你的浏览器里";
+    demoBadge.style.display = "block";
+  }
+  if (sampleSelect) {
+    sampleSelect.addEventListener("change", function () {
+      if (this.value) location.href = this.value;
+    });
   }
 
   // 首访引导（localStorage 记忆；file:// 或隐私模式下降级为每次显示）
@@ -2083,7 +2207,10 @@
   }
   document.getElementById("ob-go").addEventListener("click", obDismiss);
   onboard.addEventListener("click", function (e) { if (e.target === onboard) obDismiss(); });
-  document.getElementById("btn-help").addEventListener("click", function () { obShow(false); });
+  document.getElementById("btn-help").addEventListener("click", function () {
+    closeDialog(morePanel, true);
+    obShow(false);
+  });
   window.__mcuniverse = {
     // getter：导入新数据后 stars/DATA 会整体替换，普通属性会读到旧数组
     get stars() { return stars; },
@@ -2102,6 +2229,17 @@
     saveMode: function () { return SAVE_MODE; },
     isWeChat: function () { return IS_WECHAT; },
     zoom: function () { return view.zoom; },
+    // 粒子文字目标的包围盒：E2E 用它防止"只取到采样点前缀、文字只剩上半截"复发。
+    get textTargets() {
+      var x1 = Infinity, x2 = -Infinity, y1 = Infinity, y2 = -Infinity;
+      particles.forEach(function (p) {
+        if (p.tx < x1) x1 = p.tx;
+        if (p.tx > x2) x2 = p.tx;
+        if (p.ty < y1) y1 = p.ty;
+        if (p.ty > y2) y2 = p.ty;
+      });
+      return { count: particles.length, x: x2 - x1, y: y2 - y1 };
+    },
     phase: function () { return performance.now() - startT; },
     // 首访引导是否被排进了定时器：深链模式下必须为 false，否则会在面板上再叠一层
     get onboardScheduled() { return onboardTimer; },

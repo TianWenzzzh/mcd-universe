@@ -109,7 +109,7 @@ def build() -> None:
         fill=WHITE,
         spacing=12 * S,
     )
-    d.text((x, 432 * S), "订单星图  ·  7 种麦门人格  ·  4 款分享卡", font=f_meta, fill=MUTED)
+    d.text((x, 432 * S), "订单星图  ·  7 种人格  ·  10 项成就", font=f_meta, fill=MUTED)
 
     _pill(d, x, 478 * S, "打开即玩  ·  无需登录", f_cta)
 

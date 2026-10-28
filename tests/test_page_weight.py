@@ -52,7 +52,7 @@ def test_detects_remote_image_and_webfont(tmp_path):
 
 def test_detects_oversize_page(tmp_path):
     (tmp_path / "demo").mkdir()
-    (tmp_path / "demo" / "index.html").write_text("<html>" + "x" * (130 * 1024) + "</html>", encoding="utf-8")
+    (tmp_path / "demo" / "index.html").write_text("<html>" + "x" * (140 * 1024) + "</html>", encoding="utf-8")
     problems = cw.check(str(tmp_path))
     assert any("超出预算" in why for _, why in problems)
 

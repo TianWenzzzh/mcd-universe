@@ -3,7 +3,7 @@
 E2E 已经在真实浏览器里验过交付路径（微信 / iOS / 普通浏览器三种容器），但 E2E 不进 CI
 （要下载 Chromium + 起本地服务）。这里用纯文本审计兜住最容易退化的三条结构性约定：
 
-1. 三层浮层（首访引导 / 分享卡预览 / 导出面板）都必须是真对话框：role + aria-modal；
+1. 六层浮层（首访引导 / 分享卡预览 / 导出 / 导入 / 成就 / 更多）都必须是真对话框：role + aria-modal；
 2. 交付路径的判据必须包含微信（MicroMessenger），不能退回"只判 iOS"；
 3. 首访引导的延时要按 prefers-reduced-motion 分档，不能写成一个固定常数。
 
@@ -25,9 +25,16 @@ def read_template() -> str:
 
 
 def audit_dialog_roles(html: str) -> list[str]:
-    """三个全屏浮层是否都声明了对话框语义。"""
+    """六个全屏浮层是否都声明了对话框语义。"""
     problems = []
-    for el_id, label in (("onboard", "首访引导"), ("img-preview", "分享卡预览"), ("export-panel", "导出面板")):
+    for el_id, label in (
+        ("onboard", "首访引导"),
+        ("img-preview", "分享卡预览"),
+        ("export-panel", "导出面板"),
+        ("import-panel", "导入面板"),
+        ("ach-panel", "成就面板"),
+        ("more-panel", "更多面板"),
+    ):
         m = re.search(rf'<div id="{re.escape(el_id)}"[^>]*>', html)
         if not m:
             problems.append(f"找不到 {label} 容器 (#{el_id})")

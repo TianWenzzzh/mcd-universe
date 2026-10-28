@@ -8,9 +8,9 @@
 <meta name="theme-color" content="#05040e">
 <meta name="color-scheme" content="dark">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⭐</text></svg>">
-<meta name="description" content="麦门宇宙：把麦当劳历史订单变成个人星图与七种麦门人格，基于麦当劳中国官方 MCP，数据全程本地处理。">
+<meta name="description" content="麦门宇宙：把麦当劳历史订单变成个人星图、七种麦门人格与十项自动解锁成就，基于麦当劳中国官方 MCP，数据全程本地处理。">
 <meta property="og:title" content="麦门宇宙 McUniverse · 作品说明">
-<meta property="og:description" content="你的每一单，都是麦门宇宙里的一颗星。订单星图 + 麦门人格 + 四种风格分享卡，打开即玩、无需登录。">
+<meta property="og:description" content="你的每一单，都是麦门宇宙里的一颗星。订单星图 + 麦门人格 + 十项成就 + 四种风格分享卡，打开即玩、无需登录。">
 <meta property="og:image" content="https://tianwenzzzh.github.io/mcd-universe/docs/assets/og-card.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -119,16 +119,16 @@
   <h2>怎么玩</h2>
   <div class="steps">
     <div class="step"><b>01 看</b><span>粒子汇聚成「麦门宇宙」，炸开成你的星图；悬停任意星点看它是什么。</span></div>
-    <div class="step"><b>02 玩</b><span>拖拽转动星系、滚轮拉近拉远、点击看订单详情；手机上换成单指转动 + 双指捏合缩放。详情卡贴着你点的那颗星弹出，不挡星也不挡按钮；手机上从底部升起，人格卡先让位。左上角可切换四种人格样例，键盘 ←/→ 也能逐颗浏览。</span></div>
-    <div class="step"><b>03 带走</b><span>四种风格（深空金 / 星云紫 / 极简海报 / 成就卡）任选导出 1080×1440 分享卡，或打开人格图鉴看七种麦门人。手机浏览器直接下载；微信和 iOS 里改为「预览 + 长按保存」——微信内置浏览器不实现网页下载，硬点只会什么都没发生。</span></div>
+    <div class="step"><b>02 玩</b><span>拖拽转动星系、滚轮拉近拉远、点击看订单详情；手机上换成单指转动 + 双指捏合缩放。详情卡贴着你点的那颗星弹出，不挡星也不挡按钮；手机上从底部升起，人格卡先让位。顶部「看样例」可切换四种人格样例，键盘 ←/→ 也能逐颗浏览。</span></div>
+    <div class="step"><b>03 带走</b><span>四种风格（深空金 / 星云紫 / 极简海报 / 成就卡）任选导出 1080×1440 分享卡，或打开成就列表看每项条件与进度（含「汉堡王」）。手机浏览器直接下载；微信和 iOS 里改为「预览 + 长按保存」——微信内置浏览器不实现网页下载，硬点只会什么都没发生。</span></div>
   </div>
 
   <h2>用你自己的订单生成</h2>
   <p class="lead">演示数据是别人的星图。想看自己的，<b>不需要 Token、不需要账号、不需要装环境</b> —— 演示页里粘一段订单 JSON 就行，解析全在浏览器里完成。</p>
   <div class="steps">
-    <div class="step"><b>01 打开面板</b><span>演示页右上角「粘贴我的订单」，或者直接点页面顶部的「用自己的订单生成」—— 那条链接会把面板直接打开，跳过入场动画。</span></div>
+    <div class="step"><b>01 打开面板</b><span>演示页顶部橙色的「粘贴订单，生成星图」，或者直接点页面顶部的「用自己的订单生成」—— 那条链接会把面板直接打开，跳过入场动画。</span></div>
     <div class="step"><b>02 粘进去</b><span>把麦当劳 MCP <code>query-order-list</code> 的返回原样粘进来都认：<code>{data:{list:[…]}}</code>、<code>{list:[…]}</code>、纯订单数组。手边没有数据就点「填入示例」—— 三单，够看出颜色、星等、星轨在讲什么。</span></div>
-    <div class="step"><b>03 立刻出图</b><span>不用重看入场动画，直接跳到终态：人格卡、成就墙、四种分享卡都换成你的数据。超过 400 单自动截断，界面上会明说。</span></div>
+    <div class="step"><b>03 立刻出图</b><span>不用重看入场动画，直接跳到终态：人格卡、成就进度、四种分享卡都换成你的数据。超过 400 单自动截断，界面上会明说。</span></div>
   </div>
   <p class="note">和命令行版是同一套规则：模板里的模型与 <code>src/star_model.py</code> 逐条对齐（品类关键词顺序、星等阈值、人格判定的 22 点与 2:59 边界），并由「双实现比对」测试按字段逐一校验。数据不出浏览器：粘贴时没有任何网络请求，页面上也没有任何指向外部主机的资源。</p>
 
@@ -136,7 +136,7 @@
   <div class="steps">
     <div class="step"><b>情绪价值</b><span>订单记录是冷数据，星图把它变成「我的宇宙」——用户愿意截图分享的，从来不是账单。</span></div>
     <div class="step"><b>数据叙事</b><span>颜色、大小、位置三种编码同时承载品类、频次、时间，一眼看懂自己的吃麦轨迹。</span></div>
-    <div class="step"><b>分享货币</b><span>七种人格 + 四种分享卡风格，天然适配小红书与朋友圈的晒图场景。分享卡有一份统一的版式规格：安全边距 48px、中文按句读断行、二维码与文案留出气道，电脑和手机导出的是同一张卡。</span></div>
+    <div class="step"><b>分享货币</b><span>七种人格 + 十项自动解锁成就 + 四种分享卡风格，天然适配小红书与朋友圈的晒图场景。分享卡有一份统一的版式规格：安全边距 48px、中文按句读断行、二维码与文案留出气道，电脑和手机导出的是同一张卡。</span></div>
   </div>
 
   <h2>七种麦门人格</h2>
@@ -153,12 +153,12 @@
   <h2>作品截图</h2>
   <div class="shots">
     <div class="shot-row">
-      <figure class="ar-16"><div class="shot-frame"><img loading="lazy" width="1600" height="1000" src="./assets/submit-1-web.jpg" alt="桌面版星图"></div><figcaption>桌面版：人设切换、悬停看餐品、人格卡与 10 项成就</figcaption></figure>
-      <figure class="ar-046"><div class="shot-frame"><img loading="lazy" width="780" height="1688" src="./assets/submit-3-web.jpg" alt="移动版星图"></div><figcaption>移动版：竖屏自适应、按钮两行</figcaption></figure>
+      <figure class="ar-16"><div class="shot-frame"><img loading="lazy" width="1600" height="1000" src="./assets/submit-1-web.jpg" alt="桌面版星图"></div><figcaption>桌面版：首屏主 CTA、样例切换、悬停看餐品、人格卡与成就进度</figcaption></figure>
+      <figure class="ar-046"><div class="shot-frame"><img loading="lazy" width="780" height="1688" src="./assets/submit-3-web.jpg" alt="移动版星图"></div><figcaption>移动版：主 CTA 置顶、底部三按钮、竖屏自适应</figcaption></figure>
     </div>
     <div class="shot-row">
       <figure class="ar-075"><div class="shot-frame"><img loading="lazy" width="1080" height="1440" src="./assets/share-card-minimal-web.jpg" alt="极简海报风格分享卡"></div><figcaption>分享卡 · 极简海报风格（共四种），带扫码入口</figcaption></figure>
-      <figure class="ar-16"><div class="shot-frame z15"><img loading="lazy" width="1600" height="1000" src="./assets/submit-2-web.jpg" alt="分享卡风格选择"></div><figcaption>导出面板：四种风格实时预览</figcaption></figure>
+      <figure class="ar-16"><div class="shot-frame z15"><img loading="lazy" width="1600" height="1000" src="./assets/submit-ach-web.jpg" alt="麦门成就列表"></div><figcaption>成就列表：按订单自动解锁，含进度与「汉堡王」</figcaption></figure>
     </div>
   </div>
 
@@ -168,9 +168,9 @@
     <tr><td>取数</td><td>麦当劳中国官方 MCP：<b>order-list</b> 拉历史订单、<b>query-my-account</b> 取积分、<b>campaign-calendar</b> 取今日活动（共 35 个工具）</td></tr>
     <tr><td>归类</td><td>Python 星图引擎：餐品名→品类规则、金额/频次→星等 1~5、时间段→人格判定</td></tr>
     <tr><td>渲染</td><td>单文件 HTML + Canvas：加色混合发光、460 颗背景星三层纵深、星云雾带、粒子入场、拖拽/缩放/视差</td></tr>
-    <tr><td>性能</td><td>每帧有预算：手机 4× 降速下开场每帧 1.0ms、稳态 0.4ms（60fps 的总预算 16.7ms）· 稳态每帧新建渐变 0（曾因星轨逐段建渐变达到 10 个）· 首屏 98ms（手机 4× 降速 451ms）· 整页 118KB · 外部请求 0</td></tr>
+    <tr><td>性能</td><td>每帧有预算：手机 4× 降速下开场每帧 1.0ms、稳态 0.4ms（60fps 的总预算 16.7ms）· 稳态每帧新建渐变 0（曾因星轨逐段建渐变达到 10 个）· 首屏 98ms（手机 4× 降速 451ms）· 整页 127KB · 外部请求 0</td></tr>
     <tr><td>在线生成</td><td>浏览器内跑同一套星图规则（品类/星等/人格），与 Python 管线由 <b>test_model_parity</b> 逐字段交叉校验；订单只在本地解析</td></tr>
-    <tr><td>工程</td><td>零运行依赖 · 106 条测试 · ruff 全绿 · CI 四版本矩阵 · 真实浏览器 E2E 十态冒烟（含深链导入、触屏手势与微信/iOS/安卓三种交付容器） · 分享卡版式规格化 + 几何断言 · 页面版式体检（卡片空洞 / 行高对齐 / 横向溢出）· 社交预览元信息检查 · 抓取器视角自检（og 同源 / 尺寸属实 / 3 秒内）· 键盘与读屏可用（画布 application 语义、操作回执走 live region、四层浮层统一 Esc 与焦点环，并有无障碍审计量具 `scripts/a11y_audit.mjs` 与 11 条静态守卫兜底）</td></tr>
+    <tr><td>工程</td><td>零运行依赖 · 111 条测试 · ruff 全绿 · CI 四版本矩阵 · 真实浏览器 E2E 十态冒烟（含深链导入、触屏手势与微信/iOS/安卓三种交付容器） · 分享卡版式规格化 + 几何断言 · 页面版式体检（卡片空洞 / 行高对齐 / 横向溢出）· 社交预览元信息检查 · 抓取器视角自检（og 同源 / 尺寸属实 / 3 秒内）· 键盘与读屏可用（画布 application 语义、操作回执走 live region、六层浮层统一 Esc 与焦点环，并有无障碍审计量具 `scripts/a11y_audit.mjs` 与 11 条静态守卫兜底）</td></tr>
   </table>
   <p class="note">演示页使用匿名化模拟数据，打开即玩；真实使用需在自己的电脑上配置 MCD_MCP_TOKEN（仅存环境变量），订单数据全程本地处理、不上传、不留存。</p>
 
