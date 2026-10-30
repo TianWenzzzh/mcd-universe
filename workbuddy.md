@@ -689,3 +689,11 @@ toast 挂 `role="status"`；伪链接改真按钮；音效开关补 `aria-presse
 2. 说明页 320px 下带 `scale(1.5)` 的面板截图会被裁掉两侧（实测 out of frame 42px）
 3. `docs/assets` 里 `submit-*.png` 原图与 `boot-poster.jpg` 的去留（投稿要用，暂不删）
 4. 高对比度模式（forced-colors）与 200% 缩放下的版式（720×450 实测无重叠，可留档）
+
+
+## 2026-10-31 冲刺 · 阶段 1：抖音引流包（不碰产品代码）
+
+- 新增 `scripts/make_social_post.py`：PIL 拼 1080×1440 朋友圈配图（2×2 截图网格 + 标题条 + 镜像地址条），可重跑（--out/--assets）。
+- 产物在仓库外 `输出/冲刺包/`：朋友圈文案-3版.md（情怀/产品/求互动，均带抖音视频链接与点赞+收藏邀请）、评论区置顶.md（镜像地址 + 最后一帧扫码两条路径）、朋友圈配图/mc-universe-1080x1440.png（已肉眼验收）、爆点9秒.mp4（22.6s 剪 8.9s：粒子开场→粘贴→生成→星座人格→分享卡，无音轨）。
+- 验证：ruff check/format 全绿、pytest 123 passed、静态检查 4 项 PASS、build_demo --check 同步；配图与 9s 联络表均肉眼复核。
+- 源视频 docs/assets/demo-vertical.mp4 只读未动。
