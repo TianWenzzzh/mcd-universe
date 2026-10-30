@@ -24,7 +24,7 @@ INK_DIM = (186, 192, 224)
 
 TITLE = "麦门宇宙 McUniverse"
 SLOGAN = "把每一单麦当劳，变成一片只属于你的星空"
-FOOT_URL = "http://47.114.38.125/mcd/demo/"
+FOOT_URL = "https://mcd.47.114.38.125.sslip.io/mcd/demo/"
 FOOT_NOTE = "打开即玩 · 无需登录"
 
 ASSETS = ["submit-1.png", "submit-ach.png", "submit-3.png", "share-card-e2e.png"]
