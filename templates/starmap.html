@@ -2203,7 +2203,14 @@
   }
   if (sampleSelect) {
     sampleSelect.addEventListener("change", function () {
-      if (this.value) location.href = this.value;
+      if (!this.value) return;
+      // 托管平台（如 WorkBuddy 站点）会要求每个 URL 都带访问码：裸地址返回"链接不完整"。
+      // 相对跳转会丢掉 query，评委点「看样例 → 早餐」就撞到 403。这里把当前 query 带过去；
+      // 镜像与 Pages 上 location.search 为空，行为不变。
+      var q = location.search;
+      var href = this.value;
+      if (q && href.indexOf("?") < 0 && (href === "./" || /\.html$/.test(href))) href += q;
+      location.href = href;
     });
   }
 
