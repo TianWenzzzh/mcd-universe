@@ -384,10 +384,13 @@
   var isNebula = !stars.length;
   var particles = [], colorGroups = {}, raf = 0, startT = 0, selected = -1;
   var CX = 0, CY = 0;
-  // 分享卡右下角二维码（预生成 PNG，data URI 内嵌，离线可用）
-  var QR_URI = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQgAAAEICAAAAACGnTUjAAAC0klEQVR42u3cQY7DIAwF0Nz/0pn9SBH426Qz6mOXJgXzsrFs2usKx/1r7D5fvX6a/34Y19sDBAgQIECAAPE48dNCq+sqzApgBbV7fwkHAgQIECBAgIghphKiqUQsna+6HxAgQIAAAQLE5yB2A+smPlMJHggQIECAAAHi8xBpweRUgQYECBAgQIAA8TmIqcRm96DH6evXOl0gQIAAAQLEF0OkjZW/ev3aAAECBAgQIL4Y4m6OLly63j08QIAAAQIECBD5PtJAdhs1U0CrwtDu/cf4QIAAAQIECBDb61cTpmpA1QMh1YJLmvCVM0sQIECAAAECxLIekW6gGmgXuBrX9vwgQIAAAQIEiO35T22oGkh349UDIyBAgAABAgSIc/+HlRZI0ufTxk9a+Nk+6AICBAgQIECAWEKkCdBUYaVbwJl6QSBAgAABAgSI/efTgki34LGb6FQ/r47tChUIECBAgAAB4hEi3WD1+2kec6rBc6VfBAECBAgQIEC0f/hRDWi6wJM2jkCAAAECBAgQfYhqASQtnKQFlPTASVxwAgECBAgQIEDEEGlA3cZPer8LBQIECBAgQIDoQ6Qbqo7uOt3C0NgAAQIECBAgQMQJSDXQ6nxVmOl5QIAAAQIECBB9iKmGz1uFoOqBEhAgQIAAAQJEH6LbCKkmPFMvoHtABQQIECBAgAAxBzEVQDrvVCNpFwAECBAgQIAA0Yc4dY4ibbycCnz8JA0IECBAgADxxRDTCctugSUtpHQbT9sFGRAgQIAAAQLEEqKbmFSBpgo33RcwBgICBAgQIECAuKoJ1NsNl+r9+E2DAAECBAgQIMY7QNVEqJtQVdcd63SBAAECBAgQIF6HSBOxakJUjRMECBAgQIAA8X8gqoWfauJVbeyAAAECBAgQIN6D6DZ40sJI2sDpxnHsoAgIECBAgADxRRCnzlOcSpyqcVbXAwECBAgQIEAsIX4ApkhGwSYpBDgAAAAASUVORK5CYII=";
+  // 分享卡右下角二维码：两套站点各一张，按当前站点挑（同一份 HTML 服务两套域名）。
+  // 只内嵌一条 Pages 码会让镜像导出的卡也扫回 github.io —— 国内实测首字节 9.9s、三次两次 5s 断。
+  var QR_PAGES = { uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQgAAAEICAAAAACGnTUjAAAC0klEQVR42u3cQY7DIAwF0Nz/0pn9SBH426Qz6mOXJgXzsrFs2usKx/1r7D5fvX6a/34Y19sDBAgQIECAAPE48dNCq+sqzApgBbV7fwkHAgQIECBAgIghphKiqUQsna+6HxAgQIAAAQLE5yB2A+smPlMJHggQIECAAAHi8xBpweRUgQYECBAgQIAA8TmIqcRm96DH6evXOl0gQIAAAQLEF0OkjZW/ev3aAAECBAgQIL4Y4m6OLly63j08QIAAAQIECBD5PtJAdhs1U0CrwtDu/cf4QIAAAQIECBDb61cTpmpA1QMh1YJLmvCVM0sQIECAAAECxLIekW6gGmgXuBrX9vwgQIAAAQIEiO35T22oGkh349UDIyBAgAABAgSIc/+HlRZI0ufTxk9a+Nk+6AICBAgQIECAWEKkCdBUYaVbwJl6QSBAgAABAgSI/efTgki34LGb6FQ/r47tChUIECBAgAAB4hEi3WD1+2kec6rBc6VfBAECBAgQIEC0f/hRDWi6wJM2jkCAAAECBAgQfYhqASQtnKQFlPTASVxwAgECBAgQIEDEEGlA3cZPer8LBQIECBAgQIDoQ6Qbqo7uOt3C0NgAAQIECBAgQMQJSDXQ6nxVmOl5QIAAAQIECBB9iKmGz1uFoOqBEhAgQIAAAQJEH6LbCKkmPFMvoHtABQQIECBAgAAxBzEVQDrvVCNpFwAECBAgQIAA0Yc4dY4ibbycCnz8JA0IECBAgADxxRDTCctugSUtpHQbT9sFGRAgQIAAAQLEEqKbmFSBpgo33RcwBgICBAgQIECAuKoJ1NsNl+r9+E2DAAECBAgQIMY7QNVEqJtQVdcd63SBAAECBAgQIF6HSBOxakJUjRMECBAgQIAA8X8gqoWfauJVbeyAAAECBAgQIN6D6DZ40sJI2sDpxnHsoAgIECBAgADxRRCnzlOcSpyqcVbXAwECBAgQIEAsIX4ApkhGwSYpBDgAAAAASUVORK5CYII=", modules: 33, url: "https://tianwenzzzh.github.io/mcd-universe/demo/" };
+  var QR_MIRROR = { uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOgAAADoCAAAAADAwvekAAACKUlEQVR42u3cOXIDMQwEQP3/03LiyAmJAaDD1cx07bKRLA6WHo9wPX9X9fXf90/Xr/5ufIGCgoKCghY2flqnjd9u8PR+NXDXgQEFBQUFBV2EbiUI1UShCr/2gIKCgoKCfhB0KrG4rZNBQUFBQUH/I7R8w2IBDgoKCgoK+g3QaiKQzlvThvXbOvWgoKCgoKD3feS1A1VTr1+2QEFBQUFBLzbcXdXA3Daqp/YJCgoKCgq6Aa0WttON7WrhnRbuoKCgoKCgm9Bq3dr9ftq4rjbIQUFBQUFBN6G3D/apBnY1MekOokFBQUFBQTeh6ca6BXW38F5rYIOCgoKCgg7Mb7uV+m2ikQZ2akANCgoKCgo6CU0L4/RB3x30xh16UFBQUFDQQejUA776eXq/9L6goKCgoKCvgHZvWD2INZUwxJ16UFBQUFDQAJoWtulAd+v3x8CCgoKCgoIuQqcGrO+GtjvzoKCgoKCgwQD4Fj5dqKfXrQYMFBQUFBR0A9pNCNKAVAv72+f/dQMbFBQUFBR0AFoFdQ9OrRXSYcIBCgoKCgragT6ba7oRnhbwx+uAgoKCgoIuQF+WgSwV8GkgQEFBQUFBJ6FpgtBNBKYgoKCgoKCgnwCtbiQd5HYHv/EgGBQUFBQU9IugVVg3ITg2BEBBQUFBQT8IOrWRdADd7ryDgoKCgoIOQtMGdndQXE042oU3KCgoKCjo4h9PpAeqqoGaOpA1DgQFBQUFBT1DfwBIN9voVsUxoAAAAABJRU5ErkJggg==", modules: 29, url: "http://47.114.38.125/mcd/demo/" };
+  var QR = /(^|\.)github\.io$/.test(location.hostname) ? QR_PAGES : QR_MIRROR;
   var qrImg = new Image();
-  qrImg.src = QR_URI;
+  qrImg.src = QR.uri;
   var ROT_SPEED = 0.000012;
   // 视图状态：用户拖拽旋转 / 滚轮缩放 / 鼠标视差
   var view = { userRot: 0, zoom: 1, px: 0, py: 0 };
@@ -1686,8 +1689,15 @@
     return ec;
   }
 
-  function drawCardQR(ex, q, th) {
-    if (!(qrImg.complete && qrImg.naturalWidth)) return;
+  // 静区按模块算，不按像素猜：规范要 4 个模块（ISO/IEC 18004）。
+  // 旧写法 s*0.057 在 140px 的框上只给 8px，33 版（模块 3.8px）合成 2.1 个模块，
+  // 卡缩到 540px 宽解不出来 —— 扫不出来的码等于没印。
+  var QR_QUIET = 4;
+  function qrInset(size) {
+    return Math.ceil((QR_QUIET * size) / (QR.modules + 2 * QR_QUIET));
+  }
+
+  function drawCardQR(ex, q, th) {    if (!(qrImg.complete && qrImg.naturalWidth)) return;
     var s = q.size || 140;
     ex.textAlign = "center";
     if (q.label) {
@@ -1696,10 +1706,11 @@
       ex.fillStyle = "rgba(255,233,168,.72)"; ex.font = cardFont(q.labelSize || 21);
       ex.fillText("扫码生成你的", q.x + s / 2, q.label);
     }
+    // 白框半径必须小于静区，否则圆角会啃掉定位符的角（12 与 8 只差 4px 时啃进去半个模块）
+    var in3 = qrInset(s);
     ex.fillStyle = "#ffffff";
-    if (ex.roundRect) { ex.beginPath(); ex.roundRect(q.x, q.y, s, s, 12); ex.fill(); }
+    if (ex.roundRect) { ex.beginPath(); ex.roundRect(q.x, q.y, s, s, Math.min(12, in3 - 2)); ex.fill(); }
     else { ex.fillRect(q.x, q.y, s, s); }
-    var in3 = Math.round(s * 0.057);
     ex.drawImage(qrImg, q.x + in3, q.y + in3, s - in3 * 2, s - in3 * 2);
   }
 
@@ -2221,6 +2232,7 @@
     composeCard: composeCard,
     buildStarmap: modelBuild,
     // 版式规格与裁切窗口都给测试：卡片的几何断言不靠"再抄一遍常数"
+    qrInfo: function () { return { url: QR.url, modules: QR.modules, quiet: QR_QUIET }; },
     cardLayout: cardLayout,
     cardClip: cardClip,
     wrapLines: wrapLines,

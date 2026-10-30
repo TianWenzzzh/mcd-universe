@@ -1,6 +1,9 @@
 # 开发依赖（运行时零依赖，仅 stdlib）
 ruff>=0.8
 pytest>=8.0
+# 分享卡二维码：scripts/make_qr.py 生成，tests/test_share_qr.py 按声明的 url 重编一遍做字节比对
+# 大版本会动掩码选择（同一串 url 编出不同的图），比对比的是字节，所以要卡住上界
+qrcode>=8.0,<9
 
 # 镜像同步（仅开发机需要）
 paramiko>=3.0

@@ -35,6 +35,9 @@ const TEXT_REGIONS = {
 };
 const MIN_QR_GAP = 20;
 const MIN_BOTTOM = 48;
+// 静区按 ISO/IEC 18004 要 4 个模块；模块边长低于 3px 时缩到一屏宽就糊成一团
+const MIN_QR_QUIET = 4;
+const MIN_QR_MODULE = 3;
 
 function auditInPage({ style, INK_LUM, VOID_RATIO, VOID_MAX, regions }) {
   const mc = window.__mcuniverse;
@@ -75,7 +78,34 @@ function auditInPage({ style, INK_LUM, VOID_RATIO, VOID_MAX, regions }) {
   const qrGap = L.desc && q.x > 540 ? Math.round(q.x - (540 + L.desc.maxW / 2)) : null;
   // 脚注字脚（descender 按 0.25em 估）到下沿的余量
   const bottomGap = Math.round(1440 - (L.footer + L.footerSize * 0.25));
-  return { style, voids, qrGap, bottomGap, png: ec.toDataURL("image/png").split(",")[1] };
+
+  // 二维码能不能扫：白框的内缩就是静区，换算成模块数才和规范可比。
+  // 沿框的中线取首个/末个黑像素 —— 圆角会让四个角本来就是底色，用角会量成 0。
+  const lum = (x, y) => {
+    const i = (y * 1080 + x) * 4;
+    return 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
+  };
+  const qi = mc.qrInfo();
+  const qs = Math.round(q.size);
+  const qx = Math.round(q.x);
+  const qy = Math.round(q.y);
+  const mid = qs >> 1;
+  let hx0 = -1, hx1 = -1, hy0 = -1, hy1 = -1;
+  for (let i = 0; i < qs; i++) {
+    if (lum(qx + i, qy + mid) < 128) { if (hx0 < 0) hx0 = i; hx1 = i; }
+    if (lum(qx + mid, qy + i) < 128) { if (hy0 < 0) hy0 = i; hy1 = i; }
+  }
+  const code = hx1 - hx0 + 1;
+  const modulePx = code / qi.modules;
+  const quiet = Math.min(hx0, hy0, qs - 1 - hx1, qs - 1 - hy1) / modulePx;
+  const pageIsPages = /(^|\.)github\.io$/.test(location.hostname);
+  const hostOk = pageIsPages ? /github\.io/.test(qi.url) : !/github\.io/.test(qi.url);
+
+  return {
+    style, voids, qrGap, bottomGap,
+    qr: { quiet, modulePx, code, inset: Math.min(hx0, hy0, qs - 1 - hx1, qs - 1 - hy1), url: qi.url, hostOk },
+    png: ec.toDataURL("image/png").split(",")[1],
+  };
 }
 
 const browser = await chromium.launch({ channel: "msedge", headless: true });
@@ -95,18 +125,22 @@ for (const style of ["deep", "nebula", "minimal", "achievement"]) {
 await browser.close();
 
 const pad = (s, n) => String(s).padEnd(n);
-console.log(pad("风格", 14) + pad("空洞带", 24) + pad("二维码→文字带", 16) + "脚注下边距");
+console.log(pad("风格", 14) + pad("空洞带", 24) + pad("二维码→文字带", 16) + pad("脚注下边距", 14) + "二维码");
 let bad = 0;
 for (const r of out) {
   const gapBad = r.qrGap !== null && r.qrGap < MIN_QR_GAP;
   const bottomBad = r.bottomGap < MIN_BOTTOM;
-  if (r.voids.length || gapBad || bottomBad) bad++;
+  const quietBad = r.qr.quiet < MIN_QR_QUIET;
+  const moduleBad = r.qr.modulePx < MIN_QR_MODULE;
+  const hostBad = !r.qr.hostOk;
+  if (r.voids.length || gapBad || bottomBad || quietBad || moduleBad || hostBad) bad++;
   console.log(
     pad(r.style, 14) +
     pad(r.voids.length ? r.voids.map((x) => `${x.from}-${x.to}(${x.h})`).join(" ") : "—", 24) +
     pad(r.qrGap === null ? "—" : `${r.qrGap}px${gapBad ? " 太挤" : ""}`, 16) +
-    `${r.bottomGap}px${bottomBad ? " 贴边" : ""}`,
+    pad(`${r.bottomGap}px${bottomBad ? " 贴边" : ""}`, 14) +
+    `静区 ${r.qr.quiet.toFixed(1)} 模块${quietBad ? " 太窄" : ""} · ${r.qr.modulePx.toFixed(2)}px/模块${moduleBad ? " 太小" : ""} · ${r.qr.url.replace(/^https?:\/\//, "")}${hostBad ? " 站点不符" : ""}`,
   );
 }
-console.log(bad ? `\n${bad} 张卡存在排版问题` : "\n四张卡排版体检通过");
+console.log(bad ? `\n${bad} 张卡存在排版或扫码问题` : "\n四张卡排版与扫码体检通过");
 process.exit(bad ? 1 : 0);
