@@ -697,3 +697,13 @@ toast 挂 `role="status"`；伪链接改真按钮；音效开关补 `aria-presse
 - 产物在仓库外 `输出/冲刺包/`：朋友圈文案-3版.md（情怀/产品/求互动，均带抖音视频链接与点赞+收藏邀请）、评论区置顶.md（镜像地址 + 最后一帧扫码两条路径）、朋友圈配图/mc-universe-1080x1440.png（已肉眼验收）、爆点9秒.mp4（22.6s 剪 8.9s：粒子开场→粘贴→生成→星座人格→分享卡，无音轨）。
 - 验证：ruff check/format 全绿、pytest 123 passed、静态检查 4 项 PASS、build_demo --check 同步；配图与 9s 联络表均肉眼复核。
 - 源视频 docs/assets/demo-vertical.mp4 只读未动。
+
+
+## 2026-10-31 冲刺 · 阶段 2：文档口径对齐（各 1 行，零产品改动）
+
+- docs/about.html：性能行「整页 128.7KB」→「整页 131.2KB」（实测 demo/index.html=134,396B，旧数字低估体积）。
+- README.md 首句 tagline 统一为宣言口径「把每一单麦当劳，变成一片只属于你的星空」。
+- 测试数：实测 123 passed（阶段 0/2 各复跑一次），README/about.html 的「123 条」正确，保持不动（交接稿"133"确认为误）。
+- 产品内 8 处 tagline（og/HUD/开场屏「你的每一单，都是麦门宇宙里的一颗星」）为产品文案，不在 P1 范围，未动。
+- 禁词扫描：产品与冲刺包零命中（"不涉及任何预测"为免责句，保留）。
+- 验证：ruff 全绿、pytest 123 passed、4 项静态检查 PASS、build_demo --check 同步、git diff --numstat 每文件 1 行（行尾无损）。
