@@ -662,9 +662,13 @@ async function checkPage(browser, url, opts) {
       stars: window.__mcuniverse.stars.length,
       persona: window.__mcuniverse.data.persona ? window.__mcuniverse.data.persona.name : null,
       badge: (document.getElementById("demo-badge").textContent || "").trim(),
+      ach: (document.getElementById("btn-ach") || {}).textContent || "",
       panel: document.getElementById("import-panel").classList.contains("show")
     }));
-    if (imported.stars !== 3) problems.push(`导入后应有 3 颗星，实际 ${imported.stars}`);
+    if (imported.stars !== 10) problems.push(`导入后应有 10 颗星，实际 ${imported.stars}`);
+    // 示例必须是"能看出产品完整度"的一份数据：单少、成就只亮一项的话，
+    // 评委点「填入示例」看到的画面会比首页演示更差。
+    if (!/6\s*\/\s*10/.test(imported.ach || "")) problems.push(`示例应解锁 6/10 项成就，实际「${imported.ach}」`);
     if (!imported.badge.includes("自定义")) problems.push(`导入后徽章未切换为自定义：${imported.badge}`);
     if (imported.panel) problems.push("导入后面板未关闭");
     state.imported = imported;
